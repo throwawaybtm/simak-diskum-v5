@@ -6,7 +6,8 @@
  * - Uses Core v3.0+ LEDC API: ledcAttach(pin, freq, res) and ledcWrite(pin, duty)
  * - Servo Pin: GPIO 4 (500us to 2400us pulse width at 50Hz, 14-bit resolution)
  * - Serial: 115200 baud, newline '\n' terminated
- * - Non-blocking state machines with millis() for SWEEP and CYCLE
+ * - Non-blocking state machines with millis() for MOVE, SWEEP, and CYCLE
+ * - Speed control (ms/deg) for both live manual movement and recorded sequence steps
  * - Sequence persistence in NVS via Preferences.h (up to 30 steps)
  */
 
@@ -25,22 +26,34 @@ static const uint32_t MAX_PULSE_US      = 2400;   // 180 degrees
 // Limits
 static const uint8_t MAX_STEPS = 30;
 
-// Step structure for sequence recorder
+// Step structure for sequence recorder (with transit speed in ms/deg)
 struct ServoStep {
-  uint16_t angle;    // 0 - 180 degrees
-  uint32_t wait_ms;  // Duration to stay at this angle
+  uint16_t angle;     // 0 - 180 degrees
+  uint16_t speed_ms;  // ms per degree (0 = instant, >0 = smooth interpolation)
+  uint32_t wait_ms;   // Duration to stay at this angle (dwell)
 };
 
 // Operating Modes
 enum StudioMode {
   MODE_IDLE,
-  MODE_SWEEP,
-  MODE_CYCLE
+  MODE_MOVE,          // Smooth live manual movement
+  MODE_SWEEP,         // Continuous oscillation
+  MODE_CYCLE          // Looping recorded sequence
+};
+
+enum CyclePhase {
+  CYCLE_PHASE_TRANSIT, // Moving to step target angle
+  CYCLE_PHASE_DWELL    // Waiting at target angle
 };
 
 // State Variables
 static StudioMode current_mode = MODE_IDLE;
-static uint16_t current_angle = 90;
+static uint16_t current_angle  = 90;
+
+// Live Move State
+static uint16_t live_target_angle = 90;
+static uint32_t live_speed_ms     = 0;
+static uint32_t last_move_time    = 0;
 
 // Sweep State
 static uint16_t sweep_min_angle = 0;
@@ -53,7 +66,8 @@ static uint32_t last_sweep_time = 0;
 static ServoStep sequence_steps[MAX_STEPS];
 static uint8_t   sequence_count = 0;
 static uint8_t   cycle_step_idx = 0;
-static uint32_t  cycle_step_start_time = 0;
+static CyclePhase cycle_phase   = CYCLE_PHASE_TRANSIT;
+static uint32_t  cycle_timer    = 0;
 
 // NVS Preferences
 static Preferences prefs;
@@ -114,20 +128,38 @@ static bool saveSequenceToNVS() {
 
 // Parse and process complete incoming command line
 static void processCommand(const char* cmd) {
-  // Ignore empty lines
+  // Ignore empty lines and leading whitespace
   while (*cmd == ' ' || *cmd == '\r' || *cmd == '\t') cmd++;
   if (*cmd == '\0') return;
 
-  // 1. Move Command: M:<angle>
+  // 1. Move Command: M:<angle> or M:<angle>,<speed_ms>
   if (strncmp(cmd, "M:", 2) == 0) {
-    int angle = atoi(cmd + 2);
-    if (angle < 0) angle = 0;
-    if (angle > 180) angle = 180;
+    int angle = 90;
+    int spd = 0;
+    int parsed = sscanf(cmd + 2, "%d,%d", &angle, &spd);
+    if (parsed >= 1) {
+      if (angle < 0) angle = 0;
+      if (angle > 180) angle = 180;
+      if (spd < 0) spd = 0;
 
-    current_mode = MODE_IDLE;
-    applyServoAngle((uint16_t)angle);
-    Serial.printf("OK:MOVED %d\n", angle);
-    return;
+      if (spd == 0) {
+        // Instant movement
+        current_mode = MODE_IDLE;
+        applyServoAngle((uint16_t)angle);
+        Serial.printf("OK:MOVED %d\n", angle);
+      } else {
+        // Smooth non-blocking movement
+        live_target_angle = (uint16_t)angle;
+        live_speed_ms     = (uint32_t)spd;
+        last_move_time    = millis();
+        current_mode      = MODE_MOVE;
+        Serial.printf("OK:MOVING %d,%d\n", angle, spd);
+      }
+      return;
+    } else {
+      Serial.println("ERR:INVALID_MOVE_FORMAT");
+      return;
+    }
   }
 
   // 2. Sweep Command: S:<min>,<max>,<speed_ms>
@@ -158,30 +190,44 @@ static void processCommand(const char* cmd) {
     }
   }
 
-  // 3. Record Sequence: REC:<ang1>,<wait1>;<ang2>,<wait2>;...
+  // 3. Record Sequence: REC:<ang1>,<spd1>,<wait1>;<ang2>,<spd2>,<wait2>;...
+  // Also supports 2-parameter legacy: REC:<ang1>,<wait1>;...
   if (strncmp(cmd, "REC:", 4) == 0) {
     const char* p = cmd + 4;
     uint8_t parsed_count = 0;
     ServoStep temp_steps[MAX_STEPS];
 
     while (*p != '\0' && parsed_count < MAX_STEPS) {
-      int ang = 0;
+      int ang = 0, spd = 0;
       unsigned long wt = 0;
       int consumed = 0;
 
-      if (sscanf(p, "%d,%lu%n", &ang, &wt, &consumed) >= 2) {
+      // Try 3 parameters: angle, speed_ms, wait_ms
+      if (sscanf(p, "%d,%d,%lu%n", &ang, &spd, &wt, &consumed) == 3 && consumed > 0) {
+        if (ang < 0) ang = 0;
+        if (ang > 180) ang = 180;
+        if (spd < 0) spd = 0;
+        temp_steps[parsed_count].angle = (uint16_t)ang;
+        temp_steps[parsed_count].speed_ms = (uint16_t)spd;
+        temp_steps[parsed_count].wait_ms = (uint32_t)wt;
+        parsed_count++;
+        p += consumed;
+      }
+      // Fallback 2 parameters: angle, wait_ms
+      else if (sscanf(p, "%d,%lu%n", &ang, &wt, &consumed) >= 2 && consumed > 0) {
         if (ang < 0) ang = 0;
         if (ang > 180) ang = 180;
         temp_steps[parsed_count].angle = (uint16_t)ang;
+        temp_steps[parsed_count].speed_ms = 0;
         temp_steps[parsed_count].wait_ms = (uint32_t)wt;
         parsed_count++;
-
         p += consumed;
-        if (*p == ';') {
-          p++; // Skip delimiter
-        } else {
-          break;
-        }
+      } else {
+        break;
+      }
+
+      if (*p == ';') {
+        p++; // Skip delimiter
       } else {
         break;
       }
@@ -212,8 +258,15 @@ static void processCommand(const char* cmd) {
     }
     current_mode = MODE_CYCLE;
     cycle_step_idx = 0;
-    cycle_step_start_time = millis();
-    applyServoAngle(sequence_steps[0].angle);
+    cycle_phase = CYCLE_PHASE_TRANSIT;
+    cycle_timer = millis();
+
+    // If step 0 has 0 speed, snap immediately
+    if (sequence_steps[0].speed_ms == 0) {
+      applyServoAngle(sequence_steps[0].angle);
+      cycle_phase = CYCLE_PHASE_DWELL;
+      cycle_timer = millis();
+    }
     Serial.printf("OK:CYCLE_STARTED %d\n", sequence_count);
     return;
   }
@@ -225,7 +278,7 @@ static void processCommand(const char* cmd) {
     return;
   }
 
-  // 6. Query status / unknown command
+  // 6. Query status
   if (strncmp(cmd, "STATUS?", 7) == 0) {
     Serial.printf("STATUS:MODE=%d,ANGLE=%d,STEPS=%d\n", (int)current_mode, current_angle, sequence_count);
     return;
@@ -264,16 +317,31 @@ void loop() {
       if (rx_idx < (SERIAL_BUF_SIZE - 1)) {
         serial_rx_buf[rx_idx++] = c;
       } else {
-        // Buffer overflow protection: reset index
-        rx_idx = 0;
+        rx_idx = 0; // Buffer overflow protection
       }
     }
   }
 
   uint32_t now = millis();
 
-  // Non-blocking Sweep State Machine
-  if (current_mode == MODE_SWEEP) {
+  // 1. Non-blocking Smooth Live Move State Machine
+  if (current_mode == MODE_MOVE) {
+    if (current_angle == live_target_angle) {
+      current_mode = MODE_IDLE;
+    } else if (now - last_move_time >= live_speed_ms) {
+      last_move_time = now;
+      if (current_angle < live_target_angle) {
+        applyServoAngle(current_angle + 1);
+      } else if (current_angle > live_target_angle) {
+        applyServoAngle(current_angle - 1);
+      }
+      if (current_angle == live_target_angle) {
+        current_mode = MODE_IDLE;
+      }
+    }
+  }
+  // 2. Non-blocking Sweep State Machine
+  else if (current_mode == MODE_SWEEP) {
     if (now - last_sweep_time >= sweep_speed_ms) {
       last_sweep_time = now;
       int next_angle = (int)current_angle + sweep_dir;
@@ -287,14 +355,35 @@ void loop() {
       applyServoAngle((uint16_t)next_angle);
     }
   }
-  // Non-blocking Cycle State Machine
+  // 3. Non-blocking Cycle State Machine (Transit + Dwell)
   else if (current_mode == MODE_CYCLE) {
     if (sequence_count > 0) {
-      if (now - cycle_step_start_time >= sequence_steps[cycle_step_idx].wait_ms) {
-        // Advance to next step in sequence (looping)
-        cycle_step_idx = (cycle_step_idx + 1) % sequence_count;
-        cycle_step_start_time = now;
-        applyServoAngle(sequence_steps[cycle_step_idx].angle);
+      ServoStep* step = &sequence_steps[cycle_step_idx];
+
+      if (cycle_phase == CYCLE_PHASE_TRANSIT) {
+        if (step->speed_ms == 0 || current_angle == step->angle) {
+          applyServoAngle(step->angle);
+          cycle_phase = CYCLE_PHASE_DWELL;
+          cycle_timer = now;
+        } else if (now - cycle_timer >= step->speed_ms) {
+          cycle_timer = now;
+          if (current_angle < step->angle) {
+            applyServoAngle(current_angle + 1);
+          } else if (current_angle > step->angle) {
+            applyServoAngle(current_angle - 1);
+          }
+          if (current_angle == step->angle) {
+            cycle_phase = CYCLE_PHASE_DWELL;
+            cycle_timer = now;
+          }
+        }
+      } else if (cycle_phase == CYCLE_PHASE_DWELL) {
+        if (now - cycle_timer >= step->wait_ms) {
+          // Advance to next step
+          cycle_step_idx = (cycle_step_idx + 1) % sequence_count;
+          cycle_phase = CYCLE_PHASE_TRANSIT;
+          cycle_timer = now;
+        }
       }
     }
   }
