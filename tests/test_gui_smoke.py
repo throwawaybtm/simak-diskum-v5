@@ -32,12 +32,17 @@ class TestGuiSmoke(unittest.TestCase):
 
     def test_console_formatter(self):
         from src.gui import format_console_message
-        tx_msg = format_console_message("M:90", is_tx=True)
-        rx_msg = format_console_message("OK:MOVED 90", is_tx=False)
+        tx_msg = format_console_message("M:90,20", is_tx=True)
+        rx_msg = format_console_message("OK:MOVING 90,20", is_tx=False)
         self.assertTrue(tx_msg.startswith("→"))
-        self.assertIn("M:90", tx_msg)
+        self.assertIn("M:90,20", tx_msg)
         self.assertTrue(rx_msg.startswith("←"))
-        self.assertIn("OK:MOVED 90", rx_msg)
+        self.assertIn("OK:MOVING 90,20", rx_msg)
+
+    def test_move_command_formatting(self):
+        from src.gui import format_move_command
+        self.assertEqual(format_move_command(90, 0), "M:90,0")
+        self.assertEqual(format_move_command(180, 25), "M:180,25")
 
 if __name__ == "__main__":
     unittest.main()

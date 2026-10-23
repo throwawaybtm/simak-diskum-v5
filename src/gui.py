@@ -20,6 +20,11 @@ def format_console_message(text: str, is_tx: bool) -> str:
     return f"{arrow} [{timestamp}] {text}"
 
 
+def format_move_command(angle: int, speed_ms: int = 0) -> str:
+    """Format M:<angle>,<speed_ms> command string."""
+    return f"M:{int(angle)},{int(speed_ms)}"
+
+
 class SliderThrottler:
     """Throttles high-frequency slider moves to avoid flooding serial bus."""
     def __init__(self, interval_ms: int = 30, send_func: Optional[Callable[[int], None]] = None):
@@ -65,8 +70,8 @@ class ServoStudioApp(ctk.CTk):
         super().__init__()
 
         self.title("ESP32-C6 Servo Studio")
-        self.geometry("980x780")
-        self.minsize(850, 680)
+        self.geometry("1020x820")
+        self.minsize(880, 700)
 
         ctk.set_appearance_mode("Dark")
         ctk.set_default_color_theme("blue")
@@ -167,7 +172,7 @@ class ServoStudioApp(ctk.CTk):
         header = ctk.CTkLabel(left_frame, text="Live Control & Sweep", font=ctk.CTkFont(size=15, weight="bold"))
         header.pack(anchor="w", padx=14, pady=(12, 6))
 
-        # --- Manual Angle Slider ---
+        # --- Manual Angle Slider & Live Speed Control ---
         slider_box = ctk.CTkFrame(left_frame, fg_color="#1E1E1E", corner_radius=6)
         slider_box.pack(fill="x", padx=12, pady=6)
 
@@ -185,11 +190,11 @@ class ServoStudioApp(ctk.CTk):
             command=self._on_slider_moved
         )
         self.angle_slider.set(90)
-        self.angle_slider.pack(fill="x", padx=10, pady=(2, 8))
+        self.angle_slider.pack(fill="x", padx=10, pady=(2, 6))
 
         # Quick angle buttons (0°, 45°, 90°, 135°, 180°)
         quick_btns_box = ctk.CTkFrame(slider_box, fg_color="transparent")
-        quick_btns_box.pack(fill="x", padx=10, pady=(0, 10))
+        quick_btns_box.pack(fill="x", padx=10, pady=(0, 8))
         for deg in [0, 45, 90, 135, 180]:
             btn = ctk.CTkButton(
                 quick_btns_box,
@@ -197,6 +202,35 @@ class ServoStudioApp(ctk.CTk):
                 width=45,
                 height=26,
                 command=lambda d=deg: self._set_angle_direct(d)
+            )
+            btn.pack(side="left", expand=True, padx=2)
+
+        # --- Live Speed Control ---
+        speed_top = ctk.CTkFrame(slider_box, fg_color="transparent")
+        speed_top.pack(fill="x", padx=10, pady=(6, 2))
+        ctk.CTkLabel(speed_top, text="Live Move Speed (ms/deg):").pack(side="left")
+        self.live_speed_lbl = ctk.CTkLabel(speed_top, text="Instant (0 ms)", font=ctk.CTkFont(weight="bold"), text_color="#81C784")
+        self.live_speed_lbl.pack(side="right")
+
+        self.live_speed_slider = ctk.CTkSlider(
+            slider_box,
+            from_=0,
+            to=100,
+            number_of_steps=100,
+            command=self._on_live_speed_changed
+        )
+        self.live_speed_slider.set(0)
+        self.live_speed_slider.pack(fill="x", padx=10, pady=(2, 6))
+
+        # Quick speed presets (0 = Instant, 10 = Fast, 25 = Med, 50 = Slow)
+        quick_spd_box = ctk.CTkFrame(slider_box, fg_color="transparent")
+        quick_spd_box.pack(fill="x", padx=10, pady=(0, 10))
+        for spd_label, spd_val in [("Instant", 0), ("Fast (10ms)", 10), ("Med (25ms)", 25), ("Slow (50ms)", 50)]:
+            btn = ctk.CTkButton(
+                quick_spd_box,
+                text=spd_label,
+                height=24,
+                command=lambda v=spd_val: self._set_live_speed_direct(v)
             )
             btn.pack(side="left", expand=True, padx=2)
 
@@ -250,7 +284,7 @@ class ServoStudioApp(ctk.CTk):
 
         self.stop_sweep_btn = ctk.CTkButton(
             sweep_btn_box,
-            text="Stop Sweep",
+            text="Stop Motion",
             command=self._stop_motion,
             fg_color="#D32F2F",
             hover_color="#C62828"
@@ -270,6 +304,7 @@ class ServoStudioApp(ctk.CTk):
         step_input_box = ctk.CTkFrame(right_frame, fg_color="#1E1E1E", corner_radius=6)
         step_input_box.pack(fill="x", padx=12, pady=6)
 
+        # Row 1: Capture live angle with speed and wait
         capture_row = ctk.CTkFrame(step_input_box, fg_color="transparent")
         capture_row.pack(fill="x", padx=10, pady=(8, 4))
         
@@ -282,27 +317,41 @@ class ServoStudioApp(ctk.CTk):
         )
         self.capture_btn.pack(side="left", expand=True, fill="x", padx=(0, 6))
 
-        ctk.CTkLabel(capture_row, text="Wait:").pack(side="left", padx=(4, 2))
-        self.step_wait_entry = ctk.CTkEntry(capture_row, width=65)
+        ctk.CTkLabel(capture_row, text="Spd:").pack(side="left", padx=(2, 2))
+        self.step_speed_entry = ctk.CTkEntry(capture_row, width=48)
+        self.step_speed_entry.insert(0, "20")
+        self.step_speed_entry.pack(side="left")
+        ctk.CTkLabel(capture_row, text="ms").pack(side="left", padx=(2, 4))
+
+        ctk.CTkLabel(capture_row, text="Wait:").pack(side="left", padx=(2, 2))
+        self.step_wait_entry = ctk.CTkEntry(capture_row, width=54)
         self.step_wait_entry.insert(0, "500")
         self.step_wait_entry.pack(side="left")
         ctk.CTkLabel(capture_row, text="ms").pack(side="left", padx=(2, 0))
 
-        # Custom Step Row
+        # Row 2: Custom Step Row (Angle, Speed, Wait)
         custom_row = ctk.CTkFrame(step_input_box, fg_color="transparent")
         custom_row.pack(fill="x", padx=10, pady=(4, 8))
-        ctk.CTkLabel(custom_row, text="Custom Angle:").pack(side="left")
-        self.custom_angle_entry = ctk.CTkEntry(custom_row, width=50)
+        
+        ctk.CTkLabel(custom_row, text="Custom:").pack(side="left", padx=(0, 2))
+        self.custom_angle_entry = ctk.CTkEntry(custom_row, width=45)
         self.custom_angle_entry.insert(0, "90")
-        self.custom_angle_entry.pack(side="left", padx=4)
+        self.custom_angle_entry.pack(side="left", padx=2)
+        ctk.CTkLabel(custom_row, text="°").pack(side="left", padx=(0, 4))
 
-        ctk.CTkLabel(custom_row, text="Wait:").pack(side="left", padx=(6, 2))
-        self.custom_wait_entry = ctk.CTkEntry(custom_row, width=65)
+        ctk.CTkLabel(custom_row, text="Spd:").pack(side="left", padx=(2, 2))
+        self.custom_speed_entry = ctk.CTkEntry(custom_row, width=45)
+        self.custom_speed_entry.insert(0, "20")
+        self.custom_speed_entry.pack(side="left", padx=2)
+        ctk.CTkLabel(custom_row, text="ms").pack(side="left", padx=(0, 4))
+
+        ctk.CTkLabel(custom_row, text="Wait:").pack(side="left", padx=(2, 2))
+        self.custom_wait_entry = ctk.CTkEntry(custom_row, width=52)
         self.custom_wait_entry.insert(0, "500")
-        self.custom_wait_entry.pack(side="left", padx=4)
+        self.custom_wait_entry.pack(side="left", padx=2)
         ctk.CTkLabel(custom_row, text="ms").pack(side="left", padx=(0, 6))
 
-        self.add_custom_btn = ctk.CTkButton(custom_row, text="Add Step", width=75, command=self._add_custom_step)
+        self.add_custom_btn = ctk.CTkButton(custom_row, text="Add Step", width=70, command=self._add_custom_step)
         self.add_custom_btn.pack(side="right")
 
         # --- Recorded Steps Table / List ---
@@ -462,11 +511,22 @@ class ServoStudioApp(ctk.CTk):
     def _on_serial_line_received(self, line: str) -> None:
         self.after(0, self.log_message, line, False)
 
-    # Manual Live Angle
+    # Manual Live Angle & Speed
     def _on_slider_moved(self, value: float) -> None:
         angle = int(round(value))
         self.angle_display.configure(text=f"{angle}°")
         self.slider_throttler.on_angle_change(angle)
+
+    def _on_live_speed_changed(self, value: float) -> None:
+        spd = int(round(value))
+        if spd == 0:
+            self.live_speed_lbl.configure(text="Instant (0 ms)", text_color="#81C784")
+        else:
+            self.live_speed_lbl.configure(text=f"{spd} ms/deg", text_color="#64B5F6")
+
+    def _set_live_speed_direct(self, speed_ms: int) -> None:
+        self.live_speed_slider.set(speed_ms)
+        self._on_live_speed_changed(speed_ms)
 
     def _set_angle_direct(self, angle: int) -> None:
         self.angle_slider.set(angle)
@@ -474,7 +534,8 @@ class ServoStudioApp(ctk.CTk):
         self._send_manual_angle(angle)
 
     def _send_manual_angle(self, angle: int) -> None:
-        cmd = f"M:{angle}"
+        spd = int(round(self.live_speed_slider.get()))
+        cmd = format_move_command(angle, spd)
         if self.serial_mgr.is_connected():
             self.serial_mgr.send_command(cmd)
             self.log_message(cmd, is_tx=True)
@@ -516,11 +577,16 @@ class ServoStudioApp(ctk.CTk):
     def _capture_current_angle(self) -> None:
         angle = int(round(self.angle_slider.get()))
         try:
+            speed_ms = int(self.step_speed_entry.get().strip())
+        except ValueError:
+            speed_ms = 20
+
+        try:
             wait_ms = int(self.step_wait_entry.get().strip())
         except ValueError:
             wait_ms = 500
 
-        if not self.seq_model.add_step(angle, wait_ms):
+        if not self.seq_model.add_step(angle=angle, speed_ms=speed_ms, wait_ms=wait_ms):
             messagebox.showwarning("Limit Reached", "Cannot add step. Maximum 30 steps reached or invalid values.")
             return
 
@@ -529,19 +595,23 @@ class ServoStudioApp(ctk.CTk):
     def _add_custom_step(self) -> None:
         try:
             angle = int(self.custom_angle_entry.get().strip())
+            speed_ms = int(self.custom_speed_entry.get().strip())
             wait_ms = int(self.custom_wait_entry.get().strip())
         except ValueError:
-            messagebox.showerror("Input Error", "Please enter valid integers for Angle and Wait Duration.")
+            messagebox.showerror("Input Error", "Please enter valid integers for Angle, Speed, and Wait Duration.")
             return
 
         if not (0 <= angle <= 180):
             messagebox.showerror("Angle Error", "Angle must be between 0 and 180 degrees.")
             return
+        if speed_ms < 0:
+            messagebox.showerror("Speed Error", "Speed must be 0 ms/deg or greater.")
+            return
         if wait_ms < 0:
             messagebox.showerror("Wait Error", "Wait duration must be 0 ms or greater.")
             return
 
-        if not self.seq_model.add_step(angle, wait_ms):
+        if not self.seq_model.add_step(angle=angle, speed_ms=speed_ms, wait_ms=wait_ms):
             messagebox.showwarning("Limit Reached", "Cannot add step. Maximum 30 steps reached.")
             return
 
@@ -568,19 +638,23 @@ class ServoStudioApp(ctk.CTk):
             empty_lbl.pack(pady=20)
             return
 
-        # Render each step row
+        # Render each step row: Index | Angle | Speed | Wait | [✕]
         for i, step in enumerate(steps):
             row = ctk.CTkFrame(self.steps_scroll, fg_color="#2A2A2A", corner_radius=4)
             row.pack(fill="x", padx=4, pady=2)
 
-            num_lbl = ctk.CTkLabel(row, text=f"#{i+1:02d}", width=35, font=ctk.CTkFont(weight="bold"))
+            num_lbl = ctk.CTkLabel(row, text=f"#{i+1:02d}", width=30, font=ctk.CTkFont(weight="bold"))
             num_lbl.pack(side="left", padx=4)
 
-            ang_lbl = ctk.CTkLabel(row, text=f"Angle: {step.angle:3d}°", width=80)
-            ang_lbl.pack(side="left", padx=6)
+            ang_lbl = ctk.CTkLabel(row, text=f"{step.angle:3d}°", width=50, font=ctk.CTkFont(weight="bold"), text_color="#64B5F6")
+            ang_lbl.pack(side="left", padx=4)
 
-            wait_lbl = ctk.CTkLabel(row, text=f"Wait: {step.wait_ms:4d} ms", width=100)
-            wait_lbl.pack(side="left", padx=6)
+            spd_text = f"Spd: {step.speed_ms} ms/deg" if step.speed_ms > 0 else "Spd: Instant"
+            spd_lbl = ctk.CTkLabel(row, text=spd_text, width=95)
+            spd_lbl.pack(side="left", padx=4)
+
+            wait_lbl = ctk.CTkLabel(row, text=f"Wait: {step.wait_ms} ms", width=95)
+            wait_lbl.pack(side="left", padx=4)
 
             del_btn = ctk.CTkButton(
                 row,
