@@ -10,7 +10,8 @@ from typing import List, Optional
 @dataclass
 class ServoStep:
     angle: int       # 0 - 180 degrees
-    wait_ms: int     # >= 0 ms
+    speed_ms: int    # ms per degree (0 = instant, >0 = smooth)
+    wait_ms: int     # >= 0 ms dwell duration
 
 
 class SequenceModel:
@@ -25,16 +26,22 @@ class SequenceModel:
     def count(self) -> int:
         return len(self._steps)
 
-    def add_step(self, angle: int, wait_ms: int) -> bool:
+    def add_step(self, angle: int, speed_ms: int = 0, wait_ms: int = 500) -> bool:
         """Add a step with boundary checks. Max 30 steps."""
         if len(self._steps) >= self.MAX_STEPS:
             return False
         if not (0 <= angle <= 180):
             return False
+        if speed_ms < 0:
+            return False
         if wait_ms < 0:
             return False
 
-        self._steps.append(ServoStep(angle=int(angle), wait_ms=int(wait_ms)))
+        self._steps.append(ServoStep(
+            angle=int(angle),
+            speed_ms=int(speed_ms),
+            wait_ms=int(wait_ms)
+        ))
         return True
 
     def delete_step(self, index: int) -> bool:
@@ -49,16 +56,16 @@ class SequenceModel:
         self._steps.clear()
 
     def to_protocol_string(self) -> str:
-        """Format steps as REC:<angle1>,<wait1>;<angle2>,<wait2>;..."""
+        """Format steps as REC:<angle1>,<speed1>,<wait1>;<angle2>,<speed2>,<wait2>;..."""
         if not self._steps:
             return ""
-        step_strs = [f"{s.angle},{s.wait_ms}" for s in self._steps]
+        step_strs = [f"{s.angle},{s.speed_ms},{s.wait_ms}" for s in self._steps]
         return "REC:" + ";".join(step_strs)
 
     def save_to_json(self, filepath: str) -> None:
         """Save current sequence to JSON file."""
         data = {
-            "version": 1,
+            "version": 2,
             "target": "ESP32-C6",
             "steps": [asdict(s) for s in self._steps]
         }
@@ -66,7 +73,7 @@ class SequenceModel:
             json.dump(data, f, indent=2)
 
     def load_from_json(self, filepath: str) -> None:
-        """Load sequence from JSON file."""
+        """Load sequence from JSON file with backward compatibility for v1 presets."""
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
 
@@ -74,6 +81,7 @@ class SequenceModel:
         self.clear()
         for s in raw_steps:
             angle = s.get("angle", 0)
+            speed_ms = s.get("speed_ms", 0)  # Default 0 (instant) for older presets
             wait_ms = s.get("wait_ms", 500)
-            if not self.add_step(angle, wait_ms):
+            if not self.add_step(angle, speed_ms, wait_ms):
                 break
