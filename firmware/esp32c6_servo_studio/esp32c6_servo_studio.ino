@@ -15,7 +15,7 @@
 #include <Preferences.h>
 
 // Hardware Pin and PWM Configuration
-static const uint8_t  SERVO_PIN         = 4;
+static const uint8_t  SERVO_PIN         = 7;
 static const uint32_t LEDC_FREQ_HZ      = 50;     // 50 Hz -> 20ms period
 static const uint8_t  LEDC_RESOLUTION   = 14;     // 14-bit resolution -> 0..16383
 static const uint32_t LEDC_MAX_DUTY     = (1UL << LEDC_RESOLUTION) - 1; // 16383

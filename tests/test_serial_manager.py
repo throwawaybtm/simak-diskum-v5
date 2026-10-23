@@ -75,5 +75,28 @@ class TestSerialManager(unittest.TestCase):
         self.assertTrue(res)
         mock_ser.write.assert_called_with(b"STOP:1\n")
 
+    @patch("serial.Serial")
+    def test_concurrent_read_does_not_block_is_connected(self, mock_serial_cls):
+        mock_ser = MagicMock()
+        mock_ser.is_open = True
+
+        # Simulate blocking readline (blocking for 0.2s)
+        def blocking_readline():
+            time.sleep(0.2)
+            return b""
+        mock_ser.readline = blocking_readline
+        mock_serial_cls.return_value = mock_ser
+
+        self.manager.connect("COM3", 115200)
+        time.sleep(0.05)  # Let reader thread enter blocking readline()
+
+        # is_connected() should be instantaneous (< 0.05s) even while readline is blocking
+        t0 = time.time()
+        for _ in range(5):
+            conn = self.manager.is_connected()
+            self.assertTrue(conn)
+        elapsed = time.time() - t0
+        self.assertLess(elapsed, 0.05, f"is_connected() blocked on readline lock: {elapsed:.3f}s")
+
 if __name__ == "__main__":
     unittest.main()

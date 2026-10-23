@@ -13,9 +13,11 @@ import serial.tools.list_ports
 class SerialManager:
     def __init__(self):
         self._serial: Optional[serial.Serial] = None
-        self._lock = threading.Lock()
+        self._conn_lock = threading.Lock()
+        self._write_lock = threading.Lock()
         self._write_queue: queue.Queue = queue.Queue()
         self._stop_event = threading.Event()
+        self._is_connected: bool = False
         
         self._reader_thread: Optional[threading.Thread] = None
         self._writer_thread: Optional[threading.Thread] = None
@@ -43,7 +45,7 @@ class SerialManager:
     def list_ports(self) -> List[Tuple[str, str]]:
         """
         List available serial ports on the system.
-        Returns list of (device_name, description) tuples, e.g. [('COM3', 'USB-SERIAL CH340')]
+        Returns list of (device_name, description) tuples.
         """
         ports = serial.tools.list_ports.comports()
         result = []
@@ -52,14 +54,14 @@ class SerialManager:
         return result
 
     def is_connected(self) -> bool:
-        with self._lock:
-            return self._serial is not None and self._serial.is_open
+        """Lock-free atomic check for connection state."""
+        return self._is_connected
 
     def connect(self, port: str, baudrate: int = 115200) -> bool:
         """Connect to the specified serial port with given baud rate."""
         self.disconnect()
 
-        with self._lock:
+        with self._conn_lock:
             try:
                 self._serial = serial.Serial(
                     port=port,
@@ -70,8 +72,10 @@ class SerialManager:
                 self._current_port = port
                 self._baudrate = baudrate
                 self._stop_event.clear()
+                self._is_connected = True
             except Exception as e:
                 self._serial = None
+                self._is_connected = False
                 self._notify_status(False, f"Connection failed: {e}")
                 return False
 
@@ -93,18 +97,20 @@ class SerialManager:
 
     def disconnect(self) -> None:
         """Disconnect safely from the serial port and stop worker threads."""
+        self._is_connected = False
         self._stop_event.set()
         
         # Put empty sentinel in queue to wake writer thread
         self._write_queue.put(None)
 
-        with self._lock:
-            if self._serial:
+        with self._conn_lock:
+            ser = self._serial
+            self._serial = None
+            if ser:
                 try:
-                    self._serial.close()
+                    ser.close()
                 except Exception:
                     pass
-                self._serial = None
 
         port = self._current_port
         self._current_port = ""
@@ -127,7 +133,24 @@ class SerialManager:
             return False
         if not command.endswith("\n"):
             command += "\n"
-        self._write_queue.put(command.encode("utf-8"))
+
+        cmd_bytes = command.encode("utf-8")
+
+        # For high-frequency live move commands (M:), collapse older pending M: commands
+        if command.startswith("M:"):
+            with self._conn_lock:
+                temp_items = []
+                while not self._write_queue.empty():
+                    try:
+                        item = self._write_queue.get_nowait()
+                        if item is not None and not item.startswith(b"M:"):
+                            temp_items.append(item)
+                    except queue.Empty:
+                        break
+                for item in temp_items:
+                    self._write_queue.put(item)
+
+        self._write_queue.put(cmd_bytes)
         return True
 
     def send_immediate(self, command: str) -> bool:
@@ -136,12 +159,13 @@ class SerialManager:
             return False
         if not command.endswith("\n"):
             command += "\n"
-        with self._lock:
-            if not self._serial or not self._serial.is_open:
+        with self._write_lock:
+            ser = self._serial
+            if not ser or not ser.is_open:
                 return False
             try:
-                self._serial.write(command.encode("utf-8"))
-                self._serial.flush()
+                ser.write(command.encode("utf-8"))
+                ser.flush()
                 return True
             except Exception as e:
                 self._handle_error(e)
@@ -159,10 +183,11 @@ class SerialManager:
                 item = self._write_queue.get(timeout=0.1)
                 if item is None:
                     break
-                with self._lock:
-                    if self._serial and self._serial.is_open:
-                        self._serial.write(item)
-                        self._serial.flush()
+                with self._write_lock:
+                    ser = self._serial
+                    if ser and ser.is_open:
+                        ser.write(item)
+                        ser.flush()
                 self._write_queue.task_done()
             except queue.Empty:
                 continue
@@ -171,14 +196,15 @@ class SerialManager:
                 break
 
     def _read_loop(self) -> None:
-        line_buffer = bytearray()
         while not self._stop_event.is_set():
             try:
-                with self._lock:
-                    ser = self._serial
-                    if not ser or not ser.is_open:
-                        break
-                    raw_bytes = ser.readline()
+                ser = self._serial
+                if not ser or not ser.is_open or not self._is_connected:
+                    time.sleep(0.02)
+                    continue
+
+                # Duplex read without holding any global connection lock!
+                raw_bytes = ser.readline()
 
                 if raw_bytes:
                     try:
@@ -190,5 +216,6 @@ class SerialManager:
                 else:
                     time.sleep(0.01)
             except Exception as e:
-                self._handle_error(e)
+                if not self._stop_event.is_set():
+                    self._handle_error(e)
                 break

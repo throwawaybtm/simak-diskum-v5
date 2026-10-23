@@ -26,7 +26,7 @@ def format_move_command(angle: int, speed_ms: int = 0) -> str:
 
 
 class SliderThrottler:
-    """Throttles high-frequency slider moves to avoid flooding serial bus."""
+    """Standalone throttler helper for decoupled unit testing."""
     def __init__(self, interval_ms: int = 30, send_func: Optional[Callable[[int], None]] = None):
         self.interval_sec = interval_ms / 1000.0
         self.send_func = send_func
@@ -83,17 +83,17 @@ class ServoStudioApp(ctk.CTk):
         self.serial_mgr.set_line_callback(self._on_serial_line_received)
         self.serial_mgr.set_status_callback(self._on_serial_status_changed)
 
-        # Throttler for manual live slider
-        self.slider_throttler = SliderThrottler(
-            interval_ms=30,
-            send_func=self._send_manual_angle
-        )
+        # Thread-safe UI-loop throttler state for live slider (30ms interval)
+        self._pending_live_angle: Optional[int] = None
+        self._last_live_send_time: float = 0.0
+        self._live_send_after_id: Optional[str] = None
+        self._last_live_log_time: float = 0.0
+        self._last_live_rx_log_time: float = 0.0
 
         self._build_ui()
         self._refresh_com_ports()
 
     def _build_ui(self) -> None:
-        # Main grid config
         self.grid_rowconfigure(0, weight=0)  # Top bar
         self.grid_rowconfigure(1, weight=1)  # Central panels
         self.grid_rowconfigure(2, weight=0)  # Console log
@@ -110,23 +110,18 @@ class ServoStudioApp(ctk.CTk):
         top_frame = ctk.CTkFrame(self, corner_radius=8)
         top_frame.grid(row=0, column=0, padx=12, pady=(12, 6), sticky="ew")
 
-        # Title Label
         title_lbl = ctk.CTkLabel(top_frame, text="ESP32-C6 Servo Studio", font=ctk.CTkFont(size=18, weight="bold"))
         title_lbl.pack(side="left", padx=14, pady=10)
 
-        # Port Dropdown
         self.port_combobox = ctk.CTkComboBox(top_frame, values=["Scanning..."], width=160)
         self.port_combobox.pack(side="left", padx=6, pady=10)
 
-        # Refresh Ports Button
         self.refresh_btn = ctk.CTkButton(top_frame, text="Refresh Ports", width=100, command=self._refresh_com_ports)
         self.refresh_btn.pack(side="left", padx=6, pady=10)
 
-        # Baud Rate Label
         baud_lbl = ctk.CTkLabel(top_frame, text="115200 Baud", font=ctk.CTkFont(size=12))
         baud_lbl.pack(side="left", padx=10, pady=10)
 
-        # Status Indicator Badge
         self.status_badge = ctk.CTkLabel(
             top_frame,
             text="Disconnected",
@@ -139,7 +134,6 @@ class ServoStudioApp(ctk.CTk):
         )
         self.status_badge.pack(side="right", padx=14, pady=10)
 
-        # Connect / Disconnect Toggle Button
         self.connect_btn = ctk.CTkButton(
             top_frame,
             text="Connect",
@@ -168,7 +162,6 @@ class ServoStudioApp(ctk.CTk):
         left_frame = ctk.CTkFrame(parent, corner_radius=8)
         left_frame.grid(row=0, column=0, padx=(0, 6), pady=0, sticky="nsew")
 
-        # Header
         header = ctk.CTkLabel(left_frame, text="Live Control & Sweep", font=ctk.CTkFont(size=15, weight="bold"))
         header.pack(anchor="w", padx=14, pady=(12, 6))
 
@@ -191,6 +184,8 @@ class ServoStudioApp(ctk.CTk):
         )
         self.angle_slider.set(90)
         self.angle_slider.pack(fill="x", padx=10, pady=(2, 6))
+        # Bind release event so final resting angle is always dispatched cleanly
+        self.angle_slider.bind("<ButtonRelease-1>", self._on_slider_released)
 
         # Quick angle buttons (0°, 45°, 90°, 135°, 180°)
         quick_btns_box = ctk.CTkFrame(slider_box, fg_color="transparent")
@@ -222,7 +217,6 @@ class ServoStudioApp(ctk.CTk):
         self.live_speed_slider.set(0)
         self.live_speed_slider.pack(fill="x", padx=10, pady=(2, 6))
 
-        # Quick speed presets (0 = Instant, 10 = Fast, 25 = Med, 50 = Slow)
         quick_spd_box = ctk.CTkFrame(slider_box, fg_color="transparent")
         quick_spd_box.pack(fill="x", padx=10, pady=(0, 10))
         for spd_label, spd_val in [("Instant", 0), ("Fast (10ms)", 10), ("Med (25ms)", 25), ("Slow (50ms)", 50)]:
@@ -296,7 +290,6 @@ class ServoStudioApp(ctk.CTk):
         right_frame = ctk.CTkFrame(parent, corner_radius=8)
         right_frame.grid(row=0, column=1, padx=(6, 0), pady=0, sticky="nsew")
 
-        # Header
         header = ctk.CTkLabel(right_frame, text="Sequence Recorder & Macro Builder", font=ctk.CTkFont(size=15, weight="bold"))
         header.pack(anchor="w", padx=14, pady=(12, 6))
 
@@ -465,10 +458,13 @@ class ServoStudioApp(ctk.CTk):
         self.after(0, self._append_to_console, formatted)
 
     def _append_to_console(self, text: str) -> None:
-        self.console_textbox.configure(state="normal")
-        self.console_textbox.insert("end", text + "\n")
-        self.console_textbox.see("end")
-        self.console_textbox.configure(state="disabled")
+        try:
+            self.console_textbox.configure(state="normal")
+            self.console_textbox.insert("end", text + "\n")
+            self.console_textbox.see("end")
+            self.console_textbox.configure(state="disabled")
+        except Exception:
+            pass
 
     def _clear_console(self) -> None:
         self.console_textbox.configure(state="normal")
@@ -509,13 +505,65 @@ class ServoStudioApp(ctk.CTk):
             self.connect_btn.configure(text="Connect", fg_color="#1976D2", hover_color="#1565C0")
 
     def _on_serial_line_received(self, line: str) -> None:
+        # Throttle high-frequency moving acknowledgements to avoid UI lag
+        if line.startswith("OK:MOVING"):
+            now = time.time()
+            if (now - self._last_live_rx_log_time) < 0.200:
+                return
+            self._last_live_rx_log_time = now
         self.after(0, self.log_message, line, False)
 
-    # Manual Live Angle & Speed
+    # -------------------------------------------------------------
+    # MANUAL LIVE ANGLE & SPEED (Native single-threaded UI throttle)
+    # -------------------------------------------------------------
     def _on_slider_moved(self, value: float) -> None:
         angle = int(round(value))
         self.angle_display.configure(text=f"{angle}°")
-        self.slider_throttler.on_angle_change(angle)
+        self._pending_live_angle = angle
+
+        now = time.time()
+        # If enough time has passed and no timer is running, dispatch immediately
+        if (now - self._last_live_send_time) >= 0.030 and self._live_send_after_id is None:
+            self._dispatch_live_angle()
+        elif self._live_send_after_id is None:
+            # Schedule execution on the UI thread without spawning background threads
+            delay_ms = max(1, int((0.030 - (now - self._last_live_send_time)) * 1000))
+            self._live_send_after_id = self.after(delay_ms, self._dispatch_live_angle)
+
+    def _dispatch_live_angle(self) -> None:
+        self._live_send_after_id = None
+        if self._pending_live_angle is None:
+            return
+
+        angle = self._pending_live_angle
+        self._pending_live_angle = None
+        self._last_live_send_time = time.time()
+
+        spd = int(round(self.live_speed_slider.get()))
+        cmd = format_move_command(angle, spd)
+
+        if self.serial_mgr.is_connected():
+            self.serial_mgr.send_command(cmd)
+            now = time.time()
+            if (now - self._last_live_log_time) >= 0.200:
+                self._last_live_log_time = now
+                self.log_message(cmd, is_tx=True)
+
+    def _on_slider_released(self, event=None) -> None:
+        """When user stops dragging slider, ensure latest angle is dispatched and logged."""
+        if self._live_send_after_id is not None:
+            try:
+                self.after_cancel(self._live_send_after_id)
+            except Exception:
+                pass
+            self._live_send_after_id = None
+
+        angle = int(round(self.angle_slider.get()))
+        spd = int(round(self.live_speed_slider.get()))
+        cmd = format_move_command(angle, spd)
+        if self.serial_mgr.is_connected():
+            self.serial_mgr.send_command(cmd)
+            self.log_message(cmd, is_tx=True)
 
     def _on_live_speed_changed(self, value: float) -> None:
         spd = int(round(value))
@@ -531,16 +579,15 @@ class ServoStudioApp(ctk.CTk):
     def _set_angle_direct(self, angle: int) -> None:
         self.angle_slider.set(angle)
         self.angle_display.configure(text=f"{angle}°")
-        self._send_manual_angle(angle)
-
-    def _send_manual_angle(self, angle: int) -> None:
         spd = int(round(self.live_speed_slider.get()))
         cmd = format_move_command(angle, spd)
         if self.serial_mgr.is_connected():
             self.serial_mgr.send_command(cmd)
             self.log_message(cmd, is_tx=True)
 
-    # Sweep Controls
+    # -------------------------------------------------------------
+    # SWEEP CONTROLS
+    # -------------------------------------------------------------
     def _update_sweep_labels(self, _=None) -> None:
         min_v = int(round(self.sweep_min_slider.get()))
         max_v = int(round(self.sweep_max_slider.get()))
@@ -573,7 +620,9 @@ class ServoStudioApp(ctk.CTk):
         else:
             self.log_message(cmd + " (offline)", is_tx=True)
 
-    # Sequence Recorder & Macro Builder
+    # -------------------------------------------------------------
+    # SEQUENCE RECORDER & MACRO BUILDER
+    # -------------------------------------------------------------
     def _capture_current_angle(self) -> None:
         angle = int(round(self.angle_slider.get()))
         try:
@@ -626,7 +675,6 @@ class ServoStudioApp(ctk.CTk):
         self._render_step_list()
 
     def _render_step_list(self) -> None:
-        # Clear previous rows in scrollable frame
         for widget in self.steps_scroll.winfo_children():
             widget.destroy()
 
@@ -638,7 +686,6 @@ class ServoStudioApp(ctk.CTk):
             empty_lbl.pack(pady=20)
             return
 
-        # Render each step row: Index | Angle | Speed | Wait | [✕]
         for i, step in enumerate(steps):
             row = ctk.CTkFrame(self.steps_scroll, fg_color="#2A2A2A", corner_radius=4)
             row.pack(fill="x", padx=4, pady=2)
