@@ -1,0 +1,24 @@
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
+
+# Superpowers scratch
+.superpowers/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.bak
+Thumbs.db
