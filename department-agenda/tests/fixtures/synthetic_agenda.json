@@ -1,0 +1,90 @@
+{
+  "Departments": [
+    { "department_id": "dept-1", "name": "Sekretariat", "active": true },
+    { "department_id": "dept-2", "name": "Bidang Koperasi", "active": true },
+    { "department_id": "dept-3", "name": "Bidang Usaha Mikro", "active": true }
+  ],
+  "Employees": [
+    { "employee_id": "emp-1", "full_name": "Dr. Hendri Arulan, S.Pd., M.M.", "position": "Kepala Dinas", "department_id": "dept-1", "active": true },
+    { "employee_id": "emp-2", "full_name": "Rahmat Sugiarto, S.E.", "position": "Sekretaris Dinas", "department_id": "dept-1", "active": true },
+    { "employee_id": "emp-3", "full_name": "Siti Nurhaliza, S.E.", "position": "Kepala Bidang Koperasi", "department_id": "dept-2", "active": true },
+    { "employee_id": "emp-4", "full_name": "Budi Santoso, S.Kom.", "position": "Kepala Bidang Usaha Mikro", "department_id": "dept-3", "active": true }
+  ],
+  "Locations": [
+    { "location_id": "loc-1", "name": "Ruang Rapat Kadis (Lantai 2)", "location_type": "OFFICE", "active": true },
+    { "location_id": "loc-2", "name": "Ruang Rapat Utama Diskum", "location_type": "OFFICE", "active": true },
+    { "location_id": "loc-3", "name": "Dataran Engku Putri, Kantor Wali Kota Batam", "location_type": "EXTERNAL", "active": true },
+    { "location_id": "loc-4", "name": "Zoom Cloud Meeting", "location_type": "ONLINE", "active": true }
+  ],
+  "Organizers": [
+    { "organizer_id": "org-1", "name": "Sekretariat Daerah Kota Batam", "active": true },
+    { "organizer_id": "org-2", "name": "Dinas Koperasi dan UKM Kota Batam", "active": true },
+    { "organizer_id": "org-3", "name": "Inspektorat Daerah Kota Batam", "active": true }
+  ],
+  "Categories": [
+    { "category_id": "cat-1", "name": "Upacara & Protokoler", "active": true },
+    { "category_id": "cat-2", "name": "Rapat Koordinasi", "active": true },
+    { "category_id": "cat-3", "name": "Sosialisasi & Pelatihan", "active": true },
+    { "category_id": "cat-4", "name": "Kunjungan Lapangan", "active": true }
+  ],
+  "Activities": [
+    {
+      "activity_id": "act-1",
+      "title": "Upacara Peringatan Hari Kesaktian Pancasila Tingkat Kota Batam",
+      "start_date": "2026-10-01",
+      "start_time": "07:00",
+      "end_date": "2026-10-01",
+      "end_time": null,
+      "location_id": "loc-3",
+      "organizer_id": "org-1",
+      "category_id": "cat-1",
+      "status": "SCHEDULED",
+      "public_notes": "Pakaian: PSL",
+      "private_notes": "Mobil dinas standby pukul 06.30 WIB",
+      "private_meeting_url": "",
+      "cancel_reason": "",
+      "version": 1,
+      "created_at": "2026-09-25T08:00:00Z",
+      "created_by": "operator-1",
+      "updated_at": "2026-09-25T08:00:00Z",
+      "updated_by": "operator-1"
+    }
+  ],
+  "ActivityAttendees": [
+    {
+      "attendee_id": "att-1",
+      "activity_id": "act-1",
+      "employee_id": "emp-1",
+      "guest_name": "",
+      "attendee_role": "Kadis",
+      "name_snapshot": "Dr. Hendri Arulan, S.Pd., M.M.",
+      "position_snapshot": "Kepala Dinas",
+      "public_label": "1. Kadis"
+    },
+    {
+      "attendee_id": "att-2",
+      "activity_id": "act-1",
+      "employee_id": "emp-2",
+      "guest_name": "",
+      "attendee_role": "Sekretaris",
+      "name_snapshot": "Rahmat Sugiarto, S.E.",
+      "position_snapshot": "Sekretaris Dinas",
+      "public_label": "2. Sekretaris"
+    }
+  ],
+  "Announcements": [
+    {
+      "announcement_id": "ann-1",
+      "title": "Penyesuaian Jam Kerja Bulan Oktober",
+      "body": "Seluruh pejabat eselon diwajibkan hadir pada apel pagi setiap hari Senin.",
+      "publish_at": "2026-10-01T00:00:00Z",
+      "expires_at": "2026-10-31T23:59:59Z",
+      "active": true
+    }
+  ],
+  "Settings": [
+    { "key": "DEPARTMENT_NAME", "value": "DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM" },
+    { "key": "TIMEZONE", "value": "Asia/Jakarta" },
+    { "key": "EXPORT_TITLE", "JADWAL KEGIATAN DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM" }
+  ]
+}
