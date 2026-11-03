@@ -41,6 +41,10 @@ function apiGetAdminActivities(filters) {
   return ActivityApi.getAdminActivities(filters);
 }
 
+function apiGetAdminExport(filters, format) {
+  return ActivityApi.getAdminExport(filters, format);
+}
+
 function apiGetMasterData() {
   return MasterApi.getMasterData();
 }

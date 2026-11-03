@@ -1,7 +1,8 @@
 /**
  * shared/XlsxBuilder.js
- * Pure JavaScript OpenXML (.xlsx) builder.
- * Produces genuine, standards-compliant .xlsx files (ZIP container with workbook, worksheet, styles, and content types).
+ * Pure ECMAScript OpenXML (.xlsx) builder.
+ * Uses standard Uint8Array, DataView, and TextEncoder for 100% compatibility across
+ * Google Apps Script V8 and Node.js.
  * Escapes formula characters (=, +, -, @) to prevent formula injection.
  */
 
@@ -15,22 +16,23 @@ if (typeof require !== 'undefined') {
 }
 
 /**
- * Lightweight ZIP archive builder that works in Node.js and Google Apps Script.
+ * Standard ECMAScript ZIP archive builder using Uint8Array and DataView.
  */
 class SimpleZip {
   constructor() {
     this.entries = [];
+    this.encoder = new TextEncoder();
   }
 
   addFile(path, contentStr) {
-    const data = Buffer.from(contentStr, 'utf8');
+    const data = typeof contentStr === 'string' ? this.encoder.encode(contentStr) : contentStr;
     const crc = this._crc32(data);
     let compressedData = data;
     let method = 0; // STORE
 
     if (zlibModule && zlibModule.deflateRawSync) {
       try {
-        compressedData = zlibModule.deflateRawSync(data);
+        compressedData = new Uint8Array(zlibModule.deflateRawSync(data));
         method = 8; // DEFLATE
       } catch (e) {
         compressedData = data;
@@ -48,52 +50,56 @@ class SimpleZip {
     });
   }
 
-  toBuffer() {
-    const buffers = [];
+  toUint8Array() {
+    const chunks = [];
     const centralDirs = [];
     let offset = 0;
 
     for (const entry of this.entries) {
-      const nameBuf = Buffer.from(entry.path, 'utf8');
+      const nameBytes = this.encoder.encode(entry.path);
 
-      // Local file header: 30 bytes + filename
-      const localHeader = Buffer.alloc(30 + nameBuf.length);
-      localHeader.writeUInt32LE(0x04034b50, 0); // PK\x03\x04
-      localHeader.writeUInt16LE(20, 4);          // version needed: 2.0
-      localHeader.writeUInt16LE(0, 6);           // flags
-      localHeader.writeUInt16LE(entry.method, 8); // compression method
-      localHeader.writeUInt16LE(0, 10);          // time
-      localHeader.writeUInt16LE(0, 12);          // date
-      localHeader.writeUInt32LE(entry.crc, 14);  // crc-32
-      localHeader.writeUInt32LE(entry.compressedSize, 18);
-      localHeader.writeUInt32LE(entry.uncompressedSize, 22);
-      localHeader.writeUInt16LE(nameBuf.length, 26);
-      localHeader.writeUInt16LE(0, 28);          // extra len
-      nameBuf.copy(localHeader, 30);
+      // Local file header: 30 bytes + filename length
+      const localHeader = new Uint8Array(30 + nameBytes.length);
+      const dv = new DataView(localHeader.buffer, localHeader.byteOffset, localHeader.byteLength);
 
-      buffers.push(localHeader);
-      buffers.push(entry.data);
+      dv.setUint32(0, 0x04034b50, true);          // PK\x03\x04
+      dv.setUint16(4, 20, true);                  // version needed: 2.0
+      dv.setUint16(6, 0, true);                   // flags
+      dv.setUint16(8, entry.method, true);        // method
+      dv.setUint16(10, 0, true);                  // time
+      dv.setUint16(12, 0, true);                  // date
+      dv.setUint32(14, entry.crc, true);          // crc-32
+      dv.setUint32(18, entry.compressedSize, true);
+      dv.setUint32(22, entry.uncompressedSize, true);
+      dv.setUint16(26, nameBytes.length, true);
+      dv.setUint16(28, 0, true);                  // extra len
+      localHeader.set(nameBytes, 30);
 
-      // Central directory header: 46 bytes + filename
-      const cdHeader = Buffer.alloc(46 + nameBuf.length);
-      cdHeader.writeUInt32LE(0x02014b50, 0);   // PK\x01\x02
-      cdHeader.writeUInt16LE(20, 4);           // version made by
-      cdHeader.writeUInt16LE(20, 6);           // version needed
-      cdHeader.writeUInt16LE(0, 8);            // flags
-      cdHeader.writeUInt16LE(entry.method, 10); // method
-      cdHeader.writeUInt16LE(0, 12);           // time
-      cdHeader.writeUInt16LE(0, 14);           // date
-      cdHeader.writeUInt32LE(entry.crc, 16);   // crc
-      cdHeader.writeUInt32LE(entry.compressedSize, 20);
-      cdHeader.writeUInt32LE(entry.uncompressedSize, 24);
-      cdHeader.writeUInt16LE(nameBuf.length, 28);
-      cdHeader.writeUInt16LE(0, 30);           // extra len
-      cdHeader.writeUInt16LE(0, 32);           // comment len
-      cdHeader.writeUInt16LE(0, 34);           // disk start
-      cdHeader.writeUInt16LE(0, 36);           // internal attr
-      cdHeader.writeUInt32LE(0, 38);           // external attr
-      cdHeader.writeUInt32LE(offset, 42);      // relative offset of local header
-      nameBuf.copy(cdHeader, 46);
+      chunks.push(localHeader);
+      chunks.push(entry.data);
+
+      // Central directory header: 46 bytes + filename length
+      const cdHeader = new Uint8Array(46 + nameBytes.length);
+      const cdDv = new DataView(cdHeader.buffer, cdHeader.byteOffset, cdHeader.byteLength);
+
+      cdDv.setUint32(0, 0x02014b50, true);        // PK\x01\x02
+      cdDv.setUint16(4, 20, true);                // version made by
+      cdDv.setUint16(6, 20, true);                // version needed
+      cdDv.setUint16(8, 0, true);                 // flags
+      cdDv.setUint16(10, entry.method, true);     // method
+      cdDv.setUint16(12, 0, true);                // time
+      cdDv.setUint16(14, 0, true);                // date
+      cdDv.setUint32(16, entry.crc, true);        // crc
+      cdDv.setUint32(20, entry.compressedSize, true);
+      cdDv.setUint32(24, entry.uncompressedSize, true);
+      cdDv.setUint16(28, nameBytes.length, true);
+      cdDv.setUint16(30, 0, true);                // extra len
+      cdDv.setUint16(32, 0, true);                // comment len
+      cdDv.setUint16(34, 0, true);                // disk start
+      cdDv.setUint16(36, 0, true);                // internal attr
+      cdDv.setUint32(38, 0, true);                // external attr
+      cdDv.setUint32(42, offset, true);           // offset of local header
+      cdHeader.set(nameBytes, 46);
 
       centralDirs.push(cdHeader);
       offset += localHeader.length + entry.data.length;
@@ -102,29 +108,43 @@ class SimpleZip {
     const cdStart = offset;
     let cdSize = 0;
     for (const cd of centralDirs) {
-      buffers.push(cd);
+      chunks.push(cd);
       cdSize += cd.length;
     }
 
     // End of central directory record (22 bytes)
-    const eocd = Buffer.alloc(22);
-    eocd.writeUInt32LE(0x06054b50, 0);          // PK\x05\x06
-    eocd.writeUInt16LE(0, 4);                   // disk number
-    eocd.writeUInt16LE(0, 6);                   // disk with start of CD
-    eocd.writeUInt16LE(this.entries.length, 8); // entries on disk
-    eocd.writeUInt16LE(this.entries.length, 10); // total entries
-    eocd.writeUInt32LE(cdSize, 12);             // CD size
-    eocd.writeUInt32LE(cdStart, 16);            // CD start offset
-    eocd.writeUInt16LE(0, 20);                  // comment len
-    buffers.push(eocd);
+    const eocd = new Uint8Array(22);
+    const eocdDv = new DataView(eocd.buffer, eocd.byteOffset, eocd.byteLength);
+    eocdDv.setUint32(0, 0x06054b50, true);         // PK\x05\x06
+    eocdDv.setUint16(4, 0, true);                  // disk number
+    eocdDv.setUint16(6, 0, true);                  // disk with CD
+    eocdDv.setUint16(8, this.entries.length, true); // entries on disk
+    eocdDv.setUint16(10, this.entries.length, true); // total entries
+    eocdDv.setUint32(12, cdSize, true);            // CD size
+    eocdDv.setUint32(16, cdStart, true);           // CD start offset
+    eocdDv.setUint16(20, 0, true);                 // comment len
+    chunks.push(eocd);
 
-    return Buffer.concat(buffers);
+    // Calculate total length and concatenate
+    let totalLength = 0;
+    for (const chunk of chunks) {
+      totalLength += chunk.length;
+    }
+
+    const result = new Uint8Array(totalLength);
+    let curOffset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, curOffset);
+      curOffset += chunk.length;
+    }
+
+    return result;
   }
 
-  _crc32(buf) {
+  _crc32(bytes) {
     let crc = 0 ^ (-1);
-    for (let i = 0; i < buf.length; i++) {
-      crc = (crc >>> 8) ^ SimpleZip.CRC_TABLE[(crc ^ buf[i]) & 0xFF];
+    for (let i = 0; i < bytes.length; i++) {
+      crc = (crc >>> 8) ^ SimpleZip.CRC_TABLE[(crc ^ bytes[i]) & 0xFF];
     }
     return (crc ^ (-1)) >>> 0;
   }
@@ -157,52 +177,43 @@ const XlsxBuilder = {
   sanitizeCellValue(val) {
     if (val === null || val === undefined) return '';
     let str = String(val);
-    // Formula injection mitigation: escape leading =, +, -, @
     if (/^[=+\-@]/.test(str)) {
       str = "'" + str;
     }
     return str;
   },
 
-  /**
-   * Generates a genuine OpenXML .xlsx binary buffer from table headers and rows.
-   */
-  buildWorkbook(headerLines, tableHeaders, rows) {
-    const zip = new SimpleZip();
+  generateXmlParts(headerLines, tableHeaders, rows) {
+    const parts = {};
 
-    // 1. [Content_Types].xml
-    zip.addFile('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    parts['[Content_Types].xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
   <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
-</Types>`);
+</Types>`;
 
-    // 2. _rels/.rels
-    zip.addFile('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    parts['_rels/.rels'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
-</Relationships>`);
+</Relationships>`;
 
-    // 3. xl/_rels/workbook.xml.rels
-    zip.addFile('xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    parts['xl/_rels/workbook.xml.rels'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-</Relationships>`);
+</Relationships>`;
 
-    // 4. xl/workbook.xml
-    zip.addFile('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    parts['xl/workbook.xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <sheets>
     <sheet name="Jadwal Kegiatan" sheetId="1" r:id="rId1"/>
   </sheets>
-</workbook>`);
+</workbook>`;
 
-    // 5. xl/styles.xml
-    zip.addFile('xl/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    parts['xl/styles.xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <fonts count="3">
     <font><name val="Calibri"/><sz val="11"/></font>
@@ -229,9 +240,8 @@ const XlsxBuilder = {
     <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
     <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"><alignment vertical="top" wrapText="1"/></xf>
   </cellXfs>
-</styleSheet>`);
+</styleSheet>`;
 
-    // 6. xl/worksheets/sheet1.xml
     let sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <cols>
@@ -247,7 +257,6 @@ const XlsxBuilder = {
   <sheetData>`;
 
     let rowIdx = 1;
-    // Header title lines
     headerLines.forEach(line => {
       sheetXml += `<row r="${rowIdx}">`;
       sheetXml += `<c r="A${rowIdx}" s="1" t="inlineStr"><is><t>${XlsxBuilder.escapeXml(line)}</t></is></c>`;
@@ -255,9 +264,8 @@ const XlsxBuilder = {
       rowIdx++;
     });
 
-    rowIdx++; // Empty spacer row
+    rowIdx++; // Empty row
 
-    // Table Header row (style 2)
     const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
     sheetXml += `<row r="${rowIdx}">`;
     tableHeaders.forEach((th, cIdx) => {
@@ -267,7 +275,6 @@ const XlsxBuilder = {
     sheetXml += `</row>`;
     rowIdx++;
 
-    // Data rows (style 3)
     rows.forEach(r => {
       sheetXml += `<row r="${rowIdx}">`;
       r.forEach((cellVal, cIdx) => {
@@ -287,8 +294,33 @@ const XlsxBuilder = {
     sheetXml += `</mergeCells>
 </worksheet>`;
 
-    zip.addFile('xl/worksheets/sheet1.xml', sheetXml);
-    return zip.toBuffer();
+    parts['xl/worksheets/sheet1.xml'] = sheetXml;
+    return parts;
+  },
+
+  /**
+   * Generates a standard Uint8Array containing genuine OpenXML .xlsx archive.
+   */
+  buildWorkbookUint8Array(headerLines, tableHeaders, rows) {
+    const zip = new SimpleZip();
+    const parts = XlsxBuilder.generateXmlParts(headerLines, tableHeaders, rows);
+
+    for (const filePath of Object.keys(parts)) {
+      zip.addFile(filePath, parts[filePath]);
+    }
+
+    return zip.toUint8Array();
+  },
+
+  /**
+   * Generates Node.js Buffer or Uint8Array.
+   */
+  buildWorkbook(headerLines, tableHeaders, rows) {
+    const uint8 = XlsxBuilder.buildWorkbookUint8Array(headerLines, tableHeaders, rows);
+    if (typeof Buffer !== 'undefined' && Buffer.from) {
+      return Buffer.from(uint8.buffer, uint8.byteOffset, uint8.byteLength);
+    }
+    return uint8;
   }
 };
 

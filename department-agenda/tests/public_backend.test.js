@@ -12,11 +12,18 @@ global.TimeUtils = TimeUtils;
 global.Projection = Projection;
 global.ExportFormatter = ExportFormatter;
 
-const { MockSpreadsheetApp } = require('./helpers/mock_gas.js');
+const { MockSpreadsheetApp, MockPropertiesService } = require('./helpers/mock_gas.js');
 global.SpreadsheetApp = MockSpreadsheetApp;
+global.PropertiesService = MockPropertiesService;
+global.Utilities = {
+  base64Encode: (bytes) => Buffer.from(bytes).toString('base64')
+};
 
-const PublicRepository = require('../public-app/src/PublicRepository.js');
-const PublicApi = require('../public-app/src/PublicApi.js');
+const PublicRepository = require('../public-app/src/PublicRepository.gs');
+const PublicApi = require('../public-app/src/PublicApi.gs');
+
+global.PublicRepository = PublicRepository;
+global.PublicApi = PublicApi;
 
 describe('Public Backend & Read-Only Privacy Enforcement', () => {
   beforeEach(() => {
@@ -60,5 +67,18 @@ describe('Public Backend & Read-Only Privacy Enforcement', () => {
     const binary = Buffer.from(res.base64, 'base64');
     assert.strictEqual(binary[0], 0x50); // P
     assert.strictEqual(binary[1], 0x4b); // K
+  });
+
+  test('PublicRepository.getSpreadsheet throws descriptive error when standalone and SPREADSHEET_ID is missing', () => {
+    const originalGetActive = MockSpreadsheetApp.getActiveSpreadsheet;
+    MockSpreadsheetApp.getActiveSpreadsheet = () => null;
+
+    try {
+      assert.throws(() => {
+        PublicRepository.getSpreadsheet();
+      }, /SPREADSHEET_ID script property is missing/);
+    } finally {
+      MockSpreadsheetApp.getActiveSpreadsheet = originalGetActive;
+    }
   });
 });

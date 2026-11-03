@@ -15,7 +15,9 @@ var Repository = (function() {
       if (sheetId && typeof SpreadsheetApp !== 'undefined') {
         return SpreadsheetApp.openById(sheetId);
       }
-      return SpreadsheetApp.getActiveSpreadsheet();
+      var active = typeof SpreadsheetApp !== 'undefined' ? SpreadsheetApp.getActiveSpreadsheet() : null;
+      if (active) return active;
+      throw new Error("SPREADSHEET_ID script property is missing. Please configure SPREADSHEET_ID in Project Settings > Script Properties with the target Google Sheet ID.");
     },
 
     getSheet: function(tableName) {
@@ -126,3 +128,10 @@ var Repository = (function() {
     }
   };
 })();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = Repository;
+}
+if (typeof globalThis !== 'undefined') {
+  globalThis.Repository = Repository;
+}

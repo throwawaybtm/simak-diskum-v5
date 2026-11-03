@@ -19,11 +19,22 @@
     pendingPayload: null
   };
 
+  function getTodayWib() {
+    const d = new Date();
+    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    const wib = new Date(utc + (3600000 * 7));
+    const year = wib.getFullYear();
+    const month = String(wib.getMonth() + 1).padStart(2, '0');
+    const day = String(wib.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   // DOM Elements
   const tabButtons = document.querySelectorAll('.nav-btn');
   const tabPanels = document.querySelectorAll('.tab-panel');
   const activityModal = document.getElementById('activityModal');
   const conflictModal = document.getElementById('conflictModal');
+  const exportModal = document.getElementById('exportModal');
   const activityForm = document.getElementById('activityForm');
   const toastEl = document.getElementById('toast');
 
@@ -185,8 +196,8 @@
     document.getElementById('isUntilFinished').checked = true;
     document.getElementById('endTime').disabled = true;
 
-    // Default dates to today
-    const today = new Date().toISOString().split('T')[0];
+    // Default dates to today in WIB
+    const today = getTodayWib();
     document.getElementById('startDate').value = today;
     document.getElementById('endDate').value = today;
 
@@ -421,7 +432,7 @@
 
   function renderDashboard() {
     const total = state.activities.length;
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayWib();
     const todayCount = state.activities.filter(a => a.start_date === todayStr && a.status !== 'CANCELLED').length;
     const completedCount = state.activities.filter(a => a.status === 'COMPLETED').length;
     const cancelledCount = state.activities.filter(a => a.status === 'CANCELLED').length;
@@ -515,5 +526,108 @@
         <td>${l.entity_id}</td>
       </tr>`;
     });
+  }
+
+  // --- Export Report Handlers ---
+  function openExportModal() {
+    const today = getTodayWib();
+    const parts = today.split('-');
+    const firstOfMonth = `${parts[0]}-${parts[1]}-01`;
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    const lastDayNum = new Date(year, month, 0).getDate();
+    const lastOfMonth = `${parts[0]}-${parts[1]}-${String(lastDayNum).padStart(2, '0')}`;
+
+    document.getElementById('exportStartDate').value = firstOfMonth;
+    document.getElementById('exportEndDate').value = lastOfMonth;
+
+    const catSelect = document.getElementById('exportCategory');
+    catSelect.innerHTML = '<option value="">Semua Kategori</option>';
+    (state.masterData.Categories || []).forEach(c => {
+      catSelect.innerHTML += `<option value="${c.category_id}">${c.name}</option>`;
+    });
+
+    document.getElementById('exportLoadingMsg').style.display = 'none';
+    document.getElementById('btnRunExport').disabled = false;
+    exportModal.classList.add('open');
+  }
+
+  function closeExportModal() {
+    exportModal.classList.remove('open');
+  }
+
+  function runAdminExport() {
+    const startDate = document.getElementById('exportStartDate').value;
+    const endDate = document.getElementById('exportEndDate').value;
+    const categoryId = document.getElementById('exportCategory').value;
+    const format = document.getElementById('exportFormat').value;
+    const includeCancelled = document.getElementById('exportIncludeCancelled').checked;
+
+    const loadingMsg = document.getElementById('exportLoadingMsg');
+    const btn = document.getElementById('btnRunExport');
+
+    loadingMsg.style.display = 'block';
+    btn.disabled = true;
+
+    const filters = {
+      startDate,
+      endDate,
+      categoryId,
+      includeCancelled
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(res => {
+          loadingMsg.style.display = 'none';
+          btn.disabled = false;
+          if (!res || !res.ok) {
+            alert('Gagal mengekspor laporan: ' + ((res && res.error && res.error.message) || 'Kesalahan tidak diketahui'));
+            return;
+          }
+          handleExportDownload(res);
+          closeExportModal();
+        })
+        .withFailureHandler(err => {
+          loadingMsg.style.display = 'none';
+          btn.disabled = false;
+          alert('Terjadi kesalahan sistem: ' + (err.message || err));
+        })
+        .apiGetAdminExport(filters, format);
+    } else {
+      loadingMsg.style.display = 'none';
+      btn.disabled = false;
+      alert('Mock environment: export triggered with format ' + format);
+    }
+  }
+
+  function handleExportDownload(res) {
+    if (res.format === 'XLSX') {
+      const byteChars = atob(res.base64);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = res.filename || 'Jadwal_Kegiatan_Admin.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('File Excel resmi (.xlsx) berhasil diunduh.');
+    } else if (res.format === 'PRINT') {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(res.html);
+        printWindow.document.close();
+      } else {
+        alert('Pop-up terblokir. Izinkan pop-up peramban Anda untuk mencetak laporan.');
+      }
+    }
   }
 </script>

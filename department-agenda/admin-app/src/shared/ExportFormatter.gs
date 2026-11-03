@@ -215,6 +215,52 @@ const ExportFormatter = {
     ]);
 
     return XlsxBuilderModule.buildWorkbook(headerLines, HEADERS_8, tableRows);
+  },
+
+  /**
+   * Generates standard Uint8Array containing genuine OpenXML .xlsx archive.
+   */
+  generateXlsxUint8Array(activities = [], lookups = {}, headerInfo = {}) {
+    const rows = ExportFormatter.formatEightColumnRows(activities, lookups);
+    const headerLines = [
+      headerInfo.title || 'JADWAL KEGIATAN',
+      headerInfo.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM'
+    ];
+    if (headerInfo.period) {
+      headerLines.push(headerInfo.period);
+    }
+
+    const tableRows = rows.map(r => [
+      r.no,
+      r.hariTanggal,
+      r.pukul,
+      r.kegiatan,
+      r.tempat,
+      r.penyelenggara,
+      r.dihadiriOleh,
+      r.keterangan
+    ]);
+
+    return XlsxBuilderModule.buildWorkbookUint8Array(headerLines, HEADERS_8, tableRows);
+  },
+
+  /**
+   * Generates base64 string for genuine OpenXML .xlsx archive.
+   * Compatible across Google Apps Script (Utilities.base64Encode) and Node.js.
+   */
+  generateXlsxBase64(activities = [], lookups = {}, headerInfo = {}) {
+    const uint8 = ExportFormatter.generateXlsxUint8Array(activities, lookups, headerInfo);
+    if (typeof Utilities !== 'undefined' && Utilities.base64Encode) {
+      return Utilities.base64Encode(uint8);
+    }
+    if (typeof Buffer !== 'undefined' && Buffer.from) {
+      return Buffer.from(uint8.buffer, uint8.byteOffset, uint8.byteLength).toString('base64');
+    }
+    let binary = '';
+    for (let i = 0; i < uint8.length; i++) {
+      binary += String.fromCharCode(uint8[i]);
+    }
+    return btoa(binary);
   }
 };
 

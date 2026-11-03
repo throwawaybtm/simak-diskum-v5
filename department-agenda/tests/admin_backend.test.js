@@ -8,6 +8,7 @@ const TimeUtils = require('../shared/TimeUtils.js');
 const Validation = require('../shared/Validation.js');
 const ConflictDetector = require('../shared/ConflictDetector.js');
 const Projection = require('../shared/Projection.js');
+const ExportFormatter = require('../shared/ExportFormatter.js');
 
 // Setup global environment for Apps Script simulation
 global.Schema = Schema;
@@ -15,19 +16,26 @@ global.TimeUtils = TimeUtils;
 global.Validation = Validation;
 global.ConflictDetector = ConflictDetector;
 global.Projection = Projection;
+global.ExportFormatter = ExportFormatter;
 
 // Load Admin backend modules
-const { MockSpreadsheetApp, MockLockService } = require('./helpers/mock_gas.js');
+const { MockSpreadsheetApp, MockLockService, MockPropertiesService } = require('./helpers/mock_gas.js');
 global.SpreadsheetApp = MockSpreadsheetApp;
 global.LockService = MockLockService;
+global.PropertiesService = MockPropertiesService;
 global.Utilities = {
-  getUuid: () => 'uuid-' + Math.random().toString(36).substring(2, 10)
+  getUuid: () => 'uuid-' + Math.random().toString(36).substring(2, 10),
+  base64Encode: (bytes) => Buffer.from(bytes).toString('base64')
 };
 
-// Now load backend scripts
-const Repository = require('../admin-app/src/Repository.js');
-const ActivityApi = require('../admin-app/src/ActivityApi.js');
-const MasterApi = require('../admin-app/src/MasterApi.js');
+// Now load backend scripts directly from canonical .gs source
+const Repository = require('../admin-app/src/Repository.gs');
+const ActivityApi = require('../admin-app/src/ActivityApi.gs');
+const MasterApi = require('../admin-app/src/MasterApi.gs');
+
+global.Repository = Repository;
+global.ActivityApi = ActivityApi;
+global.MasterApi = MasterApi;
 
 describe('Admin Backend Integration & Concurrency', () => {
   beforeEach(() => {
@@ -132,5 +140,53 @@ describe('Admin Backend Integration & Concurrency', () => {
     assert.strictEqual(duplicated.data.title, 'Upacara Peringatan Hari Kesaktian Pancasila Tingkat Kota Batam (Salinan)');
     assert.strictEqual(duplicated.data.private_meeting_url, '');
     assert.strictEqual(duplicated.data.version, 1);
+  });
+
+  test('updateActivity idempotently succeeds on duplicate requestId retry', () => {
+    const updatePayload = {
+      title: 'Upacara Peringatan Hari Kesaktian Pancasila Tingkat Kota Batam (Revisi)',
+      expectedVersion: 1
+    };
+
+    // First attempt
+    const res1 = ActivityApi.updateActivity('act-1', updatePayload, 1, 'req-idempotent-update', 'Editor A');
+    assert.strictEqual(res1.ok, true);
+    assert.strictEqual(res1.data.version, 2);
+
+    // Immediate network retry with the same requestId and old expectedVersion: 1
+    const resRetry = ActivityApi.updateActivity('act-1', updatePayload, 1, 'req-idempotent-update', 'Editor A');
+    assert.strictEqual(resRetry.ok, true, 'Retry with same requestId must succeed idempotently');
+    assert.strictEqual(resRetry.data.version, 2);
+  });
+
+  test('getAdminExport produces genuine XLSX base64 and print landscape HTML', () => {
+    // Test XLSX
+    const xlsxRes = ActivityApi.getAdminExport({ startDate: '2026-10-01', endDate: '2026-10-31' }, 'XLSX');
+    assert.strictEqual(xlsxRes.ok, true);
+    assert.strictEqual(xlsxRes.format, 'XLSX');
+    assert.ok(xlsxRes.base64 && xlsxRes.base64.length > 100);
+    const decoded = Buffer.from(xlsxRes.base64, 'base64');
+    assert.strictEqual(decoded[0], 0x50);
+    assert.strictEqual(decoded[1], 0x4B);
+
+    // Test Print HTML
+    const printRes = ActivityApi.getAdminExport({ startDate: '2026-10-01', endDate: '2026-10-31' }, 'PRINT');
+    assert.strictEqual(printRes.ok, true);
+    assert.strictEqual(printRes.format, 'PRINT');
+    assert.ok(printRes.html.includes('DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM'));
+    assert.ok(printRes.html.includes('size: landscape;'));
+  });
+
+  test('Repository.getSpreadsheet throws descriptive error when standalone and SPREADSHEET_ID is missing', () => {
+    const originalGetActive = MockSpreadsheetApp.getActiveSpreadsheet;
+    MockSpreadsheetApp.getActiveSpreadsheet = () => null;
+
+    try {
+      assert.throws(() => {
+        Repository.getSpreadsheet();
+      }, /SPREADSHEET_ID script property is missing/);
+    } finally {
+      MockSpreadsheetApp.getActiveSpreadsheet = originalGetActive;
+    }
   });
 });

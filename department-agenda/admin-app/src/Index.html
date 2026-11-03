@@ -53,7 +53,10 @@
       <div class="card">
         <div class="card-header">
           <h2>Aksi Cepat & Agenda Mendatang</h2>
-          <button class="btn btn-primary" onclick="openNewActivityModal()">+ Tambah Kegiatan Baru</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="openExportModal()">📊 Ekspor / Cetak Laporan</button>
+            <button class="btn btn-primary" onclick="openNewActivityModal()">+ Tambah Kegiatan Baru</button>
+          </div>
         </div>
         <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 12px;">
           Gunakan menu ini untuk menambahkan kegiatan kedinasan, memantau bentrok jadwal ruangan kantor/pegawai, dan mencetak laporan resmi.
@@ -66,7 +69,10 @@
       <div class="card">
         <div class="card-header">
           <h2>Kelola Jadwal Kegiatan</h2>
-          <button class="btn btn-primary" onclick="openNewActivityModal()">+ Tambah Kegiatan</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="openExportModal()">📊 Ekspor / Cetak Laporan</button>
+            <button class="btn btn-primary" onclick="openNewActivityModal()">+ Tambah Kegiatan</button>
+          </div>
         </div>
 
         <!-- Filter bar -->
@@ -308,6 +314,58 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeConflictModal()">Kembali & Sesuaikan Waktu</button>
         <button type="button" class="btn btn-danger" onclick="submitOverride()">Lanjutkan Simpan (Dispensasi)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXPORT / PRINT REPORT -->
+  <div id="exportModal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3>📊 Ekspor & Cetak Laporan Resmi (8 Kolom)</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeExportModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 16px;">
+          Format laporan 8 kolom resmi: <em>No | Hari/Tanggal | Pukul | Kegiatan | Tempat | Penyelenggara | Dihadiri Oleh | Keterangan</em>.
+        </p>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Tanggal Mulai</label>
+            <input type="date" id="exportStartDate" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tanggal Akhir</label>
+            <input type="date" id="exportEndDate" class="form-control">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Filter Kategori</label>
+            <select id="exportCategory" class="form-control">
+              <option value="">Semua Kategori</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Format Dokumen</label>
+            <select id="exportFormat" class="form-control">
+              <option value="XLSX">Excel Resmi (.xlsx)</option>
+              <option value="PRINT">Cetak Landscape (8 Kolom / PDF)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top: 10px;">
+          <label style="display: flex; gap: 8px; font-size: 0.85rem; color: #475569; cursor: pointer;">
+            <input type="checkbox" id="exportIncludeCancelled"> Sertakan kegiatan yang dibatalkan
+          </label>
+        </div>
+        <div id="exportLoadingMsg" style="display: none; margin-top: 14px; padding: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; color: #166534; font-size: 0.85rem;">
+          ⏳ Sedang menyusun dokumen laporan...
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeExportModal()">Batal</button>
+        <button type="button" class="btn btn-primary" id="btnRunExport" onclick="runAdminExport()">Unduh / Buka Dokumen</button>
       </div>
     </div>
   </div>

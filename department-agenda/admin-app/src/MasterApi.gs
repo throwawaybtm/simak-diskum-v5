@@ -124,3 +124,10 @@ var MasterApi = (function() {
     }
   };
 })();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = MasterApi;
+}
+if (typeof globalThis !== 'undefined') {
+  globalThis.MasterApi = MasterApi;
+}

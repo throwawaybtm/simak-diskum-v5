@@ -90,4 +90,27 @@ describe('ExportFormatter (Official 8-Column Layout & Genuine XLSX)', () => {
     assert.ok(asString.includes('xl/workbook.xml'), 'Must contain xl/workbook.xml');
     assert.ok(asString.includes('xl/worksheets/sheet1.xml'), 'Must contain xl/worksheets/sheet1.xml');
   });
+
+  test('generateXlsxUint8Array produces genuine OpenXML XLSX without Node Buffer dependency', () => {
+    const XlsxBuilder = require('../shared/XlsxBuilder.js');
+    const uint8 = XlsxBuilder.buildWorkbookUint8Array(
+      ['JADWAL KEGIATAN'],
+      ExportFormatter.HEADERS_8,
+      [['1', 'Kamis, 1 Okt 2026', '07.00 WIB', 'Upacara', 'Engku Putri', 'Sekda', 'Kadis', '-']]
+    );
+    assert.ok(uint8 instanceof Uint8Array, 'Must be Uint8Array');
+    assert.strictEqual(uint8[0], 0x50);
+    assert.strictEqual(uint8[1], 0x4B);
+    assert.strictEqual(uint8[2], 0x03);
+    assert.strictEqual(uint8[3], 0x04);
+  });
+
+  test('generateXlsxBase64 returns valid base64 encoded genuine XLSX', () => {
+    const base64 = ExportFormatter.generateXlsxBase64(sampleActivities, lookups, headerInfo);
+    assert.strictEqual(typeof base64, 'string');
+    assert.ok(base64.length > 100);
+    const decoded = Buffer.from(base64, 'base64');
+    assert.strictEqual(decoded[0], 0x50);
+    assert.strictEqual(decoded[1], 0x4B);
+  });
 });

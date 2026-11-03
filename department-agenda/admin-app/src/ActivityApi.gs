@@ -137,6 +137,20 @@ var ActivityApi = (function() {
           return { ok: false, error: { code: 'NOT_FOUND', message: 'Kegiatan tidak ditemukan' } };
         }
 
+        // 1. Idempotency check via requestId
+        if (requestId) {
+          var audits = Repository.readAll('AuditLogs');
+          var existing = audits.find(function(a) {
+            return a.request_id === requestId && a.action === 'UPDATE' && a.entity_id === id;
+          });
+          if (existing) {
+            var existingAct = Repository.readById('Activities', 'activity_id', id);
+            if (existingAct) {
+              return { ok: true, data: { id: existingAct.activity_id, version: existingAct.version, status: existingAct.status } };
+            }
+          }
+        }
+
         if (Number(current.version) !== Number(expectedVersion)) {
           return {
             ok: false,
@@ -341,6 +355,85 @@ var ActivityApi = (function() {
       });
 
       return { ok: true, data: enriched };
+    },
+
+    getAdminExport: function(filters, format) {
+      filters = filters || {};
+      format = format || 'PRINT';
+
+      var activities = Repository.readAll('Activities');
+      var attendees = Repository.readAll('ActivityAttendees');
+      var locations = Repository.readAll('Locations');
+      var organizers = Repository.readAll('Organizers');
+      var categories = Repository.readAll('Categories');
+      var settings = Repository.readAll('Settings');
+
+      var lookups = { locations: locations, organizers: organizers, categories: categories };
+      var startDate = filters.startDate;
+      var endDate = filters.endDate;
+      var categoryId = filters.categoryId;
+      var status = filters.status;
+
+      var filtered = activities.filter(function(act) {
+        if (act.status === 'CANCELLED' && !filters.includeCancelled) return false;
+        var actEnd = act.end_date || act.start_date;
+        if (startDate && actEnd < startDate) return false;
+        if (endDate && act.start_date > endDate) return false;
+        if (categoryId && act.category_id !== categoryId) return false;
+        if (status && act.status !== status) return false;
+        return true;
+      });
+
+      filtered.sort(function(a, b) {
+        var cmpDate = (a.start_date || '').localeCompare(b.start_date || '');
+        if (cmpDate !== 0) return cmpDate;
+        return (a.start_time || '').localeCompare(b.start_time || '');
+      });
+
+      var attendeesByAct = new Map();
+      attendees.forEach(function(a) {
+        if (!attendeesByAct.has(a.activity_id)) attendeesByAct.set(a.activity_id, []);
+        attendeesByAct.get(a.activity_id).push(a.public_label || a.name_snapshot);
+      });
+
+      var enriched = filtered.map(function(act) {
+        return Object.assign({}, act, {
+          attendee_labels: attendeesByAct.get(act.activity_id) || []
+        });
+      });
+
+      var deptSetting = settings.find(function(s) { return s.key === 'DEPARTMENT_NAME'; });
+      var titleSetting = settings.find(function(s) { return s.key === 'EXPORT_TITLE'; });
+
+      var headerInfo = {
+        title: titleSetting ? titleSetting.value : 'JADWAL KEGIATAN',
+        department: deptSetting ? deptSetting.value : 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
+        period: (startDate && endDate) ? ('PERIODE ' + startDate + ' S.D. ' + endDate) : ''
+      };
+
+      if (format === 'XLSX') {
+        var base64 = ExportFormatter.generateXlsxBase64(enriched, lookups, headerInfo);
+        return {
+          ok: true,
+          format: 'XLSX',
+          base64: base64,
+          filename: 'Jadwal_Kegiatan_Admin_' + (startDate || 'Semua') + '.xlsx'
+        };
+      } else {
+        var html = ExportFormatter.generateHtmlPrintView(enriched, lookups, headerInfo);
+        return {
+          ok: true,
+          format: 'PRINT',
+          html: html
+        };
+      }
     }
   };
 })();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = ActivityApi;
+}
+if (typeof globalThis !== 'undefined') {
+  globalThis.ActivityApi = ActivityApi;
+}

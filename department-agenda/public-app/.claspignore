@@ -1,0 +1,6 @@
+# .claspignore
+**/*.js
+**/*.test.js
+**/*.md
+.git*
+node_modules/**

@@ -1,8 +1,13 @@
 /**
  * tests/helpers/mock_gas.js
- * In-memory mock of Google Apps Script SpreadsheetApp and LockService
+ * In-memory mock of Google Apps Script SpreadsheetApp, PropertiesService, and LockService
  * for offline integration testing.
  */
+
+// Enable Node require to natively load Google Apps Script .gs files
+if (typeof require !== 'undefined' && require.extensions && !require.extensions['.gs']) {
+  require.extensions['.gs'] = require.extensions['.js'];
+}
 
 class MockSheet {
   constructor(name, dataRows = [], headers = []) {
@@ -127,7 +132,22 @@ const MockLockService = {
   }
 };
 
+const mockProperties = new Map();
+const MockPropertiesService = {
+  reset() {
+    mockProperties.clear();
+  },
+  getScriptProperties() {
+    return {
+      getProperty: (key) => mockProperties.get(key) || null,
+      setProperty: (key, val) => mockProperties.set(key, String(val)),
+      deleteProperty: (key) => mockProperties.delete(key)
+    };
+  }
+};
+
 module.exports = {
   MockSpreadsheetApp,
-  MockLockService
+  MockLockService,
+  MockPropertiesService
 };

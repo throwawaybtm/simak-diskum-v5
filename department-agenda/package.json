@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "sync": "node scripts/sync-shared.js",
-    "build": "npm run sync"
+    "build": "npm run sync",
+    "seed": "node scripts/seed.js"
   },
   "keywords": [
     "google-apps-script",

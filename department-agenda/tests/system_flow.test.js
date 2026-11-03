@@ -24,11 +24,16 @@ global.Utilities = {
   base64Encode: (buf) => Buffer.from(buf).toString('base64')
 };
 
-const Repository = require('../admin-app/src/Repository.js');
-const ActivityApi = require('../admin-app/src/ActivityApi.js');
-const PublicRepository = require('../public-app/src/PublicRepository.js');
-const PublicApi = require('../public-app/src/PublicApi.js');
+const Repository = require('../admin-app/src/Repository.gs');
+const ActivityApi = require('../admin-app/src/ActivityApi.gs');
+const PublicRepository = require('../public-app/src/PublicRepository.gs');
+const PublicApi = require('../public-app/src/PublicApi.gs');
 const SeedGenerator = require('../shared/SeedGenerator.js');
+
+global.Repository = Repository;
+global.ActivityApi = ActivityApi;
+global.PublicRepository = PublicRepository;
+global.PublicApi = PublicApi;
 
 describe('Full End-to-End System Flow', () => {
   beforeEach(() => {

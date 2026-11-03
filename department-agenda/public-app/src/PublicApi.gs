@@ -171,8 +171,7 @@ var PublicApi = (function() {
       };
 
       if (format === 'XLSX') {
-        var buffer = ExportFormatter.generateXlsxBuffer(enriched, lookups, headerInfo);
-        var base64Str = Utilities.base64Encode(buffer);
+        var base64Str = ExportFormatter.generateXlsxBase64(enriched, lookups, headerInfo);
         return {
           ok: true,
           format: 'XLSX',
@@ -190,3 +189,10 @@ var PublicApi = (function() {
     }
   };
 })();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PublicApi;
+}
+if (typeof globalThis !== 'undefined') {
+  globalThis.PublicApi = PublicApi;
+}
