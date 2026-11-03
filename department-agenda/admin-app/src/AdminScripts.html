@@ -1,0 +1,519 @@
+<script>
+  // App State
+  let state = {
+    activities: [],
+    masterData: {
+      Employees: [],
+      Departments: [],
+      Locations: [],
+      Organizers: [],
+      Categories: [],
+      Announcements: [],
+      Settings: []
+    },
+    auditLogs: [],
+    currentEditId: null,
+    currentVersion: null,
+    activeTab: 'dashboard',
+    actorLabel: 'Operator ' + (Math.floor(Math.random() * 900) + 100),
+    pendingPayload: null
+  };
+
+  // DOM Elements
+  const tabButtons = document.querySelectorAll('.nav-btn');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+  const activityModal = document.getElementById('activityModal');
+  const conflictModal = document.getElementById('conflictModal');
+  const activityForm = document.getElementById('activityForm');
+  const toastEl = document.getElementById('toast');
+
+  // Privacy Leak Regex
+  const PRIVACY_LEAK_REGEX = /(https?:\/\/[^\s]*(zoom\.us|meet\.google\.com|teams\.microsoft\.com|webex\.com)|(meeting\s*id|passcode|pwd=|password|pin)[\s:]+[a-zA-Z0-9_\-\.]+)/i;
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('actorDisplay').textContent = state.actorLabel;
+    setupEventListeners();
+    loadAllData();
+  });
+
+  function showToast(msg, duration = 3000) {
+    toastEl.textContent = msg;
+    toastEl.style.display = 'block';
+    setTimeout(() => { toastEl.style.display = 'none'; }, duration);
+  }
+
+  function setupEventListeners() {
+    // Navigation
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabPanels.forEach(p => p.style.display = 'none');
+        btn.classList.add('active');
+        state.activeTab = btn.dataset.tab;
+        const panel = document.getElementById('panel-' + state.activeTab);
+        if (panel) panel.style.display = 'block';
+        if (state.activeTab === 'audit') loadAuditHistory();
+      });
+    });
+
+    // Real-time privacy validation & public preview
+    const publicNotesInput = document.getElementById('publicNotes');
+    publicNotesInput.addEventListener('input', updatePublicPreviewAndPrivacy);
+    document.getElementById('title').addEventListener('input', updatePublicPreviewAndPrivacy);
+    document.getElementById('startDate').addEventListener('input', updatePublicPreviewAndPrivacy);
+    document.getElementById('startTime').addEventListener('input', updatePublicPreviewAndPrivacy);
+    document.getElementById('endDate').addEventListener('input', updatePublicPreviewAndPrivacy);
+    document.getElementById('endTime').addEventListener('input', updatePublicPreviewAndPrivacy);
+    document.getElementById('isUntilFinished').addEventListener('change', (e) => {
+      document.getElementById('endTime').disabled = e.target.checked;
+      updatePublicPreviewAndPrivacy();
+    });
+
+    // Activity form submit
+    activityForm.addEventListener('submit', handleFormSubmit);
+
+    // Filter handlers
+    document.getElementById('searchQuery').addEventListener('input', renderActivitiesTable);
+    document.getElementById('statusFilter').addEventListener('change', renderActivitiesTable);
+  }
+
+  function loadAllData() {
+    if (typeof google === 'undefined' || !google.script || !google.script.run) {
+      console.warn('Running outside GAS environment; mock mode active');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.ok) {
+          state.activities = res.data;
+          renderDashboard();
+          renderActivitiesTable();
+        }
+      })
+      .withFailureHandler(err => showToast('Gagal memuat kegiatan: ' + err))
+      .apiGetAdminActivities();
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.ok) {
+          state.masterData = res.data;
+          populateSelects();
+          renderMasterDataTabs();
+        }
+      })
+      .withFailureHandler(err => showToast('Gagal memuat master data: ' + err))
+      .apiGetMasterData();
+  }
+
+  function loadAuditHistory() {
+    if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.ok) {
+          state.auditLogs = res.data;
+          renderAuditTable();
+        }
+      })
+      .apiGetAuditHistory(100);
+  }
+
+  function populateSelects() {
+    // Populate locations
+    const locSelect = document.getElementById('locationId');
+    locSelect.innerHTML = '<option value="">-- Pilih Lokasi / Ruangan --</option>';
+    (state.masterData.Locations || []).filter(l => l.active !== false).forEach(l => {
+      locSelect.innerHTML += `<option value="${l.location_id}">[${l.location_type}] ${l.name}</option>`;
+    });
+
+    // Populate organizers
+    const orgSelect = document.getElementById('organizerId');
+    orgSelect.innerHTML = '<option value="">-- Pilih Penyelenggara --</option>';
+    (state.masterData.Organizers || []).filter(o => o.active !== false).forEach(o => {
+      orgSelect.innerHTML += `<option value="${o.organizer_id}">${o.name}</option>`;
+    });
+
+    // Populate categories
+    const catSelect = document.getElementById('categoryId');
+    catSelect.innerHTML = '<option value="">-- Pilih Kategori --</option>';
+    (state.masterData.Categories || []).filter(c => c.active !== false).forEach(c => {
+      catSelect.innerHTML += `<option value="${c.category_id}">${c.name}</option>`;
+    });
+
+    // Populate employee attendee options
+    const attSelect = document.getElementById('attendeeEmployeePicker');
+    attSelect.innerHTML = '<option value="">-- Tambah Pejabat / Pegawai --</option>';
+    (state.masterData.Employees || []).filter(e => e.active !== false).forEach(e => {
+      attSelect.innerHTML += `<option value="${e.employee_id}">${e.full_name} (${e.position})</option>`;
+    });
+  }
+
+  function updatePublicPreviewAndPrivacy() {
+    const title = document.getElementById('title').value || '(Judul Kegiatan)';
+    const startDate = document.getElementById('startDate').value || '-';
+    const startTime = document.getElementById('startTime').value || '';
+    const isUntilFinished = document.getElementById('isUntilFinished').checked;
+    const endTime = isUntilFinished ? '' : (document.getElementById('endTime').value || '');
+    const publicNotes = document.getElementById('publicNotes').value || '';
+
+    // Privacy leak alert check
+    const privacyAlert = document.getElementById('privacyAlert');
+    if (PRIVACY_LEAK_REGEX.test(publicNotes)) {
+      privacyAlert.style.display = 'block';
+    } else {
+      privacyAlert.style.display = 'none';
+    }
+
+    // Time display
+    let timeText = 's.d. selesai';
+    if (startTime && isUntilFinished) timeText = `${startTime} WIB s.d. selesai`;
+    else if (startTime && endTime) timeText = `${startTime} - ${endTime} WIB`;
+
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewDate').textContent = startDate;
+    document.getElementById('previewTime').textContent = timeText;
+    document.getElementById('previewNotes').textContent = publicNotes || '-';
+  }
+
+  function openNewActivityModal() {
+    state.currentEditId = null;
+    state.currentVersion = null;
+    activityForm.reset();
+    document.getElementById('modalTitle').textContent = 'Tambah Jadwal Kegiatan Baru';
+    document.getElementById('attendeesContainer').innerHTML = '';
+    document.getElementById('isUntilFinished').checked = true;
+    document.getElementById('endTime').disabled = true;
+
+    // Default dates to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('startDate').value = today;
+    document.getElementById('endDate').value = today;
+
+    updatePublicPreviewAndPrivacy();
+    activityModal.classList.add('open');
+  }
+
+  function openEditActivityModal(id) {
+    const act = state.activities.find(a => a.activity_id === id);
+    if (!act) return;
+
+    state.currentEditId = id;
+    state.currentVersion = act.version;
+    document.getElementById('modalTitle').textContent = 'Edit Jadwal Kegiatan';
+
+    document.getElementById('title').value = act.title || '';
+    document.getElementById('startDate').value = act.start_date || '';
+    document.getElementById('startTime').value = act.start_time || '';
+    document.getElementById('endDate').value = act.end_date || act.start_date || '';
+    document.getElementById('endTime').value = act.end_time || '';
+    document.getElementById('isUntilFinished').checked = !act.end_time;
+    document.getElementById('endTime').disabled = !act.end_time;
+
+    document.getElementById('locationId').value = act.location_id || '';
+    document.getElementById('organizerId').value = act.organizer_id || '';
+    document.getElementById('categoryId').value = act.category_id || '';
+    document.getElementById('status').value = act.status || 'SCHEDULED';
+    document.getElementById('publicNotes').value = act.public_notes || '';
+    document.getElementById('privateNotes').value = act.private_notes || '';
+    document.getElementById('privateMeetingUrl').value = act.private_meeting_url || '';
+
+    // Render attendees
+    const attContainer = document.getElementById('attendeesContainer');
+    attContainer.innerHTML = '';
+    (act.attendees || []).forEach(att => addAttendeeChip(att.employee_id, att.public_label || att.name_snapshot));
+
+    updatePublicPreviewAndPrivacy();
+    activityModal.classList.add('open');
+  }
+
+  function closeActivityModal() {
+    activityModal.classList.remove('open');
+  }
+
+  function addAttendeeFromPicker() {
+    const picker = document.getElementById('attendeeEmployeePicker');
+    const empId = picker.value;
+    if (!empId) return;
+    const emp = (state.masterData.Employees || []).find(e => e.employee_id === empId);
+    if (emp) {
+      addAttendeeChip(emp.employee_id, `${emp.full_name} (${emp.position})`);
+    }
+    picker.value = '';
+  }
+
+  function addAttendeeChip(empId, label) {
+    const container = document.getElementById('attendeesContainer');
+    const chip = document.createElement('div');
+    chip.className = 'attendee-chip';
+    chip.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 16px; margin: 4px; font-size: 0.85rem;';
+    chip.dataset.empId = empId;
+    chip.innerHTML = `<span>${label}</span> <button type="button" style="background:none;border:none;cursor:pointer;color:#0369a1;font-weight:bold;" onclick="this.parentElement.remove()">×</button>`;
+    container.appendChild(chip);
+  }
+
+  function handleFormSubmit(e) {
+    e.preventDefault();
+
+    const attendees = [];
+    document.querySelectorAll('#attendeesContainer .attendee-chip').forEach((chip, idx) => {
+      attendees.push({
+        employee_id: chip.dataset.empId,
+        public_label: `${idx + 1}. ` + chip.querySelector('span').textContent
+      });
+    });
+
+    const payload = {
+      title: document.getElementById('title').value,
+      start_date: document.getElementById('startDate').value,
+      start_time: document.getElementById('startTime').value,
+      end_date: document.getElementById('endDate').value || document.getElementById('startDate').value,
+      end_time: document.getElementById('isUntilFinished').checked ? null : document.getElementById('endTime').value,
+      location_id: document.getElementById('locationId').value,
+      organizer_id: document.getElementById('organizerId').value,
+      category_id: document.getElementById('categoryId').value,
+      status: document.getElementById('status').value,
+      public_notes: document.getElementById('publicNotes').value,
+      private_notes: document.getElementById('privateNotes').value,
+      private_meeting_url: document.getElementById('privateMeetingUrl').value,
+      attendees
+    };
+
+    state.pendingPayload = payload;
+    const reqId = 'req-' + Date.now();
+
+    showToast('Menyimpan kegiatan...');
+
+    if (state.currentEditId) {
+      // Update
+      google.script.run
+        .withSuccessHandler(onSaveSuccess)
+        .withFailureHandler(onSaveError)
+        .apiUpdateActivity(state.currentEditId, payload, state.currentVersion, reqId, state.actorLabel, false, '');
+    } else {
+      // Create
+      google.script.run
+        .withSuccessHandler(onSaveSuccess)
+        .withFailureHandler(onSaveError)
+        .apiCreateActivity(payload, reqId, state.actorLabel, false, '');
+    }
+  }
+
+  function onSaveSuccess(res) {
+    if (res.ok) {
+      showToast('Kegiatan berhasil disimpan!');
+      closeActivityModal();
+      closeConflictModal();
+      loadAllData();
+    } else if (res.error && res.error.code === 'OVERLAP') {
+      showConflictModal(res.error.conflicts);
+    } else if (res.error && res.error.code === 'VERSION_CONFLICT') {
+      alert('Perhatian: Kegiatan ini baru saja diubah oleh operator lain. Data akan dimuat ulang.');
+      closeActivityModal();
+      loadAllData();
+    } else {
+      showToast('Error: ' + (res.error ? res.error.message : 'Gagal menyimpan'));
+    }
+  }
+
+  function onSaveError(err) {
+    showToast('Kesalahan server: ' + err);
+  }
+
+  function showConflictModal(conflicts) {
+    const list = document.getElementById('conflictList');
+    list.innerHTML = '';
+    conflicts.forEach(c => {
+      list.innerHTML += `<div style="padding: 8px 12px; margin-bottom: 6px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px;">
+        <strong>[${c.type}] ${c.resourceName}</strong>: ${c.message}
+        ${c.isPotentialWarning ? '<br/><em style="font-size:0.8rem; color:#b45309;">(Peringatan Potensial: kegiatan berakhir "s.d. selesai")</em>' : ''}
+      </div>`;
+    });
+
+    document.getElementById('overrideReason').value = '';
+    document.getElementById('confirmOverride').checked = false;
+    conflictModal.classList.add('open');
+  }
+
+  function closeConflictModal() {
+    conflictModal.classList.remove('open');
+  }
+
+  function submitOverride() {
+    const isChecked = document.getElementById('confirmOverride').checked;
+    if (!isChecked) {
+      alert('Harap centang konfirmasi dispensasi sebelum melanjutkan.');
+      return;
+    }
+    const reason = document.getElementById('overrideReason').value || 'Dispensasi pimpinan';
+    const reqId = 'req-' + Date.now();
+
+    showToast('Menyimpan dengan dispensasi...');
+    if (state.currentEditId) {
+      google.script.run
+        .withSuccessHandler(onSaveSuccess)
+        .withFailureHandler(onSaveError)
+        .apiUpdateActivity(state.currentEditId, state.pendingPayload, state.currentVersion, reqId, state.actorLabel, true, reason);
+    } else {
+      google.script.run
+        .withSuccessHandler(onSaveSuccess)
+        .withFailureHandler(onSaveError)
+        .apiCreateActivity(state.pendingPayload, reqId, state.actorLabel, true, reason);
+    }
+  }
+
+  function actionDuplicate(id) {
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.ok) {
+          openNewActivityModal();
+          const p = res.data;
+          document.getElementById('title').value = p.title;
+          document.getElementById('startDate').value = p.start_date;
+          document.getElementById('startTime').value = p.start_time;
+          document.getElementById('endDate').value = p.end_date;
+          document.getElementById('endTime').value = p.end_time || '';
+          document.getElementById('isUntilFinished').checked = !p.end_time;
+          document.getElementById('endTime').disabled = !p.end_time;
+          document.getElementById('locationId').value = p.location_id || '';
+          document.getElementById('organizerId').value = p.organizer_id || '';
+          document.getElementById('categoryId').value = p.category_id || '';
+          document.getElementById('publicNotes').value = p.public_notes || '';
+          updatePublicPreviewAndPrivacy();
+          showToast('Data kegiatan berhasil disalin!');
+        }
+      })
+      .apiDuplicateActivity(id);
+  }
+
+  function actionCancel(id) {
+    const reason = prompt('Masukkan alasan pembatalan kegiatan:');
+    if (!reason) return;
+    const act = state.activities.find(a => a.activity_id === id);
+    if (!act) return;
+
+    showToast('Membatalkan kegiatan...');
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.ok) {
+          showToast('Kegiatan dibatalkan.');
+          loadAllData();
+        }
+      })
+      .apiCancelActivity(id, reason, act.version, 'req-' + Date.now(), state.actorLabel);
+  }
+
+  function actionComplete(id) {
+    if (!confirm('Tandai kegiatan ini telah selesai dilaksanakan?')) return;
+    const act = state.activities.find(a => a.activity_id === id);
+    if (!act) return;
+
+    showToast('Menandai kegiatan selesai...');
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.ok) {
+          showToast('Kegiatan ditandai selesai.');
+          loadAllData();
+        }
+      })
+      .apiCompleteActivity(id, act.version, 'req-' + Date.now(), state.actorLabel);
+  }
+
+  function renderDashboard() {
+    const total = state.activities.length;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayCount = state.activities.filter(a => a.start_date === todayStr && a.status !== 'CANCELLED').length;
+    const completedCount = state.activities.filter(a => a.status === 'COMPLETED').length;
+    const cancelledCount = state.activities.filter(a => a.status === 'CANCELLED').length;
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statToday').textContent = todayCount;
+    document.getElementById('statCompleted').textContent = completedCount;
+    document.getElementById('statCancelled').textContent = cancelledCount;
+  }
+
+  function renderActivitiesTable() {
+    const query = document.getElementById('searchQuery').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value;
+
+    const filtered = state.activities.filter(a => {
+      const matchQuery = (a.title || '').toLowerCase().includes(query) || (a.location_name || '').toLowerCase().includes(query);
+      const matchStatus = !status || a.status === status;
+      return matchQuery && matchStatus;
+    });
+
+    const tbody = document.getElementById('activitiesTableBody');
+    tbody.innerHTML = '';
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 20px;">Tidak ada kegiatan yang sesuai filter.</td></tr>';
+      return;
+    }
+
+    filtered.forEach((act, idx) => {
+      const timeStr = act.end_time ? `${act.start_time} - ${act.end_time}` : `${act.start_time || ''} s.d. selesai`;
+      tbody.innerHTML += `<tr>
+        <td>${idx + 1}</td>
+        <td>
+          <strong>${act.title}</strong>
+          ${act.private_meeting_url ? '<br/><span style="font-size:0.75rem; color:#0f766e;">🔒 Ada URL Rapat Online</span>' : ''}
+        </td>
+        <td>${act.start_date}<br/><small style="color:#64748b;">${timeStr}</small></td>
+        <td>${act.location_name || '-'}</td>
+        <td><span class="status-badge status-${act.status}">${act.status}</span></td>
+        <td>
+          <div style="display:flex; gap: 4px;">
+            <button class="btn btn-secondary btn-sm" onclick="openEditActivityModal('${act.activity_id}')">Edit</button>
+            <button class="btn btn-secondary btn-sm" onclick="actionDuplicate('${act.activity_id}')">Duplikat</button>
+            ${act.status !== 'CANCELLED' ? `<button class="btn btn-danger btn-sm" onclick="actionCancel('${act.activity_id}')">Batal</button>` : ''}
+            ${act.status !== 'COMPLETED' ? `<button class="btn btn-success btn-sm" onclick="actionComplete('${act.activity_id}')">Selesai</button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+    });
+  }
+
+  function renderMasterDataTabs() {
+    // Render Employees table
+    const empTbody = document.getElementById('employeesTableBody');
+    if (empTbody) {
+      empTbody.innerHTML = '';
+      (state.masterData.Employees || []).forEach(e => {
+        empTbody.innerHTML += `<tr>
+          <td>${e.full_name}</td>
+          <td>${e.position}</td>
+          <td>${e.active !== false ? 'Aktif' : 'Nonaktif'}</td>
+          <td>
+            ${e.active !== false ? `<button class="btn btn-secondary btn-sm" onclick="deactivateEntity('Employees', '${e.employee_id}')">Nonaktifkan</button>` : ''}
+          </td>
+        </tr>`;
+      });
+    }
+  }
+
+  function deactivateEntity(kind, id) {
+    if (!confirm('Nonaktifkan data ini? Data historis yang merujuk entitas ini tetap aman.')) return;
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.ok) {
+          showToast('Data dinonaktifkan.');
+          loadAllData();
+        }
+      })
+      .apiDeactivateMasterData(kind, id, state.actorLabel);
+  }
+
+  function renderAuditTable() {
+    const tbody = document.getElementById('auditTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    state.auditLogs.forEach(l => {
+      tbody.innerHTML += `<tr>
+        <td style="white-space:nowrap;">${l.timestamp ? l.timestamp.substring(0, 19).replace('T', ' ') : '-'}</td>
+        <td>${l.actor_label} <span class="badge-unverified">UNVERIFIED</span></td>
+        <td><strong>${l.action}</strong></td>
+        <td>${l.entity_id}</td>
+      </tr>`;
+    });
+  }
+</script>
