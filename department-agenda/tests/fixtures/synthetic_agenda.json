@@ -85,6 +85,6 @@
   "Settings": [
     { "key": "DEPARTMENT_NAME", "value": "DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM" },
     { "key": "TIMEZONE", "value": "Asia/Jakarta" },
-    { "key": "EXPORT_TITLE", "JADWAL KEGIATAN DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM" }
+    { "key": "EXPORT_TITLE", "value": "JADWAL KEGIATAN DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM" }
   ]
 }
