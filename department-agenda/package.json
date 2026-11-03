@@ -1,0 +1,19 @@
+{
+  "name": "department-agenda",
+  "version": "4.0.0",
+  "description": "Department Activity Scheduling System v4.0 for Dinas Koperasi dan Usaha Mikro Kota Batam",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "sync": "node scripts/sync-shared.js",
+    "build": "npm run sync"
+  },
+  "keywords": [
+    "google-apps-script",
+    "batam",
+    "agenda",
+    "scheduling"
+  ],
+  "author": "Antigravity Engineering",
+  "license": "UNLICENSED"
+}
