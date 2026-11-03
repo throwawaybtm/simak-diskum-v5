@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Agenda Resmi Kegiatan - Dinas Koperasi dan Usaha Mikro Kota Batam</title>
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <!-- Header -->
+  <header class="public-header">
+    <div class="header-content">
+      <div class="logo-title">
+        <h1>DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM</h1>
+        <p>Portal Resmi Informasi Jadwal Kegiatan Kedinasan</p>
+      </div>
+      <div class="timezone-badge">
+        🕒 Waktu Indonesia Barat (WIB / UTC+7)
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="public-nav">
+    <div class="nav-inner">
+      <button class="nav-link active" data-tab="dashboard">Dashboard Hari Ini</button>
+      <button class="nav-link" data-tab="calendar">Kalender Kegiatan</button>
+      <button class="nav-link" data-tab="agenda">Daftar Agenda</button>
+      <button class="btn btn-secondary btn-sm" style="margin-left: auto;" onclick="openExportModal()">
+        🖨️ Cetak / Unduh Excel
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container">
+    <div id="announcementsContainer"></div>
+
+    <!-- TAB 1: DASHBOARD -->
+    <section id="sec-dashboard" class="tab-section">
+      <!-- Quick Counts -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="card" style="margin: 0; border-left: 4px solid var(--primary);">
+          <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Hari Ini</div>
+          <div style="font-size: 1.8rem; font-weight: 700; color: var(--slate-900);" id="countToday">0</div>
+        </div>
+        <div class="card" style="margin: 0; border-left: 4px solid #0284c7;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">7 Hari Mendatang</div>
+          <div style="font-size: 1.8rem; font-weight: 700; color: var(--slate-900);" id="countWeek">0</div>
+        </div>
+        <div class="card" style="margin: 0; border-left: 4px solid #0d9488;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Bulan Ini</div>
+          <div style="font-size: 1.8rem; font-weight: 700; color: var(--slate-900);" id="countMonth">0</div>
+        </div>
+      </div>
+
+      <!-- Today's Activities -->
+      <div class="card">
+        <div class="section-title">
+          <span>📅 Agenda Hari Ini</span>
+        </div>
+        <div id="todayActivitiesList">
+          <div style="color: #64748b; padding: 12px 0;">Memuat agenda hari ini...</div>
+        </div>
+      </div>
+
+      <!-- Upcoming 7 Days -->
+      <div class="card">
+        <div class="section-title">
+          <span>🗓️ Agenda 7 Hari Ke Depan</span>
+        </div>
+        <div id="upcomingActivitiesList">
+          <div style="color: #64748b; padding: 12px 0;">Memuat agenda mendatang...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CALENDAR -->
+    <section id="sec-calendar" class="tab-section" style="display: none;">
+      <div class="card">
+        <div class="cal-controls">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn btn-secondary btn-sm" onclick="calPrevMonth()">◀ Bulan Lalu</button>
+            <h2 id="calMonthYearDisplay" style="font-size: 1.2rem; min-width: 180px; text-align: center;">-</h2>
+            <button class="btn btn-secondary btn-sm" onclick="calNextMonth()">Bulan Depan ▶</button>
+          </div>
+          <div style="font-size: 0.85rem; color: #64748b;">
+            Klik pada kegiatan untuk melihat detail lengkap.
+          </div>
+        </div>
+        <div id="calendarDaysGrid" class="cal-grid"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: AGENDA LIST -->
+    <section id="sec-agenda" class="tab-section" style="display: none;">
+      <div class="card">
+        <div class="section-title">
+          <span>📋 Seluruh Daftar Agenda Kegiatan</span>
+        </div>
+
+        <!-- Filter bar -->
+        <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+          <input type="text" id="agendaSearch" class="form-control" placeholder="Cari kegiatan, lokasi..." style="flex: 2; min-width: 250px;">
+          <input type="date" id="agendaStartDate" class="form-control" style="flex: 1; min-width: 140px;" title="Dari Tanggal">
+          <input type="date" id="agendaEndDate" class="form-control" style="flex: 1; min-width: 140px;" title="Sampai Tanggal">
+        </div>
+
+        <div id="agendaListContainer">
+          <div style="text-align: center; color: #64748b; padding: 24px;">Memuat agenda...</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: DETAIL ACTIVITY -->
+  <div id="detailModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="detailTitle">Detail Kegiatan</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeDetailModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 12px;">
+          <span style="font-size: 0.85rem; color: #64748b;">Tanggal & Waktu:</span>
+          <div style="font-weight: 700; color: #1e3a8a;">
+            <span id="detailDate">-</span> &bull; <span id="detailTime">-</span>
+          </div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <span style="font-size: 0.85rem; color: #64748b;">Lokasi / Tempat:</span>
+          <div style="font-weight: 600;" id="detailLocation">-</div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <span style="font-size: 0.85rem; color: #64748b;">Penyelenggara:</span>
+          <div style="font-weight: 600;" id="detailOrganizer">-</div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <span style="font-size: 0.85rem; color: #64748b;">Kategori:</span>
+          <div style="font-weight: 600;" id="detailCategory">-</div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <span style="font-size: 0.85rem; color: #64748b;">Pejabat / Pegawai yang Menghadiri:</span>
+          <ul id="detailAttendees" style="margin-left: 20px; font-size: 0.9rem; margin-top: 4px;"></ul>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <span style="font-size: 0.85rem; color: #64748b;">Keterangan:</span>
+          <div id="detailNotes" style="background: #f8fafc; padding: 10px; border-radius: 6px; font-size: 0.9rem; margin-top: 4px;">-</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeDetailModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXPORT / PRINT -->
+  <div id="exportModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Ekspor / Cetak Jadwal Kegiatan</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeExportModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; color: #475569; margin-bottom: 16px;">
+          Cetak atau unduh dokumen jadwal resmi dalam format 8 kolom (*No, Hari/Tanggal, Pukul, Kegiatan, Tempat, Penyelenggara, Dihadiri Oleh, Keterangan*) sesuai format resmi Dinas Koperasi Batam.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Dari Tanggal</label>
+            <input type="date" id="exportStart" class="form-control">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Sampai Tanggal</label>
+            <input type="date" id="exportEnd" class="form-control">
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+          <button class="btn btn-primary" onclick="triggerPrint()">
+            🖨️ Cetak / Simpan PDF (Format Landscape Resmi)
+          </button>
+          <button class="btn btn-secondary" onclick="triggerXlsxDownload()">
+            📊 Unduh Dokumen Excel (.XLSX Asli)
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeExportModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <?!= include('Scripts'); ?>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<script>
+  let publicState = {
+    todayWib: '',
+    todayActivities: [],
+    upcomingActivities: [],
+    allActivities: [],
+    activeAnnouncements: [],
+    counts: { today: 0, upcomingWeek: 0, thisMonth: 0 },
+    activeTab: 'dashboard',
+    calendarMonth: new Date().getMonth(),
+    calendarYear: new Date().getFullYear(),
+    calendarMode: 'month'
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setupNav();
+    loadPublicData();
+  });
+
+  function setupNav() {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('.tab-section');
+
+    navLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        navLinks.forEach(l => l.classList.remove('active'));
+        sections.forEach(s => s.style.display = 'none');
+        link.classList.add('active');
+        publicState.activeTab = link.dataset.tab;
+
+        const activeSec = document.getElementById('sec-' + publicState.activeTab);
+        if (activeSec) activeSec.style.display = 'block';
+
+        if (publicState.activeTab === 'calendar') renderCalendar();
+        if (publicState.activeTab === 'agenda') renderAgendaList();
+      });
+    });
+
+    document.getElementById('agendaSearch').addEventListener('input', renderAgendaList);
+    document.getElementById('agendaStartDate').addEventListener('change', renderAgendaList);
+    document.getElementById('agendaEndDate').addEventListener('change', renderAgendaList);
+  }
+
+  function loadPublicData() {
+    if (typeof google === 'undefined' || !google.script || !google.script.run) {
+      console.warn('Running outside GAS; demo mode');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.ok) {
+          publicState.todayWib = res.data.todayWib;
+          publicState.todayActivities = res.data.todayActivities;
+          publicState.upcomingActivities = res.data.upcomingActivities;
+          publicState.activeAnnouncements = res.data.activeAnnouncements;
+          publicState.counts = res.data.counts;
+
+          renderAnnouncements();
+          renderDashboard();
+        }
+      })
+      .apiGetDashboardData();
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.ok) {
+          publicState.allActivities = res.data.items;
+          if (publicState.activeTab === 'calendar') renderCalendar();
+          if (publicState.activeTab === 'agenda') renderAgendaList();
+        }
+      })
+      .apiGetPublicActivities({});
+  }
+
+  function renderAnnouncements() {
+    const container = document.getElementById('announcementsContainer');
+    container.innerHTML = '';
+    if (publicState.activeAnnouncements.length === 0) return;
+
+    publicState.activeAnnouncements.forEach(ann => {
+      container.innerHTML += `<div class="announcement-box">
+        <div class="announcement-title">📢 ${ann.title}</div>
+        <div class="announcement-body">${ann.body}</div>
+      </div>`;
+    });
+  }
+
+  function renderDashboard() {
+    document.getElementById('countToday').textContent = publicState.counts.today;
+    document.getElementById('countWeek').textContent = publicState.counts.upcomingWeek;
+    document.getElementById('countMonth').textContent = publicState.counts.thisMonth;
+
+    // Render Today's items
+    const todayContainer = document.getElementById('todayActivitiesList');
+    todayContainer.innerHTML = '';
+    if (publicState.todayActivities.length === 0) {
+      todayContainer.innerHTML = '<div style="color: #64748b; padding: 12px 0;">Tidak ada agenda kedinasan yang dijadwalkan untuk hari ini.</div>';
+    } else {
+      publicState.todayActivities.forEach(act => {
+        todayContainer.appendChild(createActivityCard(act));
+      });
+    }
+
+    // Render Upcoming 7 Days
+    const upcomingContainer = document.getElementById('upcomingActivitiesList');
+    upcomingContainer.innerHTML = '';
+    if (publicState.upcomingActivities.length === 0) {
+      upcomingContainer.innerHTML = '<div style="color: #64748b; padding: 12px 0;">Belum ada agenda dalam 7 hari ke depan.</div>';
+    } else {
+      publicState.upcomingActivities.forEach(act => {
+        upcomingContainer.appendChild(createActivityCard(act));
+      });
+    }
+  }
+
+  function createActivityCard(act) {
+    const el = document.createElement('div');
+    el.className = 'activity-card';
+    el.innerHTML = `
+      <div class="act-header">
+        <div class="act-title">
+          ${act.title}
+          ${act.recentlyUpdated ? '<span class="recently-badge">Baru Diperbarui</span>' : ''}
+        </div>
+        <div class="act-time">${act.timeDisplay}</div>
+      </div>
+      <div class="act-meta">
+        <span>📅 <strong>${act.dateDisplay}</strong></span>
+        <span>📍 ${act.locationName}</span>
+        <span>🏛️ ${act.organizerName}</span>
+      </div>
+      ${act.publicNotes ? `<div class="act-notes">📝 <strong>Keterangan:</strong> ${act.publicNotes}</div>` : ''}
+      ${act.attendeeLabels && act.attendeeLabels.length > 0 ? `
+        <div class="act-attendees">
+          👥 <strong>Dihadiri Oleh:</strong> ${act.attendeeLabels.join(' &bull; ')}
+        </div>
+      ` : ''}
+    `;
+    return el;
+  }
+
+  function renderAgendaList() {
+    const query = document.getElementById('agendaSearch').value.toLowerCase();
+    const startDate = document.getElementById('agendaStartDate').value;
+    const endDate = document.getElementById('agendaEndDate').value;
+
+    const filtered = publicState.allActivities.filter(a => {
+      const matchQuery = !query || a.title.toLowerCase().includes(query) || (a.locationName || '').toLowerCase().includes(query);
+      const matchStart = !startDate || a.endDate >= startDate;
+      const matchEnd = !endDate || a.startDate <= endDate;
+      return matchQuery && matchStart && matchEnd;
+    });
+
+    const container = document.getElementById('agendaListContainer');
+    container.innerHTML = '';
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 32px 0;">Tidak ada kegiatan yang sesuai dengan kriteria pencarian.</div>';
+      return;
+    }
+
+    filtered.forEach(act => {
+      container.appendChild(createActivityCard(act));
+    });
+  }
+
+  // Calendar Engine (Month view with multi-day coverage)
+  function renderCalendar() {
+    const month = publicState.calendarMonth;
+    const year = publicState.calendarYear;
+
+    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    document.getElementById('calMonthYearDisplay').textContent = `${monthNames[month]} ${year}`;
+
+    const firstDay = new Date(year, month, 1).getDay(); // 0 is Sunday
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const grid = document.getElementById('calendarDaysGrid');
+    grid.innerHTML = '';
+
+    // Day of week headers
+    const dayHeaders = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    dayHeaders.forEach(dh => {
+      const hCell = document.createElement('div');
+      hCell.className = 'cal-header-cell';
+      hCell.textContent = dh;
+      grid.appendChild(hCell);
+    });
+
+    // Empty cells before first day
+    for (let e = 0; e < firstDay; e++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'cal-cell';
+      emptyCell.style.background = '#f8fafc';
+      grid.appendChild(emptyCell);
+    }
+
+    // Days in current month
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayCell = document.createElement('div');
+      dayCell.className = 'cal-cell';
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+      dayCell.innerHTML = `<div class="cal-date-num">${d}</div>`;
+
+      // Find activities active on this date (multi-day intersection)
+      const dayActivities = publicState.allActivities.filter(a => a.startDate <= dateStr && a.endDate >= dateStr);
+      dayActivities.forEach(act => {
+        const chip = document.createElement('div');
+        chip.className = 'cal-event-chip';
+        chip.title = `${act.timeDisplay}: ${act.title}`;
+        chip.textContent = `${act.startTime || ''} ${act.title}`.trim();
+        chip.addEventListener('click', () => openDetailModal(act));
+        dayCell.appendChild(chip);
+      });
+
+      grid.appendChild(dayCell);
+    }
+  }
+
+  function calPrevMonth() {
+    publicState.calendarMonth--;
+    if (publicState.calendarMonth < 0) {
+      publicState.calendarMonth = 11;
+      publicState.calendarYear--;
+    }
+    renderCalendar();
+  }
+
+  function calNextMonth() {
+    publicState.calendarMonth++;
+    if (publicState.calendarMonth > 11) {
+      publicState.calendarMonth = 0;
+      publicState.calendarYear++;
+    }
+    renderCalendar();
+  }
+
+  function openDetailModal(act) {
+    document.getElementById('detailTitle').textContent = act.title;
+    document.getElementById('detailDate').textContent = act.dateDisplay;
+    document.getElementById('detailTime').textContent = act.timeDisplay;
+    document.getElementById('detailLocation').textContent = act.locationName;
+    document.getElementById('detailOrganizer').textContent = act.organizerName;
+    document.getElementById('detailCategory').textContent = act.categoryName;
+    document.getElementById('detailNotes').textContent = act.publicNotes || '-';
+
+    const attList = document.getElementById('detailAttendees');
+    attList.innerHTML = '';
+    if (act.attendeeLabels && act.attendeeLabels.length > 0) {
+      act.attendeeLabels.forEach(l => {
+        attList.innerHTML += `<li>${l}</li>`;
+      });
+    } else {
+      attList.innerHTML = '<li>-</li>';
+    }
+
+    document.getElementById('detailModal').classList.add('open');
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detailModal').classList.remove('open');
+  }
+
+  // Export & Print Flow
+  function openExportModal() {
+    document.getElementById('exportModal').classList.add('open');
+  }
+
+  function closeExportModal() {
+    document.getElementById('exportModal').classList.remove('open');
+  }
+
+  function triggerPrint() {
+    const start = document.getElementById('exportStart').value;
+    const end = document.getElementById('exportEnd').value;
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.ok && res.html) {
+          const printWin = window.open('', '_blank');
+          printWin.document.write(res.html);
+          printWin.document.close();
+          printWin.focus();
+          printWin.print();
+        }
+      })
+      .apiGetPublicExport({ startDate: start, endDate: end }, 'PRINT');
+  }
+
+  function triggerXlsxDownload() {
+    const start = document.getElementById('exportStart').value;
+    const end = document.getElementById('exportEnd').value;
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.ok && res.base64) {
+          const byteCharacters = atob(res.base64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+          const link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.download = res.filename || 'Jadwal_Kegiatan_Diskum_Batam.xlsx';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      })
+      .apiGetPublicExport({ startDate: start, endDate: end }, 'XLSX');
+  }
+</script>
