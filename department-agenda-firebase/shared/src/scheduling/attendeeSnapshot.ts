@@ -75,3 +75,27 @@ export function captureAttendeeSnapshots(
 
   return snapshots;
 }
+
+/**
+ * Preserves existing snapshots when attendeeIds are unchanged and isAttendeeEdited is false.
+ * Only regenerates snapshots when participants are explicitly edited.
+ */
+export function resolveActivitySnapshots(
+  existingSnapshots: AttendeeSnapshot[] | undefined,
+  currentAttendeeIds: string[],
+  previousAttendeeIds: string[] | undefined,
+  employeeMasterList: Employee[],
+  guestAttendees: string[] = [],
+  isExplicitAttendeeEdit: boolean = false
+): AttendeeSnapshot[] {
+  const hasExisting = Array.isArray(existingSnapshots) && existingSnapshots.length > 0;
+  const idsMatch = Array.isArray(previousAttendeeIds) &&
+    currentAttendeeIds.length === previousAttendeeIds.length &&
+    currentAttendeeIds.every((id, idx) => id === previousAttendeeIds[idx]);
+
+  if (hasExisting && idsMatch && !isExplicitAttendeeEdit) {
+    return existingSnapshots;
+  }
+
+  return captureAttendeeSnapshots(currentAttendeeIds, employeeMasterList, guestAttendees);
+}

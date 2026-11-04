@@ -13,3 +13,5 @@ export * from './scheduling/conflictDetector';
 export * from './validation/activityValidator';
 export * from './validation/privacyScanner';
 export * from './projection/publicProjector';
+export * from './repository/activityRepository';
+export * from './repository/publicRepository';

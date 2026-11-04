@@ -99,14 +99,15 @@ describe('Activity Validation Engine', () => {
     expect(result.valid).toBe(true);
   });
 
-  it('rejects activities without attendees (both attendeeIds and guestAttendees empty)', () => {
+  it('permits activities without attendees and provides a nonblocking warning', () => {
     const result = validateActivity({
       ...validActivity,
       attendeeIds: [],
       guestAttendees: []
     });
-    expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('peserta'))).toBe(true);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => w.includes('kosong'))).toBe(true);
   });
 
   it('requires cancelReason if activity status is CANCELLED', () => {

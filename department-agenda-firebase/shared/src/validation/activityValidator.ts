@@ -9,10 +9,12 @@ import { wibDateTimeToUtcInstant } from '../scheduling/timeUtils';
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
+  warnings: string[];
 }
 
 export function validateActivity(activity: Partial<ActivityDocument>): ValidationResult {
   const errors: string[] = [];
+  const warnings: string[] = [];
 
   // Title validation
   if (!activity.title || activity.title.trim().length < 3) {
@@ -68,11 +70,11 @@ export function validateActivity(activity: Partial<ActivityDocument>): Validatio
     errors.push('Kategori kegiatan wajib dipilih.');
   }
 
-  // Attendee requirement: at least one employee or guest
+  // Attendee requirement: Optional with nonblocking warning
   const hasEmployees = Array.isArray(activity.attendeeIds) && activity.attendeeIds.length > 0;
   const hasGuests = Array.isArray(activity.guestAttendees) && activity.guestAttendees.length > 0;
   if (!hasEmployees && !hasGuests) {
-    errors.push('Kegiatan harus memiliki minimal satu peserta (pegawai atau tamu).');
+    warnings.push('Perhatian: Daftar peserta kegiatan masih kosong.');
   }
 
   // Status and cancellation reason
@@ -89,6 +91,7 @@ export function validateActivity(activity: Partial<ActivityDocument>): Validatio
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
+    warnings
   };
 }

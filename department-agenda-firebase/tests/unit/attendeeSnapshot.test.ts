@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { captureAttendeeSnapshots } from '../../shared/src/scheduling/attendeeSnapshot';
+import { captureAttendeeSnapshots, resolveActivitySnapshots } from '../../shared/src/scheduling/attendeeSnapshot';
 import type { Employee } from '../../shared/src/schema/master';
 
 describe('Historical Attendee Snapshot Immutability Engine', () => {
@@ -52,5 +52,41 @@ describe('Historical Attendee Snapshot Immutability Engine', () => {
     // 4. Verify new capture at T1 reflects changes
     const snapshotT1 = captureAttendeeSnapshots(['emp_01'], modifiedDirectory);
     expect(snapshotT1[0].name).toBe('Pejabat Baru, S.STP');
+  });
+
+  it('preserves attendee snapshots when editing unrelated fields after directory changes', () => {
+    // Initial activity creation with emp_01
+    const initialSnapshots = captureAttendeeSnapshots(['emp_01'], employeesDirectory);
+    expect(initialSnapshots[0].name).toBe('Drs. Hendri Arifin, M.Si');
+
+    // Later, directory changes
+    const modifiedDirectory: Employee[] = [
+      { id: 'emp_01', name: 'Pejabat Pengganti, SE', position: 'Plt. Kepala Dinas', departmentId: 'dept_01', active: true }
+    ];
+
+    // Editing unrelated field (e.g. title or publicNotes): attendeeIds unchanged, isExplicitAttendeeEdit: false
+    const preservedSnapshots = resolveActivitySnapshots(
+      initialSnapshots,
+      ['emp_01'],
+      ['emp_01'],
+      modifiedDirectory,
+      [],
+      false // Not an intentional attendee edit
+    );
+
+    // Snapshots must remain strictly as original!
+    expect(preservedSnapshots[0].name).toBe('Drs. Hendri Arifin, M.Si');
+    expect(preservedSnapshots[0].position).toBe('Kepala Dinas');
+
+    // But if intentionally edited (isExplicitAttendeeEdit: true)
+    const updatedSnapshots = resolveActivitySnapshots(
+      initialSnapshots,
+      ['emp_01'],
+      ['emp_01'],
+      modifiedDirectory,
+      [],
+      true // Intentional attendee edit
+    );
+    expect(updatedSnapshots[0].name).toBe('Pejabat Pengganti, SE');
   });
 });

@@ -44,18 +44,17 @@ export function projectPublicActivity(
   // Secondary defense-in-depth sanitization on public notes
   const safePublicNotes = sanitizePublicText(privateRecord.publicNotes || '');
 
-  return {
+  const dto: PublicActivityDTO = {
     id: privateRecord.id,
     title: privateRecord.title,
     startDate: privateRecord.startDate,
     startTime: privateRecord.startTime,
     endDate: privateRecord.endDate,
-    endTime: privateRecord.endTime,
+    endTime: privateRecord.endTime ?? null,
     openEnded: privateRecord.openEnded,
     timeDisplay,
     dateDisplay,
     status: privateRecord.status,
-    publicCancellationNotice: privateRecord.publicCancellationNotice,
     locationName: loc ? loc.name : 'Lokasi Dinas',
     locationType: loc ? loc.type : 'OFFICE',
     organizerName: org ? org.name : 'Dinas Koperasi dan UKM Batam',
@@ -64,4 +63,10 @@ export function projectPublicActivity(
     attendeeLabels,
     updatedAt: privateRecord.updatedAt
   };
+
+  if (privateRecord.publicCancellationNotice) {
+    dto.publicCancellationNotice = privateRecord.publicCancellationNotice;
+  }
+
+  return dto;
 }
