@@ -3,12 +3,14 @@
  * Renders official active announcements from publicAnnouncements collection.
  */
 
+import { formatAnnouncementDate } from '@department-agenda/shared';
+
 export interface AnnouncementItem {
   id: string;
   title: string;
   content: string;
   category?: string;
-  publishedAt: string;
+  publishedAt: unknown;
 }
 
 export function renderAnnouncementsView(announcements: AnnouncementItem[]): string {
@@ -17,7 +19,7 @@ export function renderAnnouncementsView(announcements: AnnouncementItem[]): stri
         <article class="announcement-item-card category-${(ann.category || 'info').toLowerCase()}">
           <div class="ann-item-top">
             <span class="ann-badge-pill">${ann.category || 'INFORMASI'}</span>
-            <span class="ann-date-text">📅 ${new Date(ann.publishedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })} WIB</span>
+            <span class="ann-date-text">📅 ${formatAnnouncementDate(ann.publishedAt)}</span>
           </div>
           <h3 class="ann-item-title">${ann.title}</h3>
           <div class="ann-item-body">

@@ -11,6 +11,8 @@ import {
   getVisibleWeekBounds,
   type PublicActivityFilterOptions
 } from '../../apps/public/src/components/PublicController';
+import { renderDashboardView } from '../../apps/public/src/pages/DashboardView';
+import { renderAnnouncementsView } from '../../apps/public/src/pages/AnnouncementsView';
 
 describe('Public UI Logic & Calendar Engine', () => {
   const sampleActivities: PublicActivityDTO[] = [
@@ -162,6 +164,87 @@ describe('Public UI Logic & Calendar Engine', () => {
       const { weekStart, weekEnd } = getVisibleWeekBounds('2026-11-04');
       expect(weekStart).toBe('2026-11-02');
       expect(weekEnd).toBe('2026-11-08');
+    });
+  });
+
+  describe('Announcement Rendering Defect Regression (Zero "Invalid Date WIB")', () => {
+    it('renders announcements with Firestore Timestamp objects without Invalid Date', () => {
+      const mockAnnouncements = [
+        {
+          id: 'ann_ts_1',
+          title: 'Pengumuman Pelatihan Koperasi',
+          content: 'Pendaftaran dibuka untuk seluruh pengurus koperasi.',
+          category: 'PELATIHAN',
+          publishedAt: {
+            toDate: () => new Date('2026-11-04T08:00:00.000Z')
+          }
+        },
+        {
+          id: 'ann_ts_2',
+          title: 'Pengumuman Sertifikasi Halal',
+          content: 'Fasilitasi sertifikasi gratis melalui PLUT Batam.',
+          category: 'LAYANAN',
+          publishedAt: {
+            seconds: 1793779200,
+            nanoseconds: 0
+          }
+        }
+      ];
+
+      const dashboardHtml = renderDashboardView({
+        todayActivities: [],
+        upcomingActivities: [],
+        monthActivitiesCount: 0,
+        announcements: mockAnnouncements,
+        todayDateStr: '2026-11-04'
+      });
+
+      expect(dashboardHtml).not.toContain('Invalid Date');
+      expect(dashboardHtml).toContain('4 November 2026 WIB');
+
+      const announcementsViewHtml = renderAnnouncementsView(mockAnnouncements as any);
+      expect(announcementsViewHtml).not.toContain('Invalid Date');
+      expect(announcementsViewHtml).toContain('4 November 2026 WIB');
+    });
+
+    it('renders announcements with missing, empty, or invalid dates gracefully', () => {
+      const problematicAnnouncements = [
+        {
+          id: 'ann_err_1',
+          title: 'Pengumuman Tanpa Tanggal',
+          content: 'Informasi umum kedinasan.',
+          category: 'INFO',
+          publishedAt: null as any
+        },
+        {
+          id: 'ann_err_2',
+          title: 'Pengumuman String Invalid',
+          content: 'Informasi kedua.',
+          category: 'INFO',
+          publishedAt: 'invalid-string-date'
+        },
+        {
+          id: 'ann_err_3',
+          title: 'Pengumuman Empty String',
+          content: 'Informasi ketiga.',
+          category: 'INFO',
+          publishedAt: ''
+        }
+      ];
+
+      const dashboardHtml = renderDashboardView({
+        todayActivities: [],
+        upcomingActivities: [],
+        monthActivitiesCount: 0,
+        announcements: problematicAnnouncements,
+        todayDateStr: '2026-11-04'
+      });
+
+      expect(dashboardHtml).not.toContain('Invalid Date');
+      expect(dashboardHtml).toContain('<span class="ann-date">-</span>');
+
+      const announcementsViewHtml = renderAnnouncementsView(problematicAnnouncements as any);
+      expect(announcementsViewHtml).not.toContain('Invalid Date');
     });
   });
 });

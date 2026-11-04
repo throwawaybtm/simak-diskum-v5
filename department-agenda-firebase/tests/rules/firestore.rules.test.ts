@@ -7,7 +7,7 @@ import {
   assertSucceeds,
   type RulesTestEnvironment
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () => {
   const hostedRules = fs.readFileSync(
@@ -42,6 +42,10 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
         port: 8080
       }
     });
+
+    // Clear stale state in emulator from previous runs
+    await hostedEnv.clearFirestore();
+    await emulatorEnv.clearFirestore();
   });
 
   afterAll(async () => {
@@ -89,6 +93,279 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
     });
   });
 
+  describe('Hosted Rules - Production RBAC and Security Invariants', () => {
+    const adminAuth = { uid: 'admin_user_01', role: 'admin' };
+    const editorAuth = { uid: 'editor_user_01', role: 'editor' };
+    const guestAuth = { uid: 'guest_user_01' }; // Authenticated with no role
+
+    const validActivityDoc = {
+      id: 'act_001',
+      title: 'Rapat Koordinasi UMKM Batam',
+      startDate: '2026-11-10',
+      startTime: '09:00',
+      endDate: '2026-11-10',
+      endTime: '11:00',
+      openEnded: false,
+      locationId: 'loc_01',
+      organizerId: 'org_01',
+      categoryId: 'cat_01',
+      attendeeIds: ['emp_01'],
+      attendeeSnapshots: [{
+        employeeId: 'emp_01',
+        name: 'Drs. Hendri Arifin, M.Si',
+        position: 'Kepala Dinas',
+        label: '1. Kadis'
+      }],
+      guestAttendees: [],
+      status: 'SCHEDULED',
+      publicNotes: 'Pakaian: Batik Lengan Panjang',
+      privateNotes: 'Bahan rapat rahasia pimpinan',
+      privateMeetingUrl: null,
+      version: 1,
+      createdAt: '2026-11-04T10:00:00Z',
+      createdBy: 'editor_user_01',
+      updatedAt: '2026-11-04T10:00:00Z',
+      updatedBy: 'editor_user_01'
+    };
+
+    const validPublicActivityDoc = {
+      id: 'act_001',
+      title: 'Rapat Koordinasi UMKM Batam',
+      startDate: '2026-11-10',
+      startTime: '09:00',
+      endDate: '2026-11-10',
+      endTime: '11:00',
+      openEnded: false,
+      timeDisplay: '09.00 - 11.00 WIB',
+      dateDisplay: 'Selasa, 10 November 2026',
+      status: 'SCHEDULED',
+      locationName: 'Ruang Rapat Diskum Lt. 2',
+      locationType: 'OFFICE',
+      organizerName: 'Bidang Usaha Mikro',
+      categoryName: 'Rapat Internal',
+      publicNotes: 'Pakaian: Batik Lengan Panjang',
+      attendeeLabels: ['1. Kadis'],
+      updatedAt: '2026-11-04T10:00:00Z'
+    };
+
+    const validEmployeeDoc = {
+      id: 'emp_01',
+      name: 'Drs. Hendri Arifin, M.Si',
+      position: 'Kepala Dinas',
+      departmentId: 'dept_01',
+      active: true
+    };
+
+    const validSignatoryDoc = {
+      name: 'Drs. HENDRI ARIFIN, M.Si',
+      nip: '19710312 199803 1 004',
+      position: 'Kepala Dinas',
+      department: 'Dinas Koperasi dan Usaha Mikro Kota Batam',
+      city: 'Batam'
+    };
+
+    it('allows Admin and Editor to create and read activities', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      await assertSucceeds(setDoc(doc(editorDb, 'activities', 'act_001'), validActivityDoc));
+      await assertSucceeds(getDoc(doc(editorDb, 'activities', 'act_001')));
+
+      const adminDb = hostedEnv.authenticatedContext(adminAuth.uid, { role: adminAuth.role }).firestore();
+      await assertSucceeds(getDoc(doc(adminDb, 'activities', 'act_001')));
+    });
+
+    it('enforces optimistic concurrency version increment on activity update', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+
+      // Fails if version does not increment by 1
+      await assertFails(
+        updateDoc(doc(editorDb, 'activities', 'act_001'), {
+          title: 'Updated Without Version Increment',
+          version: 1
+        })
+      );
+
+      // Succeeds when version increments to 2
+      await assertSucceeds(
+        updateDoc(doc(editorDb, 'activities', 'act_001'), {
+          title: 'Updated Rapat Title',
+          version: 2,
+          updatedAt: '2026-11-04T11:00:00Z',
+          updatedBy: editorAuth.uid
+        })
+      );
+    });
+
+    it('denies Editor from deleting activities, allows Admin to delete', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const adminDb = hostedEnv.authenticatedContext(adminAuth.uid, { role: adminAuth.role }).firestore();
+
+      // Editor cannot delete
+      await assertFails(deleteDoc(doc(editorDb, 'activities', 'act_001')));
+
+      // Admin can delete
+      await assertSucceeds(deleteDoc(doc(adminDb, 'activities', 'act_001')));
+    });
+
+    it('allows Admin to manage master data, denies Editor', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const adminDb = hostedEnv.authenticatedContext(adminAuth.uid, { role: adminAuth.role }).firestore();
+
+      // Editor cannot create or update employee
+      await assertFails(setDoc(doc(editorDb, 'employees', 'emp_01'), validEmployeeDoc));
+
+      // Admin can create employee
+      await assertSucceeds(setDoc(doc(adminDb, 'employees', 'emp_01'), validEmployeeDoc));
+
+      // Editor can read employee
+      await assertSucceeds(getDoc(doc(editorDb, 'employees', 'emp_01')));
+
+      // Editor cannot delete employee
+      await assertFails(deleteDoc(doc(editorDb, 'employees', 'emp_01')));
+
+      // Admin can delete employee
+      await assertSucceeds(deleteDoc(doc(adminDb, 'employees', 'emp_01')));
+    });
+
+    it('enforces settings rules (Admin write, Editor read, delete prohibited)', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const adminDb = hostedEnv.authenticatedContext(adminAuth.uid, { role: adminAuth.role }).firestore();
+
+      // Editor cannot write settings
+      await assertFails(setDoc(doc(editorDb, 'settings', 'signatory'), validSignatoryDoc));
+
+      // Admin can write settings
+      await assertSucceeds(setDoc(doc(adminDb, 'settings', 'signatory'), validSignatoryDoc));
+
+      // Editor can read settings
+      await assertSucceeds(getDoc(doc(editorDb, 'settings', 'signatory')));
+
+      // Deletion is strictly prohibited even for Admin
+      await assertFails(deleteDoc(doc(adminDb, 'settings', 'signatory')));
+    });
+
+    it('enforces append-only audit logs with server timestamp and actor identity binding', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const adminDb = hostedEnv.authenticatedContext(adminAuth.uid, { role: adminAuth.role }).firestore();
+
+      // Valid audit log with matching actorId and server timestamp
+      const validAuditLog = {
+        id: 'log_001',
+        actorId: editorAuth.uid,
+        action: 'CREATE',
+        timestamp: serverTimestamp(),
+        recordId: 'act_001'
+      };
+
+      // Fails if actorId is spoofed
+      await assertFails(
+        setDoc(doc(editorDb, 'auditLogs', 'log_spoofed'), {
+          id: 'log_spoofed',
+          actorId: 'someone_else_uid',
+          action: 'CREATE',
+          timestamp: serverTimestamp()
+        })
+      );
+
+      // Succeeds when actorId matches request.auth.uid
+      await assertSucceeds(setDoc(doc(editorDb, 'auditLogs', 'log_001'), validAuditLog));
+
+      // Update is strictly prohibited (fails even for Admin)
+      await assertFails(
+        updateDoc(doc(adminDb, 'auditLogs', 'log_001'), {
+          action: 'MODIFIED_LOG'
+        })
+      );
+
+      // Deletion is strictly prohibited (fails even for Admin)
+      await assertFails(deleteDoc(doc(adminDb, 'auditLogs', 'log_001')));
+    });
+
+    it('denies unauthenticated and role-less users from accessing private data', async () => {
+      const guestDb = hostedEnv.authenticatedContext(guestAuth.uid).firestore();
+
+      // Guest cannot read or write private activities
+      await assertFails(getDoc(doc(guestDb, 'activities', 'act_001')));
+      await assertFails(setDoc(doc(guestDb, 'activities', 'act_001'), validActivityDoc));
+
+      // Guest cannot read master data
+      await assertFails(getDoc(doc(guestDb, 'employees', 'emp_01')));
+
+      // Guest cannot write to publicActivities
+      await assertFails(setDoc(doc(guestDb, 'publicActivities', 'act_001'), validPublicActivityDoc));
+    });
+
+    it('allows Admin and Editor to publish publicActivities', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      await assertSucceeds(setDoc(doc(editorDb, 'publicActivities', 'act_001'), validPublicActivityDoc));
+
+      // Public can read
+      const anonDb = hostedEnv.unauthenticatedContext().firestore();
+      await assertSucceeds(getDoc(doc(anonDb, 'publicActivities', 'act_001')));
+    });
+
+    it('blocks DoS attacks with oversized payloads (>200 chars title)', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const oversizedDoc = {
+        ...validActivityDoc,
+        id: 'act_dos_01',
+        title: 'A'.repeat(250) // Max allowed is 200
+      };
+      await assertFails(setDoc(doc(editorDb, 'activities', 'act_dos_01'), oversizedDoc));
+    });
+
+    it('blocks schema pollution (unrecognized extra fields)', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const pollutedDoc = {
+        ...validActivityDoc,
+        id: 'act_polluted_01',
+        maliciousInjectedField: 'hacker_payload'
+      };
+      await assertFails(setDoc(doc(editorDb, 'activities', 'act_polluted_01'), pollutedDoc));
+    });
+
+    it('blocks PII and secret leakage in publicActivities projection', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const leakedPublicDoc = {
+        ...validPublicActivityDoc,
+        id: 'act_leak_01',
+        privateNotes: 'Confidential secret notes should never be in public projection!'
+      };
+      await assertFails(setDoc(doc(editorDb, 'publicActivities', 'act_leak_01'), leakedPublicDoc));
+    });
+
+    it('enforces cancelReason when activity status is CANCELLED', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const cancelledWithoutReason = {
+        ...validActivityDoc,
+        id: 'act_cancel_no_reason',
+        status: 'CANCELLED'
+        // cancelReason omitted
+      };
+      await assertFails(setDoc(doc(editorDb, 'activities', 'act_cancel_no_reason'), cancelledWithoutReason));
+
+      const cancelledWithReason = {
+        ...validActivityDoc,
+        id: 'act_cancel_with_reason',
+        status: 'CANCELLED',
+        cancelReason: 'Pejabat dinas berhalangan hadir mendadak karena tugas luar kota'
+      };
+      await assertSucceeds(setDoc(doc(editorDb, 'activities', 'act_cancel_with_reason'), cancelledWithReason));
+    });
+
+    it('blocks overwriting existing audit log document', async () => {
+      const adminDb = hostedEnv.authenticatedContext(adminAuth.uid, { role: adminAuth.role }).firestore();
+      // Trying to recreate or overwrite log_001
+      await assertFails(
+        setDoc(doc(adminDb, 'auditLogs', 'log_001'), {
+          id: 'log_001',
+          actorId: adminAuth.uid,
+          action: 'DELETE',
+          timestamp: serverTimestamp()
+        })
+      );
+    });
+  });
+
   describe('Emulator Rules (firebase/emulator.rules) - Local Synthetic CRUD', () => {
     it('permits local writes to activities, publicActivities, and auditLogs in emulator', async () => {
       const emuDb = emulatorEnv.unauthenticatedContext().firestore();
@@ -116,3 +393,4 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
     });
   });
 });
+

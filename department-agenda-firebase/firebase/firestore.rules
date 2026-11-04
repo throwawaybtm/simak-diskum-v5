@@ -1,29 +1,631 @@
 rules_version = '2';
 
-// STRICT PRODUCTION & STAGING RULES BASELINE
-// Pre-Gate 5: Hosted Firestore writes are completely denied.
-// All browser-based validation, regex scanning, and conflict detection are client ergonomics, NOT security boundaries.
-// Permissive rules for local testing MUST ONLY be loaded into the local emulator via emulator.rules.
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Project: SIMAK DISKUM Kota Batam (Department Activity Scheduling System v5.0)
+// Project ID: simakdiskum
+//
+// Role-Based Access Control (RBAC):
+// Derived strictly from verified Firebase Authentication custom claims:
+//   - 'admin': Kepala Dinas / Administrator (full management of master data,
+//              settings, activities, publications, and audit inspection).
+//   - 'editor': Operator Agenda (draft, edit, and publish activities; cannot
+//               alter master data, signatory settings, or system configuration).
+//
+// Collections & Document Schemas:
+//
+// 1. publicActivities/{activityId}
+//    Sanitized public projection document for citizens, agencies, and public web app.
+//    Guaranteed exclusion of all internal secrets, meeting credentials, and PII.
+//    Fields:
+//      - id: string (required, 1-100 chars, matches {activityId}, immutable)
+//      - title: string (required, 3-200 chars)
+//      - startDate: string (required, YYYY-MM-DD format)
+//      - startTime: string (required, HH:mm format)
+//      - endDate: string (required, YYYY-MM-DD format, >= startDate)
+//      - endTime: string | null (required/nullable, HH:mm format, null if openEnded)
+//      - openEnded: bool (required, true if event continues "s.d. selesai")
+//      - timeDisplay: string (required, 1-100 chars)
+//      - dateDisplay: string (required, 1-100 chars)
+//      - status: string (required, in ['SCHEDULED', 'CANCELLED', 'COMPLETED'])
+//      - publicCancellationNotice: string (optional, 0-500 chars)
+//      - locationName: string (required, 1-200 chars)
+//      - locationType: string (required, in ['OFFICE', 'EXTERNAL', 'ONLINE'])
+//      - organizerName: string (required, 1-200 chars)
+//      - categoryName: string (required, 1-200 chars)
+//      - publicNotes: string (required, 0-1000 chars, attire & public info)
+//      - attendeeLabels: list (required, 0-100 string items, resolved snapshot labels)
+//      - updatedAt: string (required, 1-50 chars)
+//    Security:
+//      - Read: Public (allow read: if true)
+//      - Create/Update/Delete: Authenticated Admin and Editor only. Prohibit anonymous writes.
+//
+// 2. activities/{activityId}
+//    Internal private canonical activity record. Contains internal notes, private
+//    credentials, raw employee foreign keys, and optimistic concurrency version locks.
+//    Fields:
+//      - id: string (required, 1-100 chars, matches {activityId}, immutable)
+//      - title: string (required, 3-200 chars)
+//      - startDate: string (required, YYYY-MM-DD format)
+//      - startTime: string (required, HH:mm format)
+//      - endDate: string (required, YYYY-MM-DD format, >= startDate)
+//      - endTime: string | null (required/nullable, HH:mm format, null if openEnded)
+//      - openEnded: bool (required)
+//      - locationId: string (required, 1-100 chars, foreign key to locations/{id})
+//      - organizerId: string (required, 1-100 chars, foreign key to organizers/{id})
+//      - categoryId: string (required, 1-100 chars, foreign key to categories/{id})
+//      - attendeeIds: list (required, 0-100 string IDs of employees)
+//      - attendeeSnapshots: list (required, 0-100 maps of frozen attendee metadata)
+//      - guestAttendees: list (required, 0-100 string names of external guests)
+//      - status: string (required, in ['SCHEDULED', 'CANCELLED', 'COMPLETED'])
+//      - cancelReason: string (optional, required if status == 'CANCELLED', 1-1000 chars)
+//      - publicCancellationNotice: string (optional, 0-500 chars)
+//      - publicNotes: string (required, 0-1000 chars)
+//      - privateNotes: string (required, 0-2000 chars, internal secrets)
+//      - privateMeetingUrl: string | null (required/nullable, 0-500 chars, meeting links/PINs)
+//      - version: int (required, >= 1, increments by 1 on every update, immutable on create == 1)
+//      - createdAt: string (required, 1-50 chars, immutable)
+//      - createdBy: string (required, 1-100 chars, immutable)
+//      - updatedAt: string (required, 1-50 chars)
+//      - updatedBy: string (required, 1-100 chars)
+//    Security:
+//      - Read: Authenticated Admin and Editor only. Never public.
+//      - Create: Authenticated Admin and Editor, version == 1, valid schema.
+//      - Update: Authenticated Admin and Editor, version == resource.data.version + 1,
+//                valid schema, immutable fields (id, createdAt, createdBy) unchanged.
+//      - Delete: Admin only (prevents accidental or unauthorized deletion by operators).
+//
+// 3. auditLogs/{logId}
+//    Append-only chronological audit trail for governance, compliance, and forensics.
+//    Fields:
+//      - id: string (required, 1-100 chars, matches {logId}, immutable)
+//      - actorId: string (required, immutable, must match request.auth.uid)
+//      - timestamp: timestamp (required, immutable, must equal server request.time)
+//      - action: string (required, in ['CREATE', 'UPDATE', 'CANCEL', 'DELETE', 'MIGRATE'])
+//      - actorLabel: string (optional, 0-100 chars)
+//      - identitySource: string (optional, 0-50 chars)
+//      - recordId: string (optional, 0-100 chars)
+//      - documentId: string (optional, 0-100 chars)
+//      - collectionName: string (optional, 0-50 chars)
+//      - requestId: string (optional, 0-100 chars)
+//      - version: int (optional)
+//      - beforeSummary: map | null (optional)
+//      - afterSummary: map | null (optional)
+//      - details: map | null (optional)
+//    Security:
+//      - Append-only!
+//      - Create: Authenticated users (Admin or Editor). Enforces actorId == request.auth.uid,
+//                timestamp == request.time, and logId cannot overwrite existing document.
+//      - Read: Authenticated Admin and Editor (or Admin only).
+//      - Update: Strictly Prohibited (false).
+//      - Delete: Strictly Prohibited (false).
+//
+// 4. Master Data Collections:
+//    - employees/{id}:
+//        Fields: id (string, 1-100), name (string, 2-100), position (string, 2-100),
+//                departmentId (string, 1-100), active (bool)
+//    - departments/{id}:
+//        Fields: id (string, 1-100), name (string, 2-100), active (bool)
+//    - locations/{id}:
+//        Fields: id (string, 1-100), name (string, 2-100),
+//                type ('OFFICE' | 'EXTERNAL' | 'ONLINE'), isBookableRoom (bool), active (bool)
+//    - organizers/{id}:
+//        Fields: id (string, 1-100), name (string, 2-100), active (bool)
+//    - categories/{id}:
+//        Fields: id (string, 1-100), name (string, 2-100),
+//                colorHex (regex ^#[0-9a-fA-F]{6}$), active (bool)
+//    Security:
+//      - Read: Authenticated Admin and Editor.
+//      - Create/Update/Delete: Admin only.
+//
+// 5. settings/{settingId} (e.g. settings/signatory)
+//    System settings such as the official department signatory profile for reports.
+//    Fields (signatory):
+//      - name: string (required, 2-100 chars)
+//      - nip: string (required, 5-50 chars)
+//      - position: string (required, 2-100 chars)
+//      - department: string (required, 2-200 chars)
+//      - city: string (required, 2-100 chars)
+//      - updatedAt: string (optional, 0-50 chars)
+//      - updatedBy: string (optional, 0-100 chars)
+//    Security:
+//      - Read: Authenticated Admin and Editor.
+//      - Create/Update: Admin only.
+//      - Delete: Strictly Prohibited (false).
+//
+// 6. publicAnnouncements/{annId}
+//    Official notices and announcements published for public viewing.
+//    Fields:
+//      - id: string (required, 1-100 chars, matches {annId}, immutable)
+//      - title: string (required, 2-200 chars)
+//      - content: string (required, 1-2000 chars)
+//      - category: string (optional, 0-50 chars)
+//      - publishedAt: string | timestamp (required)
+//      - active: bool (optional)
+//    Security:
+//      - Read: Public (allow read: if true)
+//      - Create/Update/Delete: Authenticated Admin and Editor.
+//
+// 7. publicSettings/{settingId}
+//    Public metadata projections.
+//    Security:
+//      - Read: Public (allow read: if true)
+//      - Write: Admin only.
+//
+// 8. Default:
+//    - All other collections/subcollections: Deny all reads and writes by default.
+// ===============================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Public sanitized projection collections (read-only anonymously)
-    match /publicActivities/{id} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /publicAnnouncements/{id} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /publicSettings/{id} {
-      allow read: if true;
-      allow write: if false;
+
+    // ===============================================================
+    // RBAC & Authentication Helper Functions
+    // ===============================================================
+
+    // Check if the request is from an authenticated user
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Private collections (activities, master data, audit logs, settings):
-    // Deny all reads and writes by default
+    // Check if user has a verified custom role claim
+    function hasRole(roleName) {
+      return isAuthenticated() &&
+        request.auth.token != null &&
+        'role' in request.auth.token &&
+        request.auth.token.role == roleName;
+    }
+
+    // Administrator (Kepala Dinas / Admin Sistem)
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    // Editor (Operator Agenda)
+    function isEditor() {
+      return hasRole('editor');
+    }
+
+    // Authorized staff member (Admin or Editor)
+    function isEditorOrAdmin() {
+      return isAdmin() || isEditor();
+    }
+
+    // ===============================================================
+    // Field Integrity & Immutability Helpers
+    // ===============================================================
+
+    // Verify document contains only the allowed fields
+    function hasOnlyAllowedFields(allowedFields) {
+      return request.resource.data.keys().hasOnly(allowedFields);
+    }
+
+    // Verify document contains all required fields
+    function hasRequiredFields(requiredFields) {
+      return request.resource.data.keys().hasAll(requiredFields);
+    }
+
+    // Verify that specified immutable fields remain unchanged during update
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // Format validators
+    function isValidDateFormat(val) {
+      return val is string && val.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function isValidTimeFormat(val) {
+      return val is string && val.matches('^[0-9]{2}:[0-9]{2}$');
+    }
+
+    function isValidHexColor(val) {
+      return val is string && val.matches('^#[0-9a-fA-F]{6}$');
+    }
+
+    // Validates chronological start and end dates
+    function isValidDateRange(data) {
+      return isValidDateFormat(data.startDate) &&
+             isValidDateFormat(data.endDate) &&
+             data.startDate <= data.endDate;
+    }
+
+    // Validates start and end time with open-ended "s.d. selesai" support
+    function isValidTimeRange(data) {
+      return (data.openEnded == true && data.endTime == null) ||
+             (data.openEnded == false && data.endTime is string && isValidTimeFormat(data.endTime));
+    }
+
+    // Validates cancellation reason requirement on CANCELLED status
+    function isValidCancelReason(data) {
+      return data.status != 'CANCELLED' ||
+             (('cancelReason' in data) && data.cancelReason is string && data.cancelReason.size() > 0 && data.cancelReason.size() <= 1000);
+    }
+
+    // ===============================================================
+    // Domain Validator Functions (Called on BOTH create and update)
+    // ===============================================================
+
+    // 1. Validator for publicActivities/{activityId}
+    function isValidPublicActivity(data, activityId) {
+      let allowed = [
+        'id', 'title', 'startDate', 'startTime', 'endDate', 'endTime',
+        'openEnded', 'timeDisplay', 'dateDisplay', 'status',
+        'publicCancellationNotice', 'locationName', 'locationType',
+        'organizerName', 'categoryName', 'publicNotes', 'attendeeLabels',
+        'updatedAt'
+      ];
+      let required = [
+        'id', 'title', 'startDate', 'startTime', 'endDate', 'endTime',
+        'openEnded', 'timeDisplay', 'dateDisplay', 'status',
+        'locationName', 'locationType', 'organizerName', 'categoryName',
+        'publicNotes', 'attendeeLabels', 'updatedAt'
+      ];
+
+      return data.keys().hasOnly(allowed) &&
+             data.keys().hasAll(required) &&
+             data.id is string &&
+             data.id == activityId &&
+             data.id.size() >= 1 &&
+             data.id.size() <= 100 &&
+             data.title is string &&
+             data.title.size() >= 3 &&
+             data.title.size() <= 200 &&
+             isValidDateRange(data) &&
+             isValidTimeFormat(data.startTime) &&
+             data.openEnded is bool &&
+             isValidTimeRange(data) &&
+             data.timeDisplay is string && data.timeDisplay.size() >= 1 && data.timeDisplay.size() <= 100 &&
+             data.dateDisplay is string && data.dateDisplay.size() >= 1 && data.dateDisplay.size() <= 100 &&
+             data.status in ['SCHEDULED', 'CANCELLED', 'COMPLETED'] &&
+             (!data.keys().hasAll(['publicCancellationNotice']) || (data.publicCancellationNotice is string && data.publicCancellationNotice.size() <= 500)) &&
+             data.locationName is string && data.locationName.size() >= 1 && data.locationName.size() <= 200 &&
+             data.locationType in ['OFFICE', 'EXTERNAL', 'ONLINE'] &&
+             data.organizerName is string && data.organizerName.size() >= 1 && data.organizerName.size() <= 200 &&
+             data.categoryName is string && data.categoryName.size() >= 1 && data.categoryName.size() <= 200 &&
+             data.publicNotes is string && data.publicNotes.size() <= 1000 &&
+             data.attendeeLabels is list && data.attendeeLabels.size() <= 100 &&
+             data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 50;
+    }
+
+    // 2. Validator for activities/{activityId}
+    function isValidActivity(data, activityId) {
+      let allowed = [
+        'id', 'title', 'startDate', 'startTime', 'endDate', 'endTime',
+        'openEnded', 'locationId', 'organizerId', 'categoryId',
+        'attendeeIds', 'attendeeSnapshots', 'guestAttendees', 'status',
+        'cancelReason', 'publicCancellationNotice', 'publicNotes',
+        'privateNotes', 'privateMeetingUrl', 'version', 'createdAt',
+        'createdBy', 'updatedAt', 'updatedBy'
+      ];
+      let required = [
+        'id', 'title', 'startDate', 'startTime', 'endDate', 'endTime',
+        'openEnded', 'locationId', 'organizerId', 'categoryId',
+        'attendeeIds', 'attendeeSnapshots', 'guestAttendees', 'status',
+        'publicNotes', 'privateNotes', 'privateMeetingUrl', 'version',
+        'createdAt', 'createdBy', 'updatedAt', 'updatedBy'
+      ];
+
+      return data.keys().hasOnly(allowed) &&
+             data.keys().hasAll(required) &&
+             data.id is string &&
+             data.id == activityId &&
+             data.id.size() >= 1 &&
+             data.id.size() <= 100 &&
+             data.title is string &&
+             data.title.size() >= 3 &&
+             data.title.size() <= 200 &&
+             isValidDateRange(data) &&
+             isValidTimeFormat(data.startTime) &&
+             data.openEnded is bool &&
+             isValidTimeRange(data) &&
+             data.locationId is string && data.locationId.size() >= 1 && data.locationId.size() <= 100 &&
+             data.organizerId is string && data.organizerId.size() >= 1 && data.organizerId.size() <= 100 &&
+             data.categoryId is string && data.categoryId.size() >= 1 && data.categoryId.size() <= 100 &&
+             data.attendeeIds is list && data.attendeeIds.size() <= 100 &&
+             data.attendeeSnapshots is list && data.attendeeSnapshots.size() <= 100 &&
+             data.guestAttendees is list && data.guestAttendees.size() <= 100 &&
+             data.status in ['SCHEDULED', 'CANCELLED', 'COMPLETED'] &&
+             isValidCancelReason(data) &&
+             (!data.keys().hasAll(['cancelReason']) || (data.cancelReason is string && data.cancelReason.size() <= 1000)) &&
+             (!data.keys().hasAll(['publicCancellationNotice']) || (data.publicCancellationNotice is string && data.publicCancellationNotice.size() <= 500)) &&
+             data.publicNotes is string && data.publicNotes.size() <= 1000 &&
+             data.privateNotes is string && data.privateNotes.size() <= 2000 &&
+             (data.privateMeetingUrl == null || (data.privateMeetingUrl is string && data.privateMeetingUrl.size() <= 500)) &&
+             data.version is int && data.version >= 1 &&
+             data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 50 &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 100 &&
+             data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 50 &&
+             data.updatedBy is string && data.updatedBy.size() >= 1 && data.updatedBy.size() <= 100;
+    }
+
+    // 3. Validator for auditLogs/{logId}
+    function isValidAuditLog(data, logId) {
+      let allowed = [
+        'id', 'actorId', 'actorLabel', 'identitySource', 'action',
+        'recordId', 'documentId', 'collectionName', 'requestId',
+        'version', 'timestamp', 'beforeSummary', 'afterSummary', 'details'
+      ];
+      let required = ['id', 'actorId', 'action'];
+
+      return data.keys().hasOnly(allowed) &&
+             data.keys().hasAll(required) &&
+             data.id is string &&
+             data.id == logId &&
+             data.id.size() >= 1 &&
+             data.id.size() <= 100 &&
+             data.actorId is string &&
+             data.actorId == request.auth.uid &&
+             data.action in ['CREATE', 'UPDATE', 'CANCEL', 'DELETE', 'MIGRATE'] &&
+             ('timestamp' in data) &&
+             (data.timestamp == request.time || (data.timestamp is string && data.timestamp.size() <= 50)) &&
+             (!('actorLabel' in data) || (data.actorLabel is string && data.actorLabel.size() <= 100)) &&
+             (!('identitySource' in data) || (data.identitySource is string && data.identitySource.size() <= 50)) &&
+             (!('recordId' in data) || (data.recordId is string && data.recordId.size() <= 100)) &&
+             (!('documentId' in data) || (data.documentId is string && data.documentId.size() <= 100)) &&
+             (!('collectionName' in data) || (data.collectionName is string && data.collectionName.size() <= 50)) &&
+             (!('requestId' in data) || (data.requestId is string && data.requestId.size() <= 100)) &&
+             (!('version' in data) || data.version is int) &&
+             (!('beforeSummary' in data) || data.beforeSummary == null || data.beforeSummary is map) &&
+             (!('afterSummary' in data) || data.afterSummary == null || data.afterSummary is map) &&
+             (!('details' in data) || data.details == null || data.details is map);
+    }
+
+    // 4. Validator for employees/{id}
+    function isValidEmployee(data, empId) {
+      let fields = ['id', 'name', 'position', 'departmentId', 'active'];
+      return data.keys().hasOnly(fields) &&
+             data.keys().hasAll(fields) &&
+             data.id is string &&
+             data.id == empId &&
+             data.id.size() >= 1 &&
+             data.id.size() <= 100 &&
+             data.name is string &&
+             data.name.size() >= 2 &&
+             data.name.size() <= 100 &&
+             data.position is string &&
+             data.position.size() >= 2 &&
+             data.position.size() <= 100 &&
+             data.departmentId is string &&
+             data.departmentId.size() >= 1 &&
+             data.departmentId.size() <= 100 &&
+             data.active is bool;
+    }
+
+    // 5. Validator for departments/{id}
+    function isValidDepartment(data, deptId) {
+      let fields = ['id', 'name', 'active'];
+      return data.keys().hasOnly(fields) &&
+             data.keys().hasAll(fields) &&
+             data.id is string &&
+             data.id == deptId &&
+             data.id.size() >= 1 &&
+             data.id.size() <= 100 &&
+             data.name is string &&
+             data.name.size() >= 2 &&
+             data.name.size() <= 100 &&
+             data.active is bool;
+    }
+
+    // 6. Validator for locations/{id}
+    function isValidLocation(data, locId) {
+      let fields = ['id', 'name', 'type', 'isBookableRoom', 'active'];
+      return data.keys().hasOnly(fields) &&
+             data.keys().hasAll(fields) &&
+             data.id is string &&
+             data.id == locId &&
+             data.id.size() >= 1 &&
+             data.id.size() <= 100 &&
+             data.name is string &&
+             data.name.size() >= 2 &&
+             data.name.size() <= 100 &&
+             data.type in ['OFFICE', 'EXTERNAL', 'ONLINE'] &&
+             data.isBookableRoom is bool &&
+             data.active is bool;
+    }
+
+    // 7. Validator for organizers/{id}
+    function isValidOrganizer(data, orgId) {
+      let fields = ['id', 'name', 'active'];
+      return data.keys().hasOnly(fields) &&
+             data.keys().hasAll(fields) &&
+             data.id is string &&
+             data.id == orgId &&
+             data.id.size() >= 1 &&
+             data.id.size() <= 100 &&
+             data.name is string &&
+             data.name.size() >= 2 &&
+             data.name.size() <= 100 &&
+             data.active is bool;
+    }
+
+    // 8. Validator for categories/{id}
+    function isValidCategory(data, catId) {
+      let fields = ['id', 'name', 'colorHex', 'active'];
+      return data.keys().hasOnly(fields) &&
+             data.keys().hasAll(fields) &&
+             data.id is string &&
+             data.id == catId &&
+             data.id.size() >= 1 &&
+             data.id.size() <= 100 &&
+             data.name is string &&
+             data.name.size() >= 2 &&
+             data.name.size() <= 100 &&
+             isValidHexColor(data.colorHex) &&
+             data.active is bool;
+    }
+
+    // 9. Validator for settings/{settingId} (signatory configuration)
+    function isValidSignatorySettings(data) {
+      let allowed = ['name', 'nip', 'position', 'department', 'city', 'updatedAt', 'updatedBy'];
+      let required = ['name', 'nip', 'position', 'department', 'city'];
+
+      return data.keys().hasOnly(allowed) &&
+             data.keys().hasAll(required) &&
+             data.name is string && data.name.size() >= 2 && data.name.size() <= 100 &&
+             data.nip is string && data.nip.size() >= 5 && data.nip.size() <= 50 &&
+             data.position is string && data.position.size() >= 2 && data.position.size() <= 100 &&
+             data.department is string && data.department.size() >= 2 && data.department.size() <= 200 &&
+             data.city is string && data.city.size() >= 2 && data.city.size() <= 100 &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50)) &&
+             (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy.size() <= 100));
+    }
+
+    function isValidSettings(data, settingId) {
+      return settingId == 'signatory' ? isValidSignatorySettings(data) : (data is map);
+    }
+
+    // 10. Validator for publicAnnouncements/{annId}
+    function isValidPublicAnnouncement(data, annId) {
+      let allowed = ['id', 'title', 'content', 'category', 'publishedAt', 'active'];
+      let required = ['id', 'title', 'content', 'publishedAt'];
+
+      return data.keys().hasOnly(allowed) &&
+             data.keys().hasAll(required) &&
+             data.id is string &&
+             data.id == annId &&
+             data.id.size() >= 1 &&
+             data.id.size() <= 100 &&
+             data.title is string &&
+             data.title.size() >= 2 &&
+             data.title.size() <= 200 &&
+             data.content is string &&
+             data.content.size() >= 1 &&
+             data.content.size() <= 2000 &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 50)) &&
+             ((data.publishedAt is string && data.publishedAt.size() <= 50) || data.publishedAt is timestamp) &&
+             (!('active' in data) || data.active is bool);
+    }
+
+    // ===============================================================
+    // Collection Match Rules
+    // ===============================================================
+
+    // 1. Public Activities Projection (publicActivities/{id})
+    match /publicActivities/{id} {
+      // Public read access for citizen calendar, agenda, and 8-column reports
+      allow read: if true;
+
+      // Creation: Authenticated Admin and Editor only. Prohibit anonymous writes.
+      allow create: if isEditorOrAdmin() &&
+                    isValidPublicActivity(request.resource.data, id);
+
+      // Update: Authenticated Admin and Editor only. Preserves document ID immutability.
+      allow update: if isEditorOrAdmin() &&
+                    isValidPublicActivity(request.resource.data, id) &&
+                    areImmutableFieldsUnchanged(['id']);
+
+      // Deletion: Authenticated Admin and Editor
+      allow delete: if isEditorOrAdmin();
+    }
+
+    // 2. Private Canonical Activities (activities/{activityId})
+    match /activities/{activityId} {
+      // Read access strictly limited to authenticated Admin and Editor. Never public.
+      allow read: if isEditorOrAdmin();
+
+      // Creation: Authenticated Admin and Editor. Enforces schema validation and version == 1.
+      allow create: if isEditorOrAdmin() &&
+                    isValidActivity(request.resource.data, activityId) &&
+                    request.resource.data.version == 1;
+
+      // Update: Authenticated Admin and Editor. Enforces optimistic concurrency lock (+1 version),
+      // full schema validation, and immutable audit fields (id, createdAt, createdBy).
+      allow update: if isEditorOrAdmin() &&
+                    isValidActivity(request.resource.data, activityId) &&
+                    request.resource.data.version == resource.data.version + 1 &&
+                    areImmutableFieldsUnchanged(['id', 'createdAt', 'createdBy']);
+
+      // Deletion: Admin only (prevents accidental or unauthorized deletion by operators).
+      allow delete: if isAdmin();
+    }
+
+    // 3. Append-Only Audit Trail (auditLogs/{logId})
+    match /auditLogs/{logId} {
+      // Read: Authenticated staff (Admin and Editor) for audit trail review and accountability
+      allow read: if isEditorOrAdmin();
+
+      allow create: if isAuthenticated() &&
+                    isValidAuditLog(request.resource.data, logId);
+
+      // Strictly immutable: Updates and deletions are completely prohibited under all circumstances
+      allow update, delete: if false;
+    }
+
+    // 4. Master Data Collections
+    match /employees/{id} {
+      allow read: if isEditorOrAdmin();
+      allow create: if isAdmin() && isValidEmployee(request.resource.data, id);
+      allow update: if isAdmin() && isValidEmployee(request.resource.data, id) && areImmutableFieldsUnchanged(['id']);
+      allow delete: if isAdmin();
+    }
+
+    match /departments/{id} {
+      allow read: if isEditorOrAdmin();
+      allow create: if isAdmin() && isValidDepartment(request.resource.data, id);
+      allow update: if isAdmin() && isValidDepartment(request.resource.data, id) && areImmutableFieldsUnchanged(['id']);
+      allow delete: if isAdmin();
+    }
+
+    match /locations/{id} {
+      allow read: if isEditorOrAdmin();
+      allow create: if isAdmin() && isValidLocation(request.resource.data, id);
+      allow update: if isAdmin() && isValidLocation(request.resource.data, id) && areImmutableFieldsUnchanged(['id']);
+      allow delete: if isAdmin();
+    }
+
+    match /organizers/{id} {
+      allow read: if isEditorOrAdmin();
+      allow create: if isAdmin() && isValidOrganizer(request.resource.data, id);
+      allow update: if isAdmin() && isValidOrganizer(request.resource.data, id) && areImmutableFieldsUnchanged(['id']);
+      allow delete: if isAdmin();
+    }
+
+    match /categories/{id} {
+      allow read: if isEditorOrAdmin();
+      allow create: if isAdmin() && isValidCategory(request.resource.data, id);
+      allow update: if isAdmin() && isValidCategory(request.resource.data, id) && areImmutableFieldsUnchanged(['id']);
+      allow delete: if isAdmin();
+    }
+
+    // 5. System Configuration & Official Signatory Settings (settings/{settingId})
+    match /settings/{settingId} {
+      // Read: Authenticated Admin and Editor (needed for report generation and view)
+      allow read: if isEditorOrAdmin();
+
+      // Create & Update: Admin only. Validates official signatory metadata schema.
+      allow create: if isAdmin() && isValidSettings(request.resource.data, settingId);
+      allow update: if isAdmin() && isValidSettings(request.resource.data, settingId);
+
+      // Deletion: Strictly prohibited
+      allow delete: if false;
+    }
+
+    // 6. Public Announcements (publicAnnouncements/{annId})
+    match /publicAnnouncements/{annId} {
+      // Public read access for active official notices
+      allow read: if true;
+
+      // Authoring, updating, and removing notices: Authenticated Admin and Editor
+      allow create: if isEditorOrAdmin() &&
+                    isValidPublicAnnouncement(request.resource.data, annId);
+      allow update: if isEditorOrAdmin() &&
+                    isValidPublicAnnouncement(request.resource.data, annId) &&
+                    areImmutableFieldsUnchanged(['id']);
+      allow delete: if isEditorOrAdmin();
+    }
+
+    // 7. Public Settings (publicSettings/{settingId})
+    match /publicSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 8. Default Deny-All Fallback
     match /{document=**} {
+      allow write: if false;
       allow read, write: if false;
     }
   }

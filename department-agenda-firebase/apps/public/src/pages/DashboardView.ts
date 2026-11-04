@@ -4,13 +4,13 @@
  */
 
 import type { PublicActivityDTO } from '@department-agenda/shared';
-import { formatIndonesianDate } from '@department-agenda/shared';
+import { formatIndonesianDate, formatAnnouncementDate } from '@department-agenda/shared';
 
 export interface DashboardViewProps {
   todayActivities: PublicActivityDTO[];
   upcomingActivities: PublicActivityDTO[];
   monthActivitiesCount: number;
-  announcements: Array<{ id: string; title: string; content: string; publishedAt: string; category?: string }>;
+  announcements: Array<{ id: string; title: string; content: string; publishedAt: unknown; category?: string }>;
   todayDateStr: string; // YYYY-MM-DD
 }
 
@@ -46,7 +46,7 @@ export function renderDashboardView(props: DashboardViewProps): string {
         <div class="announcement-card category-${(ann.category || 'info').toLowerCase()}">
           <div class="ann-header">
             <span class="ann-badge">${ann.category || 'PENGUMUMAN'}</span>
-            <span class="ann-date">${new Date(ann.publishedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })} WIB</span>
+            <span class="ann-date">${formatAnnouncementDate(ann.publishedAt)}</span>
           </div>
           <h4 class="ann-title">${ann.title}</h4>
           <p class="ann-content">${ann.content}</p>

@@ -108,7 +108,13 @@ function renderMonthGrid(
   todayStr: string
 ): string {
   const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-  const headerHtml = dayNames.map(d => `<div class="month-col-header">${d}</div>`).join('');
+  const shortDayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+  const headerHtml = dayNames.map((d, idx) => `
+    <div class="month-col-header" data-day-idx="${idx}">
+      <span class="day-full">${d}</span>
+      <span class="day-short">${shortDayNames[idx]}</span>
+    </div>
+  `).join('');
 
   // Collect all dates from visibleStart to visibleEnd
   const cells: string[] = [];
@@ -172,6 +178,7 @@ function renderWeekGrid(
   todayStr: string
 ): string {
   const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+  const shortDayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
   let curr = new Date(visibleStart + 'T00:00:00Z');
   const colsHtml: string[] = [];
 
@@ -196,7 +203,10 @@ function renderWeekGrid(
     colsHtml.push(`
       <div class="week-day-col ${isToday ? 'week-today' : ''}">
         <div class="week-col-header">
-          <span class="week-day-name">${dayNames[i]}</span>
+          <span class="week-day-name">
+            <span class="day-full">${dayNames[i]}</span>
+            <span class="day-short">${shortDayNames[i]}</span>
+          </span>
           <span class="week-day-number">${dd}/${mm}</span>
         </div>
         <div class="week-col-body">

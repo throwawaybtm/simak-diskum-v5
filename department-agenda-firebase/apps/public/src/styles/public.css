@@ -637,6 +637,12 @@ body {
   border-color: var(--gov-accent);
 }
 
+.calendar-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.5rem;
+}
+
 /* MONTH GRID */
 .month-grid-wrapper {
   background: white;
@@ -644,6 +650,14 @@ body {
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+}
+
+.day-short {
+  display: none;
+}
+
+.day-full {
+  display: inline;
 }
 
 .month-headers-row {
@@ -1233,6 +1247,15 @@ body {
   }
   .toolbar-nav {
     flex-wrap: wrap;
+  }
+  .day-full {
+    display: none;
+  }
+  .day-short {
+    display: inline;
+  }
+  .week-grid-container {
+    min-width: 640px; /* guarantees 7 usable columns on mobile without vertical clipping */
   }
   .month-cells-grid {
     /* Collapse month cells on mobile into vertical scroll */

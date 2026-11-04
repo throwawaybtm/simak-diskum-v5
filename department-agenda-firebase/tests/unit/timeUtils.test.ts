@@ -10,7 +10,8 @@ import {
   getIntersectingDates,
   formatIndonesianDate,
   formatIndonesianDateSpan,
-  formatTimeDisplay
+  formatTimeDisplay,
+  formatAnnouncementDate
 } from '../../shared/src/scheduling/timeUtils';
 
 describe('Time Engine & Scheduling Utilities (Asia/Jakarta - WIB)', () => {
@@ -134,6 +135,63 @@ describe('Time Engine & Scheduling Utilities (Asia/Jakarta - WIB)', () => {
     it('formats time display for open-ended vs bounded schedules', () => {
       expect(formatTimeDisplay('07:00', null, true)).toBe('07.00 WIB s.d. selesai');
       expect(formatTimeDisplay('09:00', '11:00', false)).toBe('09.00 - 11.00 WIB');
+    });
+  });
+
+  describe('Announcement Date Formatter (Robustness & Firestore Timestamp Support)', () => {
+    it('formats valid ISO string into Indonesian WIB date', () => {
+      // 08:00 UTC on 2026-11-04 is 15:00 WIB on 2026-11-04
+      expect(formatAnnouncementDate('2026-11-04T08:00:00.000Z')).toBe('4 November 2026 WIB');
+      expect(formatAnnouncementDate('2026-10-15T09:30:00.000Z')).toBe('15 Oktober 2026 WIB');
+    });
+
+    it('formats YYYY-MM-DD date strings safely', () => {
+      expect(formatAnnouncementDate('2026-11-04')).toBe('4 November 2026 WIB');
+      expect(formatAnnouncementDate('2026-05-17')).toBe('17 Mei 2026 WIB');
+    });
+
+    it('handles Firestore Timestamp object with .toDate() method', () => {
+      const mockTimestamp = {
+        toDate: () => new Date('2026-11-04T08:00:00.000Z')
+      };
+      expect(formatAnnouncementDate(mockTimestamp)).toBe('4 November 2026 WIB');
+    });
+
+    it('handles Firestore Timestamp object with seconds and nanoseconds', () => {
+      const mockTimestamp = {
+        seconds: 1793779200, // 2026-11-04T08:00:00Z
+        nanoseconds: 0
+      };
+      expect(formatAnnouncementDate(mockTimestamp)).toBe('4 November 2026 WIB');
+    });
+
+    it('handles Firestore Timestamp object with _seconds and _nanoseconds', () => {
+      const mockTimestamp = {
+        _seconds: 1793779200,
+        _nanoseconds: 0
+      };
+      expect(formatAnnouncementDate(mockTimestamp)).toBe('4 November 2026 WIB');
+    });
+
+    it('handles native JavaScript Date instances', () => {
+      const date = new Date('2026-11-04T08:00:00.000Z');
+      expect(formatAnnouncementDate(date)).toBe('4 November 2026 WIB');
+    });
+
+    it('handles missing or falsy date inputs cleanly without producing "Invalid Date WIB"', () => {
+      expect(formatAnnouncementDate(null)).toBe('-');
+      expect(formatAnnouncementDate(undefined)).toBe('-');
+      expect(formatAnnouncementDate('')).toBe('-');
+      expect(formatAnnouncementDate('   ')).toBe('-');
+      expect(formatAnnouncementDate(null, 'Tanggal tidak tersedia')).toBe('Tanggal tidak tersedia');
+    });
+
+    it('handles invalid strings and malformed objects without producing "Invalid Date WIB"', () => {
+      expect(formatAnnouncementDate('Invalid Date')).toBe('-');
+      expect(formatAnnouncementDate('not-a-real-date')).toBe('-');
+      expect(formatAnnouncementDate({})).toBe('-');
+      expect(formatAnnouncementDate(NaN)).toBe('-');
+      expect(formatAnnouncementDate(new Date('invalid-date-string'))).toBe('-');
     });
   });
 });

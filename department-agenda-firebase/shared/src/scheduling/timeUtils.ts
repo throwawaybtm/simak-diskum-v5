@@ -251,3 +251,76 @@ export function formatTimeDisplay(
   const endFmt = formatTimeToken(endTime);
   return `${startFmt} - ${endFmt} WIB`;
 }
+
+/**
+ * Robustly formats an announcement date into Indonesian WIB display format
+ * (e.g. "4 November 2026 WIB").
+ * Safely handles Firestore Timestamp objects, ISO strings, YYYY-MM-DD,
+ * Date instances, empty/null values, and invalid inputs without ever producing
+ * "Invalid Date WIB".
+ */
+export function formatAnnouncementDate(
+  dateInput: unknown,
+  fallback: string = '-'
+): string {
+  if (dateInput === null || dateInput === undefined) {
+    return fallback;
+  }
+
+  const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+  let dateMs: number | null = null;
+
+  if (typeof dateInput === 'object') {
+    const obj = dateInput as Record<string, unknown>;
+    if (typeof obj.toDate === 'function') {
+      try {
+        const d = (obj.toDate as () => unknown)();
+        if (d instanceof Date && !isNaN(d.getTime())) {
+          dateMs = d.getTime();
+        }
+      } catch {
+        return fallback;
+      }
+    } else if (typeof obj.seconds === 'number' && !isNaN(obj.seconds)) {
+      dateMs = obj.seconds * 1000;
+    } else if (typeof obj._seconds === 'number' && !isNaN(obj._seconds)) {
+      dateMs = obj._seconds * 1000;
+    } else if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+      dateMs = dateInput.getTime();
+    }
+  } else if (typeof dateInput === 'number' && !isNaN(dateInput)) {
+    dateMs = dateInput > 1e11 ? dateInput : dateInput * 1000;
+  } else if (typeof dateInput === 'string') {
+    const trimmed = dateInput.trim();
+    if (!trimmed || trimmed.toLowerCase() === 'invalid date') {
+      return fallback;
+    }
+    // Check for standard YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      try {
+        const { year, month, day } = parseWibDate(trimmed);
+        const monthName = INDONESIAN_MONTHS[month - 1];
+        return `${day} ${monthName} ${year} WIB`;
+      } catch {
+        return fallback;
+      }
+    }
+    const parsed = Date.parse(trimmed);
+    if (!isNaN(parsed)) {
+      dateMs = parsed;
+    }
+  }
+
+  if (dateMs === null || isNaN(dateMs)) {
+    return fallback;
+  }
+
+  // Convert UTC timestamp to WIB calendar date
+  const wibDate = new Date(dateMs + WIB_OFFSET_MS);
+  const year = wibDate.getUTCFullYear();
+  const month = wibDate.getUTCMonth(); // 0-indexed
+  const day = wibDate.getUTCDate();
+  const monthName = INDONESIAN_MONTHS[month];
+
+  return `${day} ${monthName} ${year} WIB`;
+}
