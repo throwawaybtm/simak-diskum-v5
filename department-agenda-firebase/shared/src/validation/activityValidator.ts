@@ -3,13 +3,27 @@
  * Validates integrity, chronology, and mandatory references
  */
 
-import type { ActivityDocument } from '../schema/activity';
+import type { ActivityDocument, AdministrativeStage } from '../schema/activity';
 import { wibDateTimeToUtcInstant } from '../scheduling/timeUtils';
 
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+}
+
+export function isValidGoogleDriveUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (trimmed.length > 1000) return false;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'https:') return false;
+    const hostname = parsed.hostname.toLowerCase();
+    return hostname === 'drive.google.com' || hostname === 'docs.google.com';
+  } catch {
+    return false;
+  }
 }
 
 export function validateActivity(activity: Partial<ActivityDocument>): ValidationResult {
@@ -86,6 +100,53 @@ export function validateActivity(activity: Partial<ActivityDocument>): Validatio
   if (activity.status === 'CANCELLED') {
     if (!activity.cancelReason || activity.cancelReason.trim().length === 0) {
       errors.push('Kegiatan yang dibatalkan wajib mencantumkan alasan pembatalan.');
+    }
+  }
+
+  // Feature F01: Administrative Stage & Invitation Letter Validation
+  const validStages: AdministrativeStage[] = [
+    'INITIAL_ENTRY',
+    'OFFLINE_PROCESS',
+    'DETAILS_COMPLETED',
+    'ADMIN_COMPLETE'
+  ];
+
+  if (activity.administrativeStage && !validStages.includes(activity.administrativeStage)) {
+    errors.push('Tahap administrasi tidak valid.');
+  }
+
+  // Invitation letter format checks
+  if (activity.invitationLetter) {
+    const letter = activity.invitationLetter;
+    if (letter.letterDate && !dateRegex.test(letter.letterDate)) {
+      errors.push('Tanggal surat tidak valid (format YYYY-MM-DD).');
+    }
+    if (letter.driveUrl && letter.driveUrl.trim() !== '') {
+      if (!isValidGoogleDriveUrl(letter.driveUrl)) {
+        errors.push('Tautan Google Drive tidak valid. Wajib berupa tautan HTTPS resmi dari drive.google.com atau docs.google.com.');
+      }
+    }
+    if (letter.documentVisibility && !['INTERNAL', 'PUBLIC'].includes(letter.documentVisibility)) {
+      errors.push('Visibilitas dokumen surat tidak valid (INTERNAL atau PUBLIC).');
+    }
+  }
+
+  // Stage-specific requirements
+  if (activity.administrativeStage === 'ADMIN_COMPLETE') {
+    const letter = activity.invitationLetter;
+    const hasException = Boolean(letter?.missingDocumentReason && letter.missingDocumentReason.trim().length > 0);
+
+    if (hasException) {
+      warnings.push(`Pengecualian Administrasi Lengkap: ${letter!.missingDocumentReason}`);
+    } else {
+      const hasAgendaNumber = Boolean(letter?.agendaNumber && letter.agendaNumber.trim().length > 0);
+      const hasLetterDate = Boolean(letter?.letterDate && dateRegex.test(letter.letterDate));
+      const hasLetterTopic = Boolean(letter?.letterTopic && letter.letterTopic.trim().length > 0);
+      const hasDriveUrl = Boolean(letter?.driveUrl && isValidGoogleDriveUrl(letter.driveUrl));
+
+      if (!hasAgendaNumber || !hasLetterDate || !hasLetterTopic || !hasDriveUrl) {
+        errors.push('Status Administrasi Lengkap mewajibkan kelengkapan data rujukan surat (No. Agenda, Tanggal Surat, Perihal, dan Tautan Google Drive) atau pencatatan alasan pengecualian resmi.');
+      }
     }
   }
 

@@ -13,6 +13,23 @@ export interface AttendeeSnapshot {
 
 export type ActivityStatus = 'SCHEDULED' | 'CANCELLED' | 'COMPLETED';
 
+export type AdministrativeStage =
+  | 'INITIAL_ENTRY'
+  | 'OFFLINE_PROCESS'
+  | 'DETAILS_COMPLETED'
+  | 'ADMIN_COMPLETE';
+
+export type DocumentVisibility = 'INTERNAL' | 'PUBLIC';
+
+export interface InvitationLetterMetadata {
+  agendaNumber?: string;              // Handwritten registration number in incoming mail book
+  letterDate?: string;                // Date on physical letter (YYYY-MM-DD)
+  letterTopic?: string;               // Subject / perihal of invitation letter
+  driveUrl?: string;                  // HTTPS Google Drive / Docs link
+  documentVisibility?: DocumentVisibility; // Default: 'INTERNAL'
+  missingDocumentReason?: string;     // Explicit reason if ADMIN_COMPLETE lacks letter
+}
+
 export interface ActivityDocument {
   id: string;                      // UUID v4
   title: string;                   // Min 3 chars
@@ -38,4 +55,8 @@ export interface ActivityDocument {
   createdBy: string;               // Actor label or user ID
   updatedAt: string;               // ISO 8601 UTC
   updatedBy: string;               // Actor label or user ID
+
+  // Feature F01: Administrative Workflow & Invitation Letter Reference
+  administrativeStage?: AdministrativeStage; // Default 'INITIAL_ENTRY'
+  invitationLetter?: InvitationLetterMetadata;
 }
