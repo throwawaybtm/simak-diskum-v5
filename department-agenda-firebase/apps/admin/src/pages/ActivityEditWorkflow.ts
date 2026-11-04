@@ -204,14 +204,29 @@ function syncStateFromInputs(context: WorkflowContext) {
     missingReasonGroup.style.display = checkMissingException.checked ? 'block' : 'none';
   }
 
-  // Dynamically update the Google Drive external link button
+  // Dynamically update the Google Drive external link button safely using DOM APIs
   const driveUrl = currentFormState.invitationLetter?.driveUrl || '';
   const driveLinkContainer = document.getElementById('driveLinkContainer');
   if (driveLinkContainer) {
+    driveLinkContainer.textContent = '';
     if (driveUrl && isValidGoogleDriveUrl(driveUrl)) {
-      driveLinkContainer.innerHTML = `<a href="${driveUrl}" id="linkOpenDriveFile" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm drive-external-link">📄 Buka Berkas di Google Drive ↗</a>`;
+      const anchor = document.createElement('a');
+      anchor.href = driveUrl;
+      anchor.id = 'linkOpenDriveFile';
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      anchor.className = 'btn btn-secondary btn-sm drive-external-link';
+      anchor.textContent = '📄 Buka Berkas di Google Drive ↗';
+      driveLinkContainer.appendChild(anchor);
     } else {
-      driveLinkContainer.innerHTML = `<button type="button" id="linkOpenDriveFile" class="btn btn-secondary btn-sm drive-external-link" disabled style="opacity: 0.5;">📄 Buka Berkas di Google Drive</button>`;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.id = 'linkOpenDriveFile';
+      button.className = 'btn btn-secondary btn-sm drive-external-link';
+      button.disabled = true;
+      button.style.opacity = '0.5';
+      button.textContent = '📄 Buka Berkas di Google Drive';
+      driveLinkContainer.appendChild(button);
     }
   }
 

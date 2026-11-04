@@ -3,32 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - Jadwal Kegiatan Dinas Koperasi Batam</title>
+  <title>Admin Portal - SIMAK DISKUM Kota Batam</title>
   <link rel="stylesheet" href="./src/styles/admin.css">
 </head>
 <body>
   <div id="admin-app" class="admin-layout">
-    <aside class="admin-sidebar">
-      <div class="sidebar-brand">
-        <h2>Admin Agenda</h2>
-        <span class="badge-env">Emulator Dev</span>
-      </div>
-      <nav class="sidebar-nav">
-        <a href="#dashboard" class="nav-item active">Dashboard</a>
-        <a href="#activities" class="nav-item">Kelola Kegiatan</a>
-        <a href="#calendar" class="nav-item">Kalender</a>
-        <a href="#master" class="nav-item">Master Data</a>
-        <a href="#announcements" class="nav-item">Pengumuman</a>
-        <a href="#audit" class="nav-item">Audit Trail</a>
-        <a href="#reports" class="nav-item">Laporan</a>
-        <a href="#settings" class="nav-item">Pengaturan</a>
-      </nav>
+    <aside class="admin-sidebar" id="adminSidebar">
+      <!-- Injected by renderSidebar -->
     </aside>
     <div class="admin-body">
       <header class="topbar">
-        <div class="topbar-title">Sistem Penjadwalan Kegiatan v5.0</div>
-        <div class="topbar-status">
-          <span class="status-indicator"></span> Mode Pengembang (Gate 5 Tertunda)
+        <div class="topbar-left">
+          <h1 class="topbar-portal-title">Admin Portal</h1>
+          <p class="topbar-portal-sub">Sistem Informasi Manajemen Agenda Kedinasan</p>
+        </div>
+        <div class="topbar-right">
+          <button type="button" class="btn-topbar-icon" title="Notifikasi" aria-label="Notifikasi">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+          </button>
+          <div class="operator-profile-pill">
+            <svg class="operator-avatar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="5"/>
+              <path d="M20 21a8 8 0 1 0-16 0"/>
+            </svg>
+            <span class="operator-name">Operator</span>
+            <svg class="operator-chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
         </div>
       </header>
       <main id="admin-main" class="admin-content">

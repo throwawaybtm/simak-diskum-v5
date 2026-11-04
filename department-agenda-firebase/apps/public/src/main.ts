@@ -194,6 +194,11 @@ function renderDashboardRoute(container: HTMLElement): void {
     act => act.startDate <= next7Days && act.endDate >= tomorrow
   );
 
+  // This week count (activities intersecting today through next 7 days)
+  const thisWeekActs = allActs.filter(
+    act => act.startDate <= next7Days && act.endDate >= todayDateStr
+  );
+
   // Current month count
   const currYearMonthPrefix = todayDateStr.slice(0, 7);
   const monthActsCount = allActs.filter(
@@ -204,6 +209,8 @@ function renderDashboardRoute(container: HTMLElement): void {
     todayActivities: todayActs,
     upcomingActivities: upcomingActs,
     monthActivitiesCount: monthActsCount,
+    weekActivitiesCount: thisWeekActs.length,
+    totalActivitiesCount: allActs.length,
     announcements: announcementsCache,
     todayDateStr
   });
@@ -621,6 +628,20 @@ function attachGlobalEventHandlers(): void {
       }
     };
   });
+
+  // Top navigation search input handler
+  const topNavSearch = document.getElementById('topNavSearchInput') as HTMLInputElement | null;
+  if (topNavSearch) {
+    topNavSearch.onkeydown = e => {
+      if (e.key === 'Enter') {
+        const q = topNavSearch.value.trim();
+        if (q) {
+          agendaFilters.keyword = q;
+          window.location.hash = '#agenda';
+        }
+      }
+    };
+  }
 }
 
 // --- INITIALIZATION ---
