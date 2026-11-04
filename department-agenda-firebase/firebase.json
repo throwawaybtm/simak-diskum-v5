@@ -37,7 +37,8 @@
   },
   "emulators": {
     "firestore": {
-      "port": 8080
+      "port": 8080,
+      "rules": "firebase/emulator.rules"
     },
     "hosting": {
       "port": 5000

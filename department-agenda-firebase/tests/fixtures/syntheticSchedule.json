@@ -1,0 +1,200 @@
+{
+  "system": {
+    "version": "5.0.0",
+    "timezone": "Asia/Jakarta",
+    "department": "Dinas Koperasi dan Usaha Mikro Kota Batam"
+  },
+  "master": {
+    "employees": [
+      { "id": "emp_01", "name": "Drs. Hendri Arifin, M.Si", "position": "Kepala Dinas", "departmentId": "dept_01", "active": true },
+      { "id": "emp_02", "name": "Rini Marlina, S.Sos", "position": "Sekretaris Dinas", "departmentId": "dept_01", "active": true },
+      { "id": "emp_03", "name": "Ahmad Fauzi, SE", "position": "Kepala Bidang Koperasi", "departmentId": "dept_02", "active": true },
+      { "id": "emp_04", "name": "Dewi Sartika, S.Si", "position": "Kepala Bidang Pengawasan UMKM", "departmentId": "dept_03", "active": true }
+    ],
+    "departments": [
+      { "id": "dept_01", "name": "Sekretariat", "active": true },
+      { "id": "dept_02", "name": "Bidang Pemberdayaan Koperasi", "active": true },
+      { "id": "dept_03", "name": "Bidang Pengembangan Usaha Mikro", "active": true }
+    ],
+    "locations": [
+      { "id": "loc_01", "name": "Ruang Rapat Kadis (Lantai 2)", "type": "OFFICE", "isBookableRoom": true, "active": true },
+      { "id": "loc_02", "name": "Aula Pusat Layanan Usaha Terpadu (PLUT) Batam", "type": "OFFICE", "isBookableRoom": true, "active": true },
+      { "id": "loc_03", "name": "Zoom Cloud Meeting Dinas", "type": "ONLINE", "isBookableRoom": false, "active": true },
+      { "id": "loc_04", "name": "Hotel Planet Holiday Batam", "type": "EXTERNAL", "isBookableRoom": false, "active": true }
+    ],
+    "organizers": [
+      { "id": "org_01", "name": "Sekretariat Dinas", "active": true },
+      { "id": "org_02", "name": "Bidang Pemberdayaan Koperasi", "active": true },
+      { "id": "org_03", "name": "Kementerian Koperasi dan UKM RI", "active": true }
+    ],
+    "categories": [
+      { "id": "cat_01", "name": "Rapat Koordinasi", "colorHex": "#0284c7", "active": true },
+      { "id": "cat_02", "name": "Pelatihan / Bimtek", "colorHex": "#16a34a", "active": true },
+      { "id": "cat_03", "name": "Pameran & Ekspo", "colorHex": "#ea580c", "active": true },
+      { "id": "cat_04", "name": "Sosialisasi Regulasi", "colorHex": "#9333ea", "active": true }
+    ]
+  },
+  "activities": [
+    {
+      "id": "act_001",
+      "title": "Rapat Koordinasi Evaluasi Program Koperasi Triwulan III",
+      "startDate": "2026-10-01",
+      "startTime": "07:00",
+      "endDate": "2026-10-01",
+      "endTime": "09:00",
+      "openEnded": false,
+      "locationId": "loc_01",
+      "organizerId": "org_01",
+      "categoryId": "cat_01",
+      "attendeeIds": ["emp_01", "emp_02", "emp_03"],
+      "attendeeSnapshots": [
+        { "employeeId": "emp_01", "name": "Drs. Hendri Arifin, M.Si", "position": "Kepala Dinas", "label": "1. Kadis (Drs. Hendri Arifin, M.Si)" },
+        { "employeeId": "emp_02", "name": "Rini Marlina, S.Sos", "position": "Sekretaris Dinas", "label": "2. Sekretaris (Rini Marlina, S.Sos)" },
+        { "employeeId": "emp_03", "name": "Ahmad Fauzi, SE", "position": "Kabid Koperasi", "label": "3. Kabid Koperasi (Ahmad Fauzi, SE)" }
+      ],
+      "guestAttendees": [],
+      "status": "SCHEDULED",
+      "publicNotes": "Pakaian: PDH Hari Kamis. Membawa laporan capaian.",
+      "privateNotes": "Persiapan arahan Walikota Batam mengenai penertiban KSP.",
+      "privateMeetingUrl": null,
+      "version": 1,
+      "createdAt": "2026-09-25T08:00:00.000Z",
+      "createdBy": "admin_initial",
+      "updatedAt": "2026-09-25T08:00:00.000Z",
+      "updatedBy": "admin_initial"
+    },
+    {
+      "id": "act_002",
+      "title": "Sosialisasi Pengawasan Tata Kelola Koperasi Se-Kota Batam",
+      "startDate": "2026-10-01",
+      "startTime": "09:00",
+      "endDate": "2026-10-01",
+      "endTime": "10:00",
+      "openEnded": false,
+      "locationId": "loc_01",
+      "organizerId": "org_02",
+      "categoryId": "cat_04",
+      "attendeeIds": ["emp_03"],
+      "attendeeSnapshots": [
+        { "employeeId": "emp_03", "name": "Ahmad Fauzi, SE", "position": "Kabid Koperasi", "label": "1. Kabid Koperasi (Ahmad Fauzi, SE)" }
+      ],
+      "guestAttendees": ["Pengurus KSP Mitra Mandiri"],
+      "status": "SCHEDULED",
+      "publicNotes": "Pakaian: Batik Lengan Panjang.",
+      "privateNotes": "Audit kepatuhan RAT tahun buku 2025.",
+      "privateMeetingUrl": null,
+      "version": 1,
+      "createdAt": "2026-09-26T02:00:00.000Z",
+      "createdBy": "admin_initial",
+      "updatedAt": "2026-09-26T02:00:00.000Z",
+      "updatedBy": "admin_initial"
+    },
+    {
+      "id": "act_003",
+      "title": "Batam Cooperative & Micro Enterprise Expo 2026",
+      "startDate": "2026-10-01",
+      "startTime": "08:00",
+      "endDate": "2026-10-03",
+      "endTime": "17:00",
+      "openEnded": false,
+      "locationId": "loc_04",
+      "organizerId": "org_01",
+      "categoryId": "cat_03",
+      "attendeeIds": ["emp_01", "emp_04"],
+      "attendeeSnapshots": [
+        { "employeeId": "emp_01", "name": "Drs. Hendri Arifin, M.Si", "position": "Kepala Dinas", "label": "1. Kadis" },
+        { "employeeId": "emp_04", "name": "Dewi Sartika, S.Si", "position": "Kabid Pengawasan UMKM", "label": "2. Kabid UMKM" }
+      ],
+      "guestAttendees": ["Deputi Kemenkop UKM", "Ketua Dekranasda Kota Batam"],
+      "status": "SCHEDULED",
+      "publicNotes": "Pakaian: PSL pada pembukaan hari pertama, selanjutnya pakaian bebas rapi.",
+      "privateNotes": "Protokoler VIP untuk rombongan Walikota dan Kemenkop.",
+      "privateMeetingUrl": null,
+      "version": 1,
+      "createdAt": "2026-09-20T03:00:00.000Z",
+      "createdBy": "admin_initial",
+      "updatedAt": "2026-09-20T03:00:00.000Z",
+      "updatedBy": "admin_initial"
+    },
+    {
+      "id": "act_004",
+      "title": "Bimbingan Teknis Digitalisasi Akuntansi Koperasi Mikro",
+      "startDate": "2026-11-03",
+      "startTime": "09:00",
+      "endDate": "2026-11-03",
+      "endTime": null,
+      "openEnded": true,
+      "locationId": "loc_02",
+      "organizerId": "org_02",
+      "categoryId": "cat_02",
+      "attendeeIds": ["emp_03"],
+      "attendeeSnapshots": [
+        { "employeeId": "emp_03", "name": "Ahmad Fauzi, SE", "position": "Kabid Koperasi", "label": "1. Kabid Koperasi (Ahmad Fauzi, SE)" }
+      ],
+      "guestAttendees": ["Trainer Puslatkop Kemenkop UKM"],
+      "status": "SCHEDULED",
+      "publicNotes": "Peserta wajib membawa laptop dan laporan neraca per September 2026.",
+      "privateNotes": "Konsumsi siang dipesan dari UMKM Binaan PLUT.",
+      "privateMeetingUrl": null,
+      "version": 1,
+      "createdAt": "2026-10-15T04:00:00.000Z",
+      "createdBy": "admin_initial",
+      "updatedAt": "2026-10-15T04:00:00.000Z",
+      "updatedBy": "admin_initial"
+    },
+    {
+      "id": "act_005",
+      "title": "Workshop E-Commerce dan Akses Permodalan Perbankan",
+      "startDate": "2026-10-14",
+      "startTime": "09:00",
+      "endDate": "2026-10-14",
+      "endTime": "12:00",
+      "openEnded": false,
+      "locationId": "loc_03",
+      "organizerId": "org_02",
+      "categoryId": "cat_02",
+      "attendeeIds": ["emp_04"],
+      "attendeeSnapshots": [
+        { "employeeId": "emp_04", "name": "Dewi Sartika, S.Si", "position": "Kabid Pengawasan UMKM", "label": "1. Kabid UMKM" }
+      ],
+      "guestAttendees": [],
+      "status": "CANCELLED",
+      "cancelReason": "Narasumber utama dari Bank Riau Kepri Syariah terpapar demam berdarah.",
+      "publicCancellationNotice": "Kegiatan ditunda dan dijadwalkan ulang pada November 2026.",
+      "publicNotes": "Kegiatan dibatalkan. Menunggu jadwal konfirmasi narasumber perbankan.",
+      "privateNotes": "Hubungi PIC Bank Riau Kepri minggu depan.",
+      "privateMeetingUrl": "https://us02web.zoom.us/j/8500005418?pwd=secretPassword123",
+      "version": 2,
+      "createdAt": "2026-10-01T01:00:00.000Z",
+      "createdBy": "admin_initial",
+      "updatedAt": "2026-10-10T07:30:00.000Z",
+      "updatedBy": "admin_operator"
+    },
+    {
+      "id": "act_006",
+      "title": "Program Inkubasi Bisnis Wirausaha Muda Batam Gelombang II",
+      "startDate": "2026-08-15",
+      "startTime": "08:30",
+      "endDate": "2026-11-30",
+      "endTime": "16:00",
+      "openEnded": false,
+      "locationId": "loc_02",
+      "organizerId": "org_02",
+      "categoryId": "cat_02",
+      "attendeeIds": ["emp_04"],
+      "attendeeSnapshots": [
+        { "employeeId": "emp_04", "name": "Dewi Sartika, S.Si", "position": "Kabid Pengawasan UMKM", "label": "1. Kabid UMKM (Dewi Sartika, S.Si)" }
+      ],
+      "guestAttendees": ["30 Wirausaha Terpilih"],
+      "status": "SCHEDULED",
+      "publicNotes": "Jadwal mentoring intensif berkala setiap pekan.",
+      "privateNotes": "Dibiayai DAK Non-Fisik PK2UMK 2026.",
+      "privateMeetingUrl": null,
+      "version": 1,
+      "createdAt": "2026-08-01T02:00:00.000Z",
+      "createdBy": "admin_initial",
+      "updatedAt": "2026-08-01T02:00:00.000Z",
+      "updatedBy": "admin_initial"
+    }
+  ]
+}

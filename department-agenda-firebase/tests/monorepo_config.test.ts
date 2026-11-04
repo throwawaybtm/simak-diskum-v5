@@ -43,6 +43,7 @@ describe('Task 1: Monorepo & Firebase Configuration Verification', () => {
     expect(fb.emulators).toBeDefined();
     expect(fb.emulators.firestore).toBeDefined();
     expect(fb.emulators.firestore.port).toBe(8080);
+    expect(fb.emulators.firestore.rules).toBe('firebase/emulator.rules');
     expect(fb.emulators.hosting).toBeDefined();
     expect(fb.emulators.hosting.port).toBe(5000);
   });
