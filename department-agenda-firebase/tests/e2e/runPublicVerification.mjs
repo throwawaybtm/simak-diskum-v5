@@ -336,7 +336,7 @@ async function runPublicVerification() {
     await page.waitForSelector('.calendar-view');
 
     const periodTitle = await page.textContent('#calendarPeriodTitle');
-    const monthCols = await page.$$eval('.month-col-header', els => els.map(e => e.textContent.trim()));
+    const monthCols = await page.$$eval('.month-col-header', els => els.map(e => (e.querySelector('.day-full') || e).textContent.trim()));
     const expectedCols = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
     const colsMatch = expectedCols.every(c => monthCols.includes(c));
 

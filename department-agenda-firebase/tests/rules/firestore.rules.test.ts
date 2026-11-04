@@ -7,7 +7,7 @@ import {
   assertSucceeds,
   type RulesTestEnvironment
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 
 describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () => {
   const hostedRules = fs.readFileSync(
@@ -164,46 +164,106 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
       city: 'Batam'
     };
 
-    it('allows Admin and Editor to create and read activities', async () => {
+    it('allows Admin and Editor to create and read activities via coordinated writeBatch', async () => {
       const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
-      await assertSucceeds(setDoc(doc(editorDb, 'activities', 'act_001'), validActivityDoc));
+      
+      const batch = writeBatch(editorDb);
+      batch.set(doc(editorDb, 'activities', 'act_001'), validActivityDoc);
+      batch.set(doc(editorDb, 'publicActivities', 'act_001'), validPublicActivityDoc);
+      await assertSucceeds(batch.commit());
+
       await assertSucceeds(getDoc(doc(editorDb, 'activities', 'act_001')));
+      await assertSucceeds(getDoc(doc(editorDb, 'publicActivities', 'act_001')));
 
       const adminDb = hostedEnv.authenticatedContext(adminAuth.uid, { role: adminAuth.role }).firestore();
       await assertSucceeds(getDoc(doc(adminDb, 'activities', 'act_001')));
     });
 
-    it('enforces optimistic concurrency version increment on activity update', async () => {
+    it('denies Editor from modifying publicActivities or activities independently without coordinated batch', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+
+      // Malicious Editor calls setDoc on publicActivities directly without activities
+      await assertFails(
+        setDoc(doc(editorDb, 'publicActivities', 'act_rogue'), {
+          ...validPublicActivityDoc,
+          id: 'act_rogue'
+        })
+      );
+
+      // Malicious Editor calls setDoc on activities directly without publicActivities
+      await assertFails(
+        setDoc(doc(editorDb, 'activities', 'act_rogue'), {
+          ...validActivityDoc,
+          id: 'act_rogue'
+        })
+      );
+
+      // Malicious Editor calls updateDoc on publicActivities independently
+      await assertFails(
+        updateDoc(doc(editorDb, 'publicActivities', 'act_001'), {
+          title: 'Defaced Title Rogue'
+        })
+      );
+
+      // Malicious Editor writes batch with mismatched titles
+      const mismatchBatch = writeBatch(editorDb);
+      mismatchBatch.update(doc(editorDb, 'activities', 'act_001'), {
+        title: 'Title in Private',
+        version: 2,
+        updatedAt: '2026-11-04T11:00:00Z',
+        updatedBy: editorAuth.uid
+      });
+      mismatchBatch.update(doc(editorDb, 'publicActivities', 'act_001'), {
+        title: 'Different Title in Public',
+        updatedAt: '2026-11-04T11:00:00Z'
+      });
+      await assertFails(mismatchBatch.commit());
+    });
+
+    it('enforces optimistic concurrency version increment on activity update in coordinated batch', async () => {
       const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
 
       // Fails if version does not increment by 1
-      await assertFails(
-        updateDoc(doc(editorDb, 'activities', 'act_001'), {
-          title: 'Updated Without Version Increment',
-          version: 1
-        })
-      );
+      const staleBatch = writeBatch(editorDb);
+      staleBatch.update(doc(editorDb, 'activities', 'act_001'), {
+        title: 'Updated Without Version Increment',
+        version: 1
+      });
+      staleBatch.update(doc(editorDb, 'publicActivities', 'act_001'), {
+        title: 'Updated Without Version Increment',
+        updatedAt: '2026-11-04T11:00:00Z'
+      });
+      await assertFails(staleBatch.commit());
 
-      // Succeeds when version increments to 2
-      await assertSucceeds(
-        updateDoc(doc(editorDb, 'activities', 'act_001'), {
-          title: 'Updated Rapat Title',
-          version: 2,
-          updatedAt: '2026-11-04T11:00:00Z',
-          updatedBy: editorAuth.uid
-        })
-      );
+      // Succeeds when version increments to 2 and both match
+      const validBatch = writeBatch(editorDb);
+      validBatch.update(doc(editorDb, 'activities', 'act_001'), {
+        title: 'Updated Rapat Title',
+        version: 2,
+        updatedAt: '2026-11-04T11:00:00Z',
+        updatedBy: editorAuth.uid
+      });
+      validBatch.update(doc(editorDb, 'publicActivities', 'act_001'), {
+        title: 'Updated Rapat Title',
+        updatedAt: '2026-11-04T11:00:00Z'
+      });
+      await assertSucceeds(validBatch.commit());
     });
 
-    it('denies Editor from deleting activities, allows Admin to delete', async () => {
+    it('denies Editor from deleting activities or public projections, allows Admin to delete both', async () => {
       const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
       const adminDb = hostedEnv.authenticatedContext(adminAuth.uid, { role: adminAuth.role }).firestore();
 
-      // Editor cannot delete
+      // Editor cannot delete activities
       await assertFails(deleteDoc(doc(editorDb, 'activities', 'act_001')));
+      // Editor cannot delete publicActivities
+      await assertFails(deleteDoc(doc(editorDb, 'publicActivities', 'act_001')));
 
-      // Admin can delete
-      await assertSucceeds(deleteDoc(doc(adminDb, 'activities', 'act_001')));
+      // Admin can delete both
+      const adminDelBatch = writeBatch(adminDb);
+      adminDelBatch.delete(doc(adminDb, 'activities', 'act_001'));
+      adminDelBatch.delete(doc(adminDb, 'publicActivities', 'act_001'));
+      await assertSucceeds(adminDelBatch.commit());
     });
 
     it('allows Admin to manage master data, denies Editor', async () => {
@@ -247,6 +307,17 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
       const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
       const adminDb = hostedEnv.authenticatedContext(adminAuth.uid, { role: adminAuth.role }).firestore();
 
+      // Fails if client passes arbitrary string timestamp instead of serverTimestamp()
+      await assertFails(
+        setDoc(doc(editorDb, 'auditLogs', 'log_string_ts'), {
+          id: 'log_string_ts',
+          actorId: editorAuth.uid,
+          action: 'CREATE',
+          timestamp: '2026-11-04T12:00:00Z',
+          recordId: 'act_001'
+        })
+      );
+
       // Valid audit log with matching actorId and server timestamp
       const validAuditLog = {
         id: 'log_001',
@@ -266,7 +337,7 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
         })
       );
 
-      // Succeeds when actorId matches request.auth.uid
+      // Succeeds when actorId matches request.auth.uid and timestamp is serverTimestamp()
       await assertSucceeds(setDoc(doc(editorDb, 'auditLogs', 'log_001'), validAuditLog));
 
       // Update is strictly prohibited (fails even for Admin)
@@ -294,13 +365,17 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
       await assertFails(setDoc(doc(guestDb, 'publicActivities', 'act_001'), validPublicActivityDoc));
     });
 
-    it('allows Admin and Editor to publish publicActivities', async () => {
+    it('allows Admin and Editor to publish publicActivities via coordinated batch and allows public read', async () => {
       const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
-      await assertSucceeds(setDoc(doc(editorDb, 'publicActivities', 'act_001'), validPublicActivityDoc));
+      
+      const batch = writeBatch(editorDb);
+      batch.set(doc(editorDb, 'activities', 'act_pub_01'), { ...validActivityDoc, id: 'act_pub_01' });
+      batch.set(doc(editorDb, 'publicActivities', 'act_pub_01'), { ...validPublicActivityDoc, id: 'act_pub_01' });
+      await assertSucceeds(batch.commit());
 
       // Public can read
       const anonDb = hostedEnv.unauthenticatedContext().firestore();
-      await assertSucceeds(getDoc(doc(anonDb, 'publicActivities', 'act_001')));
+      await assertSucceeds(getDoc(doc(anonDb, 'publicActivities', 'act_pub_01')));
     });
 
     it('blocks DoS attacks with oversized payloads (>200 chars title)', async () => {
@@ -333,7 +408,7 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
       await assertFails(setDoc(doc(editorDb, 'publicActivities', 'act_leak_01'), leakedPublicDoc));
     });
 
-    it('enforces cancelReason when activity status is CANCELLED', async () => {
+    it('enforces cancelReason when activity status is CANCELLED in coordinated batch', async () => {
       const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
       const cancelledWithoutReason = {
         ...validActivityDoc,
@@ -341,7 +416,14 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
         status: 'CANCELLED'
         // cancelReason omitted
       };
-      await assertFails(setDoc(doc(editorDb, 'activities', 'act_cancel_no_reason'), cancelledWithoutReason));
+      const batchNoReason = writeBatch(editorDb);
+      batchNoReason.set(doc(editorDb, 'activities', 'act_cancel_no_reason'), cancelledWithoutReason);
+      batchNoReason.set(doc(editorDb, 'publicActivities', 'act_cancel_no_reason'), {
+        ...validPublicActivityDoc,
+        id: 'act_cancel_no_reason',
+        status: 'CANCELLED'
+      });
+      await assertFails(batchNoReason.commit());
 
       const cancelledWithReason = {
         ...validActivityDoc,
@@ -349,7 +431,14 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
         status: 'CANCELLED',
         cancelReason: 'Pejabat dinas berhalangan hadir mendadak karena tugas luar kota'
       };
-      await assertSucceeds(setDoc(doc(editorDb, 'activities', 'act_cancel_with_reason'), cancelledWithReason));
+      const batchWithReason = writeBatch(editorDb);
+      batchWithReason.set(doc(editorDb, 'activities', 'act_cancel_with_reason'), cancelledWithReason);
+      batchWithReason.set(doc(editorDb, 'publicActivities', 'act_cancel_with_reason'), {
+        ...validPublicActivityDoc,
+        id: 'act_cancel_with_reason',
+        status: 'CANCELLED'
+      });
+      await assertSucceeds(batchWithReason.commit());
     });
 
     it('blocks overwriting existing audit log document', async () => {

@@ -20,7 +20,7 @@ export async function mountSettingsPage(
 ): Promise<void> {
   const { db, onSettingsSaved } = context;
 
-  const [{ doc, getDoc, setDoc }] = await Promise.all([
+  const [{ doc, getDoc, setDoc, serverTimestamp }] = await Promise.all([
     import('firebase/firestore')
   ]);
 
@@ -149,11 +149,12 @@ export async function mountSettingsPage(
           const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
           await setDoc(doc(db, 'auditLogs', auditId), {
             id: auditId,
-            timestamp: new Date().toISOString(),
+            actorId: 'admin',
+            timestamp: serverTimestamp(),
             action: 'UPDATE',
             collectionName: 'settings',
             documentId: 'signatory',
-            actor: 'admin',
+            actorLabel: 'admin',
             identitySource: 'UNVERIFIED',
             requestId: `req_${Date.now()}`,
             details: {

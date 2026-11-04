@@ -7,7 +7,8 @@ import {
   type Firestore,
   doc,
   getDoc,
-  runTransaction
+  runTransaction,
+  serverTimestamp
 } from 'firebase/firestore';
 import type { ActivityDocument } from '../schema/activity';
 import type { AuditLogDocument } from '../schema/audit';
@@ -18,6 +19,7 @@ import type { Employee } from '../schema/master';
 
 export interface SaveActivityOptions {
   expectedVersion?: number;
+  actorId?: string;
   actorLabel?: string;
   identitySource?: 'UNVERIFIED' | 'AUTH_UID';
   requestId?: string;
@@ -110,8 +112,9 @@ export async function saveActivity(
     // Prepare audit record
     const auditLog: AuditLogDocument = {
       id: auditId,
+      actorId: options.actorId || (options.identitySource === 'AUTH_UID' ? actor : (actor !== 'UNVERIFIED' ? actor : undefined)),
       requestId: reqId,
-      timestamp: now,
+      timestamp: serverTimestamp(),
       actorLabel: actor,
       identitySource,
       action: existingRecord ? (activity.status === 'CANCELLED' ? 'CANCEL' : 'UPDATE') : 'CREATE',
@@ -149,10 +152,10 @@ export async function saveActivity(
 export async function deleteActivity(
   db: Firestore,
   activityId: string,
-  actorLabel = 'UNVERIFIED'
+  actorLabel = 'UNVERIFIED',
+  actorId?: string
 ): Promise<void> {
   const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const now = new Date().toISOString();
 
   await runTransaction(db, async (transaction) => {
     const actRef = doc(db, 'activities', activityId);
@@ -167,8 +170,9 @@ export async function deleteActivity(
 
     const auditLog: AuditLogDocument = {
       id: auditId,
+      actorId: actorId || (actorLabel !== 'UNVERIFIED' ? actorLabel : undefined),
       requestId: `req_del_${Date.now()}`,
-      timestamp: now,
+      timestamp: serverTimestamp(),
       actorLabel,
       identitySource: 'UNVERIFIED',
       action: 'DELETE',

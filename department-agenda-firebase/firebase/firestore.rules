@@ -360,7 +360,7 @@ service cloud.firestore {
              data.actorId == request.auth.uid &&
              data.action in ['CREATE', 'UPDATE', 'CANCEL', 'DELETE', 'MIGRATE'] &&
              ('timestamp' in data) &&
-             (data.timestamp == request.time || (data.timestamp is string && data.timestamp.size() <= 50)) &&
+             data.timestamp == request.time &&
              (!('actorLabel' in data) || (data.actorLabel is string && data.actorLabel.size() <= 100)) &&
              (!('identitySource' in data) || (data.identitySource is string && data.identitySource.size() <= 50)) &&
              (!('recordId' in data) || (data.recordId is string && data.recordId.size() <= 100)) &&
@@ -499,6 +499,29 @@ service cloud.firestore {
              (!('active' in data) || data.active is bool);
     }
 
+    // Cross-document coordination validators:
+    // Guarantees that publicActivities/{id} and activities/{id} can never be created
+    // or updated independently or with mismatched core fields.
+    function hasMatchingPrivateActivity(id, publicData) {
+      return existsAfter(/databases/$(database)/documents/activities/$(id)) &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.id == id &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.title == publicData.title &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.startDate == publicData.startDate &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.endDate == publicData.endDate &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.startTime == publicData.startTime &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.status == publicData.status;
+    }
+
+    function hasMatchingPublicProjection(activityId, privateData) {
+      return existsAfter(/databases/$(database)/documents/publicActivities/$(activityId)) &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.id == activityId &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.title == privateData.title &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.startDate == privateData.startDate &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.endDate == privateData.endDate &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.startTime == privateData.startTime &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.status == privateData.status;
+    }
+
     // ===============================================================
     // Collection Match Rules
     // ===============================================================
@@ -508,17 +531,19 @@ service cloud.firestore {
       // Public read access for citizen calendar, agenda, and 8-column reports
       allow read: if true;
 
-      // Creation: Authenticated Admin and Editor only. Prohibit anonymous writes.
+      // Creation: Authenticated Admin and Editor only. Enforces coordinated write with private canonical activity.
       allow create: if isEditorOrAdmin() &&
-                    isValidPublicActivity(request.resource.data, id);
+                    isValidPublicActivity(request.resource.data, id) &&
+                    hasMatchingPrivateActivity(id, request.resource.data);
 
-      // Update: Authenticated Admin and Editor only. Preserves document ID immutability.
+      // Update: Authenticated Admin and Editor only. Enforces coordinated write with private canonical activity.
       allow update: if isEditorOrAdmin() &&
                     isValidPublicActivity(request.resource.data, id) &&
-                    areImmutableFieldsUnchanged(['id']);
+                    areImmutableFieldsUnchanged(['id']) &&
+                    hasMatchingPrivateActivity(id, request.resource.data);
 
-      // Deletion: Authenticated Admin and Editor
-      allow delete: if isEditorOrAdmin();
+      // Deletion: Admin only, or Editor if private activity is also deleted in same batch
+      allow delete: if isAdmin() || (isEditor() && !existsAfter(/databases/$(database)/documents/activities/$(id)));
     }
 
     // 2. Private Canonical Activities (activities/{activityId})
@@ -526,17 +551,18 @@ service cloud.firestore {
       // Read access strictly limited to authenticated Admin and Editor. Never public.
       allow read: if isEditorOrAdmin();
 
-      // Creation: Authenticated Admin and Editor. Enforces schema validation and version == 1.
+      // Creation: Authenticated Admin and Editor. Enforces schema, version == 1, and coordinated public projection.
       allow create: if isEditorOrAdmin() &&
                     isValidActivity(request.resource.data, activityId) &&
-                    request.resource.data.version == 1;
+                    request.resource.data.version == 1 &&
+                    hasMatchingPublicProjection(activityId, request.resource.data);
 
-      // Update: Authenticated Admin and Editor. Enforces optimistic concurrency lock (+1 version),
-      // full schema validation, and immutable audit fields (id, createdAt, createdBy).
+      // Update: Authenticated Admin and Editor. Enforces optimistic lock (+1), schema, immutability, and coordinated public projection.
       allow update: if isEditorOrAdmin() &&
                     isValidActivity(request.resource.data, activityId) &&
                     request.resource.data.version == resource.data.version + 1 &&
-                    areImmutableFieldsUnchanged(['id', 'createdAt', 'createdBy']);
+                    areImmutableFieldsUnchanged(['id', 'createdAt', 'createdBy']) &&
+                    hasMatchingPublicProjection(activityId, request.resource.data);
 
       // Deletion: Admin only (prevents accidental or unauthorized deletion by operators).
       allow delete: if isAdmin();

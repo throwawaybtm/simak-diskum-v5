@@ -13,7 +13,8 @@ import {
   setDoc,
   updateDoc,
   query,
-  where
+  where,
+  serverTimestamp
 } from 'firebase/firestore';
 import type { MasterCollectionName } from '../validation/masterValidator';
 import { validateMasterRecord, isDuplicateMasterName } from '../validation/masterValidator';
@@ -92,8 +93,9 @@ export async function saveMasterRecord<T extends { id: string; name: string }>(
   const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const auditDoc: AuditLogDocument = {
     id: auditId,
+    actorId: actorLabel !== 'UNVERIFIED' ? actorLabel : undefined,
     requestId: `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    timestamp: new Date().toISOString(),
+    timestamp: serverTimestamp(),
     actorLabel: actorLabel || 'UNVERIFIED',
     identitySource: 'UNVERIFIED',
     action: isNew ? 'CREATE' : 'UPDATE',
@@ -139,8 +141,9 @@ export async function toggleMasterRecordActive(
   const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const auditDoc: AuditLogDocument = {
     id: auditId,
+    actorId: actorLabel !== 'UNVERIFIED' ? actorLabel : undefined,
     requestId: `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    timestamp: new Date().toISOString(),
+    timestamp: serverTimestamp(),
     actorLabel: actorLabel || 'UNVERIFIED',
     identitySource: 'UNVERIFIED',
     action: active ? 'UPDATE' : 'DELETE',
