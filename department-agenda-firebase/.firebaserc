@@ -1,0 +1,19 @@
+{
+  "projects": {
+    "default": "staging-agenda-batam",
+    "staging": "staging-agenda-batam",
+    "production": "prod-agenda-batam"
+  },
+  "targets": {
+    "staging-agenda-batam": {
+      "hosting": {
+        "public": [
+          "staging-agenda-batam-public"
+        ],
+        "admin": [
+          "staging-agenda-batam-admin"
+        ]
+      }
+    }
+  }
+}

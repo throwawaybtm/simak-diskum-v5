@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Jadwal Kegiatan Dinas Koperasi Batam</title>
+  <link rel="stylesheet" href="./src/styles/admin.css">
+</head>
+<body>
+  <div id="admin-app" class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <h2>Admin Agenda</h2>
+        <span class="badge-env">Emulator Dev</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#dashboard" class="nav-item active">Dashboard</a>
+        <a href="#activities" class="nav-item">Kelola Kegiatan</a>
+        <a href="#calendar" class="nav-item">Kalender</a>
+        <a href="#master" class="nav-item">Master Data</a>
+        <a href="#announcements" class="nav-item">Pengumuman</a>
+        <a href="#audit" class="nav-item">Audit Trail</a>
+        <a href="#reports" class="nav-item">Laporan</a>
+        <a href="#settings" class="nav-item">Pengaturan</a>
+      </nav>
+    </aside>
+    <div class="admin-body">
+      <header class="topbar">
+        <div class="topbar-title">Sistem Penjadwalan Kegiatan v5.0</div>
+        <div class="topbar-status">
+          <span class="status-indicator"></span> Mode Pengembang (Gate 5 Tertunda)
+        </div>
+      </header>
+      <main id="admin-main" class="admin-content">
+        <div class="loading-shell">Memuat konsol admin...</div>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
