@@ -206,17 +206,12 @@ function syncStateFromInputs(context: WorkflowContext) {
 
   // Dynamically update the Google Drive external link button
   const driveUrl = currentFormState.invitationLetter?.driveUrl || '';
-  const driveLink = document.getElementById('linkOpenDriveFile');
-  if (driveLink) {
+  const driveLinkContainer = document.getElementById('driveLinkContainer');
+  if (driveLinkContainer) {
     if (driveUrl && isValidGoogleDriveUrl(driveUrl)) {
-      driveLink.setAttribute('href', driveUrl);
-      driveLink.removeAttribute('disabled');
-      (driveLink as HTMLElement).style.opacity = '1';
-      driveLink.className = 'btn btn-secondary btn-sm drive-external-link';
+      driveLinkContainer.innerHTML = `<a href="${driveUrl}" id="linkOpenDriveFile" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm drive-external-link">📄 Buka Berkas di Google Drive ↗</a>`;
     } else {
-      driveLink.removeAttribute('href');
-      driveLink.setAttribute('disabled', 'true');
-      (driveLink as HTMLElement).style.opacity = '0.5';
+      driveLinkContainer.innerHTML = `<button type="button" id="linkOpenDriveFile" class="btn btn-secondary btn-sm drive-external-link" disabled style="opacity: 0.5;">📄 Buka Berkas di Google Drive</button>`;
     }
   }
 

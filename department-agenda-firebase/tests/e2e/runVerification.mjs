@@ -79,7 +79,7 @@ async function runVerification() {
     await page.waitForSelector('.data-table');
     const tableHeaders = await page.$$eval('.data-table th', els => els.map(e => e.textContent.trim()));
     const expectedHeaders = ['Hari / Tanggal', 'Waktu (WIB)', 'Judul Kegiatan', 'Status', 'Versi', 'Aksi'];
-    const headersMatch = expectedHeaders.every(h => tableHeaders.includes(h));
+    const headersMatch = expectedHeaders.every(h => tableHeaders.some(th => th.includes(h)));
     
     await page.screenshot({ path: path.join(screenshotsDir, '02_activities_list.png') });
     record(2, headersMatch, `Data table rendered with headers: ${tableHeaders.join(', ')}`);

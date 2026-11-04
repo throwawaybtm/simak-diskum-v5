@@ -265,7 +265,7 @@ export function renderActivityEditPage(
               <label for="inputDriveUrl">Tautan Google Drive Dokumen Surat (HTTPS):</label>
               <div class="drive-url-input-wrap">
                 <input type="url" id="inputDriveUrl" value="${form.invitationLetter?.driveUrl || ''}" placeholder="https://drive.google.com/file/d/... atau docs.google.com/...">
-                ${driveLinkHtml}
+                <span id="driveLinkContainer">${driveLinkHtml}</span>
               </div>
               <small class="hint-text">Wajib berupa tautan HTTPS resmi dari drive.google.com atau docs.google.com.</small>
             </div>
