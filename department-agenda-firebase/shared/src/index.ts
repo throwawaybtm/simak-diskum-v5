@@ -8,3 +8,8 @@ export const TIMEZONE = 'Asia/Jakarta'; // WIB (UTC+7)
 
 export * from './schema/index';
 export * from './scheduling/timeUtils';
+export * from './scheduling/attendeeSnapshot';
+export * from './scheduling/conflictDetector';
+export * from './validation/activityValidator';
+export * from './validation/privacyScanner';
+export * from './projection/publicProjector';
