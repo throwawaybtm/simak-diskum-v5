@@ -643,5 +643,167 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
       expect(pubSnap.data()?.publicNotes).toBe('Pakaian: PDH Hari Kamis (Lengkap)');
     });
   });
+
+  describe('Feature F01 Security Rules: Administrative Workflow & Invitation Letter', () => {
+    const editorAuth = { uid: 'editor_f01', role: 'editor' };
+    const actId = 'act_f01_test_01';
+
+    const basePrivateActivity = {
+      id: actId,
+      title: 'Koordinasi Alur Administrasi F01 Batam',
+      startDate: '2026-11-10',
+      startTime: '08:30',
+      endDate: '2026-11-10',
+      endTime: '11:00',
+      openEnded: false,
+      locationId: 'loc_01',
+      organizerId: 'org_01',
+      categoryId: 'cat_01',
+      attendeeIds: [],
+      attendeeSnapshots: [],
+      guestAttendees: [],
+      status: 'SCHEDULED',
+      publicNotes: 'Pakaian: PSH',
+      privateNotes: 'Catatan internal',
+      privateMeetingUrl: null,
+      version: 1,
+      createdAt: '2026-11-04T12:00:00Z',
+      createdBy: editorAuth.uid,
+      updatedAt: '2026-11-04T12:00:00Z',
+      updatedBy: editorAuth.uid,
+      administrativeStage: 'INITIAL_ENTRY',
+      invitationLetter: {
+        agendaNumber: '045/DKUM/XI/2026',
+        letterDate: '2026-11-01',
+        letterTopic: 'Undangan Koordinasi Alur Kerja',
+        driveUrl: 'https://drive.google.com/file/d/1X9Y8Z/view',
+        documentVisibility: 'INTERNAL'
+      }
+    };
+
+    const basePublicProjection = {
+      id: actId,
+      title: 'Koordinasi Alur Administrasi F01 Batam',
+      startDate: '2026-11-10',
+      startTime: '08:30',
+      endDate: '2026-11-10',
+      endTime: '11:00',
+      openEnded: false,
+      timeDisplay: '08.30 s.d. 11.00 WIB',
+      dateDisplay: 'Selasa, 10 November 2026',
+      status: 'SCHEDULED',
+      locationName: 'Ruang Rapat Hang Nadim',
+      locationType: 'OFFICE',
+      organizerName: 'Dinas Koperasi dan Usaha Mikro',
+      categoryName: 'Rapat',
+      publicNotes: 'Pakaian: PSH',
+      attendeeLabels: [],
+      version: 1,
+      updatedAt: '2026-11-04T12:00:00Z'
+    };
+
+    it('allows coordinated creation of activity with valid administrativeStage and invitationLetter', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const batch = writeBatch(editorDb);
+      batch.set(doc(editorDb, 'activities', actId), basePrivateActivity);
+      batch.set(doc(editorDb, 'publicActivities', actId), basePublicProjection);
+
+      await assertSucceeds(batch.commit());
+    });
+
+    it('denies activity write if administrativeStage is invalid', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const badId = 'act_bad_stage_01';
+      const batch = writeBatch(editorDb);
+      batch.set(doc(editorDb, 'activities', badId), {
+        ...basePrivateActivity,
+        id: badId,
+        administrativeStage: 'INVALID_STAGE_NAME'
+      });
+      batch.set(doc(editorDb, 'publicActivities', badId), {
+        ...basePublicProjection,
+        id: badId
+      });
+
+      await assertFails(batch.commit());
+    });
+
+    it('denies activity write if invitationLetter driveUrl has insecure HTTP or unsafe scheme', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const badId = 'act_bad_drive_01';
+
+      // Test insecure HTTP
+      const batch1 = writeBatch(editorDb);
+      batch1.set(doc(editorDb, 'activities', badId), {
+        ...basePrivateActivity,
+        id: badId,
+        invitationLetter: {
+          ...basePrivateActivity.invitationLetter,
+          driveUrl: 'http://drive.google.com/file/d/123/view'
+        }
+      });
+      batch1.set(doc(editorDb, 'publicActivities', badId), {
+        ...basePublicProjection,
+        id: badId
+      });
+      await assertFails(batch1.commit());
+
+      // Test javascript: scheme
+      const batch2 = writeBatch(editorDb);
+      batch2.set(doc(editorDb, 'activities', badId), {
+        ...basePrivateActivity,
+        id: badId,
+        invitationLetter: {
+          ...basePrivateActivity.invitationLetter,
+          driveUrl: 'javascript:alert(document.cookie)'
+        }
+      });
+      batch2.set(doc(editorDb, 'publicActivities', badId), {
+        ...basePublicProjection,
+        id: badId
+      });
+      await assertFails(batch2.commit());
+    });
+
+    it('denies activity write if invitationLetter contains unauthorized fields', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const badId = 'act_bad_extra_key_01';
+      const batch = writeBatch(editorDb);
+      batch.set(doc(editorDb, 'activities', badId), {
+        ...basePrivateActivity,
+        id: badId,
+        invitationLetter: {
+          ...basePrivateActivity.invitationLetter,
+          secretLeakField: 'Unauthorized extra metadata'
+        }
+      });
+      batch.set(doc(editorDb, 'publicActivities', badId), {
+        ...basePublicProjection,
+        id: badId
+      });
+
+      await assertFails(batch.commit());
+    });
+
+    it('denies writing invitationLetter or driveUrl into publicActivities (strict privacy enforcement)', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      const pubLeakId = 'act_pub_leak_01';
+
+      const batch = writeBatch(editorDb);
+      batch.set(doc(editorDb, 'activities', pubLeakId), {
+        ...basePrivateActivity,
+        id: pubLeakId
+      });
+      batch.set(doc(editorDb, 'publicActivities', pubLeakId), {
+        ...basePublicProjection,
+        id: pubLeakId,
+        invitationLetter: {
+          driveUrl: 'https://drive.google.com/file/d/123'
+        }
+      });
+
+      await assertFails(batch.commit());
+    });
+  });
 });
 

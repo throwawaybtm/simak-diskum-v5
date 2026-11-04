@@ -244,6 +244,29 @@ service cloud.firestore {
              (('cancelReason' in data) && data.cancelReason is string && data.cancelReason.size() > 0 && data.cancelReason.size() <= 1000);
     }
 
+    // Validates Google Drive and Docs HTTPS URLs (Feature F01)
+    function isValidDriveUrl(url) {
+      return url is string &&
+             url.size() <= 1000 &&
+             url.matches('^https://(drive|docs)[.]google[.]com/.*');
+    }
+
+    // Validates Invitation Letter Metadata (Feature F01)
+    function isValidInvitationLetter(letter) {
+      let allowed = [
+        'agendaNumber', 'letterDate', 'letterTopic',
+        'driveUrl', 'documentVisibility', 'missingDocumentReason'
+      ];
+      return letter is map &&
+             letter.keys().hasOnly(allowed) &&
+             (!('agendaNumber' in letter) || (letter.agendaNumber is string && letter.agendaNumber.size() <= 100)) &&
+             (!('letterDate' in letter) || isValidDateFormat(letter.letterDate)) &&
+             (!('letterTopic' in letter) || (letter.letterTopic is string && letter.letterTopic.size() <= 500)) &&
+             (!('driveUrl' in letter) || (letter.driveUrl == null || isValidDriveUrl(letter.driveUrl))) &&
+             (!('documentVisibility' in letter) || (letter.documentVisibility in ['INTERNAL', 'PUBLIC'])) &&
+             (!('missingDocumentReason' in letter) || (letter.missingDocumentReason is string && letter.missingDocumentReason.size() <= 500));
+    }
+
     // ===============================================================
     // Domain Validator Functions (Called on BOTH create and update)
     // ===============================================================
@@ -299,7 +322,8 @@ service cloud.firestore {
         'attendeeIds', 'attendeeSnapshots', 'guestAttendees', 'status',
         'cancelReason', 'publicCancellationNotice', 'publicNotes',
         'privateNotes', 'privateMeetingUrl', 'version', 'createdAt',
-        'createdBy', 'updatedAt', 'updatedBy'
+        'createdBy', 'updatedAt', 'updatedBy',
+        'administrativeStage', 'invitationLetter'
       ];
       let required = [
         'id', 'title', 'startDate', 'startTime', 'endDate', 'endTime',
@@ -332,6 +356,8 @@ service cloud.firestore {
              isValidCancelReason(data) &&
              (!data.keys().hasAll(['cancelReason']) || (data.cancelReason is string && data.cancelReason.size() <= 1000)) &&
              (!data.keys().hasAll(['publicCancellationNotice']) || (data.publicCancellationNotice is string && data.publicCancellationNotice.size() <= 500)) &&
+             (!('administrativeStage' in data) || data.administrativeStage in ['INITIAL_ENTRY', 'OFFLINE_PROCESS', 'DETAILS_COMPLETED', 'ADMIN_COMPLETE']) &&
+             (!('invitationLetter' in data) || isValidInvitationLetter(data.invitationLetter)) &&
              data.publicNotes is string && data.publicNotes.size() <= 1000 &&
              data.privateNotes is string && data.privateNotes.size() <= 2000 &&
              (data.privateMeetingUrl == null || (data.privateMeetingUrl is string && data.privateMeetingUrl.size() <= 500)) &&
