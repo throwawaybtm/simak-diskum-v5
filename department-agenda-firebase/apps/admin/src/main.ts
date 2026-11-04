@@ -5,7 +5,7 @@
 
 const SYSTEM_VERSION = '5.0.0';
 const TIMEZONE = 'Asia/Jakarta'; // WIB (UTC+7)
-import type { Location, Organizer, Category, Employee, ActivityDocument } from '@department-agenda/shared';
+import type { Location, Organizer, Category, Employee, Department, ActivityDocument } from '@department-agenda/shared';
 import { renderSidebar } from './components/Sidebar';
 
 // In-memory master data cache for administrative session
@@ -13,6 +13,7 @@ let masterLocations: Location[] = [];
 let masterOrganizers: Organizer[] = [];
 let masterCategories: Category[] = [];
 let masterEmployees: Employee[] = [];
+let masterDepartments: Department[] = [];
 let cachedActivities: ActivityDocument[] = [];
 
 let currentLookups = {
@@ -43,6 +44,9 @@ async function loadMasterData() {
 
     const empSnap = await getDocs(collection(db, 'employees'));
     masterEmployees = empSnap.docs.map(d => ({ id: d.id, ...d.data() } as Employee));
+
+    const deptSnap = await getDocs(collection(db, 'departments'));
+    masterDepartments = deptSnap.docs.map(d => ({ id: d.id, ...d.data() } as Department));
   } catch (err) {
     console.warn('[Admin] Could not load master data from Firestore, using fallback fixtures:', err);
   }
@@ -79,6 +83,14 @@ async function loadMasterData() {
       { id: 'emp_02', name: 'Rini Marlina, S.Sos', position: 'Sekretaris Dinas', departmentId: 'dept_01', active: true },
       { id: 'emp_03', name: 'Ahmad Fauzi, SE', position: 'Kabid Koperasi', departmentId: 'dept_02', active: true },
       { id: 'emp_04', name: 'Dewi Sartika, S.Si', position: 'Kabid Pengawasan UMKM', departmentId: 'dept_03', active: true }
+    ];
+  }
+
+  if (masterDepartments.length === 0) {
+    masterDepartments = [
+      { id: 'dept_01', name: 'Sekretariat', active: true },
+      { id: 'dept_02', name: 'Bidang Pemberdayaan Koperasi', active: true },
+      { id: 'dept_03', name: 'Bidang Pengembangan Usaha Mikro', active: true }
     ];
   }
 
@@ -126,6 +138,7 @@ async function router() {
     contentContainer.innerHTML = renderActivitiesPage(activities);
     bindActivitiesListEvents();
   } else if (hash === 'activities/new' || hash.startsWith('activities/edit/') || hash.startsWith('activities/duplicate/')) {
+    await loadMasterData();
     const [{ handleEditRoute }, { db }, activities] = await Promise.all([
       import('./pages/ActivityEditWorkflow'),
       import('./firebase'),
@@ -140,6 +153,17 @@ async function router() {
       cachedActivities: activities,
       currentLookups,
       refreshActivities: loadActivities
+    });
+  } else if (hash === 'master') {
+    const [{ mountMasterDataPage }, { db }] = await Promise.all([
+      import('./pages/MasterDataPage'),
+      import('./firebase')
+    ]);
+    await mountMasterDataPage(contentContainer, {
+      db,
+      onDataChanged: async () => {
+        await loadMasterData();
+      }
     });
   } else {
     contentContainer.innerHTML = `

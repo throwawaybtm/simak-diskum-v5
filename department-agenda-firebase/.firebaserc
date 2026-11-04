@@ -14,6 +14,17 @@
           "staging-agenda-batam-admin"
         ]
       }
+    },
+    "simakdiskum": {
+      "hosting": {
+        "public": [
+          "simakdiskum"
+        ],
+        "admin": [
+          "simakdiskum-admin"
+        ]
+      }
     }
-  }
+  },
+  "etags": {}
 }

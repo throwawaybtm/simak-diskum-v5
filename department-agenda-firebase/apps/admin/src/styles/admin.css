@@ -677,3 +677,92 @@ body {
     display: block;
   }
 }
+
+
+/* ====================================================
+   MASTER DATA MANAGEMENT STYLES
+   ==================================================== */
+.master-tabs-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.master-tabs-bar .tab-btn {
+  background: transparent;
+  border: none;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s;
+}
+
+.master-tabs-bar .tab-btn:hover {
+  background: #f1f5f9;
+  color: var(--primary);
+}
+
+.master-tabs-bar .tab-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
+.master-toolbar {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.master-toolbar .search-box input {
+  min-width: 300px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.badge-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.row-inactive {
+  opacity: 0.6;
+  background-color: #fafafa;
+}
+
+.master-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.master-modal-card {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 550px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
