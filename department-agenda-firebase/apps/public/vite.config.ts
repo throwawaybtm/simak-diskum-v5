@@ -10,8 +10,13 @@ export default defineConfig({
     target: 'es2022',
     rollupOptions: {
       output: {
-        manualChunks: {
-          'firebase-vendor': ['firebase/app', 'firebase/firestore']
+        manualChunks(id) {
+          if (id.includes('node_modules/firebase')) {
+            return 'firebase-vendor';
+          }
+          if (id.includes('node_modules/exceljs') || id.includes('reports/xlsxGenerator') || id.includes('migration/')) {
+            return 'exceljs-vendor';
+          }
         }
       }
     }

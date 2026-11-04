@@ -470,6 +470,91 @@ function renderAgendaRoute(container: HTMLElement): void {
       renderApp();
     });
   }
+
+  const btnPrint = document.getElementById('btnPrintPublicAgenda');
+  if (btnPrint) {
+    btnPrint.addEventListener('click', async () => {
+      const [{ generateEightColumnHtmlReport }] = await Promise.all([
+        import('../../../shared/src/reports/eightColumnReport')
+      ]);
+      const reportRows = filteredActs.map((act, idx) => ({
+        no: idx + 1,
+        hariTanggal: act.dateDisplay,
+        pukul: act.timeDisplay,
+        kegiatan: act.status === 'CANCELLED' ? `[DIBATALKAN] ${act.title}` : act.title,
+        tempat: act.locationName,
+        penyelenggara: act.organizerName,
+        dihadiriOleh: (act.attendeeLabels || []).join('\n') || '-',
+        keterangan: act.status === 'CANCELLED'
+          ? (act.publicCancellationNotice ? `Dibatalkan: ${act.publicCancellationNotice}` : 'Kegiatan Dibatalkan')
+          : (act.publicNotes || '-'),
+        isCancelled: act.status === 'CANCELLED'
+      }));
+
+      const sDate = agendaFilters.startDate || (filteredActs[0]?.startDate || '2026-11-01');
+      const eDate = agendaFilters.endDate || (filteredActs[filteredActs.length - 1]?.endDate || '2026-11-30');
+
+      const html = generateEightColumnHtmlReport({
+        startDate: sDate,
+        endDate: eDate,
+        rows: reportRows,
+        departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM'
+      });
+
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 300);
+      }
+    });
+  }
+
+  const btnXlsx = document.getElementById('btnDownloadPublicXlsx');
+  if (btnXlsx) {
+    btnXlsx.addEventListener('click', async () => {
+      const [{ generateEightColumnXlsx }, { formatIndonesianDateSpan }] = await Promise.all([
+        import('../../../shared/src/reports/xlsxGenerator'),
+        import('../../../shared/src/scheduling/timeUtils')
+      ]);
+      const reportRows = filteredActs.map((act, idx) => ({
+        no: idx + 1,
+        hariTanggal: act.dateDisplay,
+        pukul: act.timeDisplay,
+        kegiatan: act.status === 'CANCELLED' ? `[DIBATALKAN] ${act.title}` : act.title,
+        tempat: act.locationName,
+        penyelenggara: act.organizerName,
+        dihadiriOleh: (act.attendeeLabels || []).join('\n') || '-',
+        keterangan: act.status === 'CANCELLED'
+          ? (act.publicCancellationNotice ? `Dibatalkan: ${act.publicCancellationNotice}` : 'Kegiatan Dibatalkan')
+          : (act.publicNotes || '-'),
+        isCancelled: act.status === 'CANCELLED'
+      }));
+
+      const sDate = agendaFilters.startDate || (filteredActs[0]?.startDate || '2026-11-01');
+      const eDate = agendaFilters.endDate || (filteredActs[filteredActs.length - 1]?.endDate || '2026-11-30');
+      const periodLabel = formatIndonesianDateSpan(sDate, eDate);
+
+      const buffer = await generateEightColumnXlsx({
+        departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
+        periodLabel,
+        rows: reportRows
+      });
+
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Agenda_Publik_Batam_${sDate}_sd_${eDate}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
 }
 
 function renderAgendaResultsOnly(): void {

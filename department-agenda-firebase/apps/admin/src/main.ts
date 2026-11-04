@@ -165,6 +165,20 @@ async function router() {
         await loadMasterData();
       }
     });
+  } else if (hash === 'reports') {
+    await loadMasterData();
+    const [{ mountReportsPage }, { db }] = await Promise.all([
+      import('./pages/ReportsPage'),
+      import('./firebase')
+    ]);
+    await mountReportsPage(contentContainer, {
+      db,
+      masterLocations,
+      masterOrganizers,
+      masterCategories,
+      masterEmployees,
+      loadActivities
+    });
   } else {
     contentContainer.innerHTML = `
       <div class="panel">

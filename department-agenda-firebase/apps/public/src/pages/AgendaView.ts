@@ -129,6 +129,8 @@ export function renderAgendaView(props: AgendaViewProps): string {
           <div class="btn-group">
             <button type="button" class="btn btn-secondary btn-sm" id="btnResetFilters">Reset Filter</button>
             <button type="button" class="btn btn-primary btn-sm" id="btnApplyFilters">Terapkan Filter</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnPrintPublicAgenda">🖨️ Cetak</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnDownloadPublicXlsx">📊 Unduh Excel</button>
           </div>
         </div>
       </section>

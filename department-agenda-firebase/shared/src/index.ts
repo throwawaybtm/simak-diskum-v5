@@ -17,3 +17,7 @@ export * from './projection/publicProjector';
 export * from './repository/activityRepository';
 export * from './repository/publicRepository';
 export * from './repository/masterRepository';
+export * from './reports/eightColumnReport';
+export * from './reports/xlsxGenerator';
+export * from './migration/legacyMigrationParser';
+

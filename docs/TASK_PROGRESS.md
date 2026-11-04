@@ -2,9 +2,9 @@
 
 **Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
 **Target Architecture:** Firebase Hosting (Multi-site: `public` & `admin`), Cloud Firestore Standard Edition, Firebase Emulator Suite  
-**Development Tooling:** Vite, TypeScript, Vitest, Playwright, Firebase CLI  
+**Development Tooling:** Vite, TypeScript, Vitest, Playwright, Firebase CLI, ExcelJS  
 **Last Updated:** 2026-11-04  
-**Overall Status:** In Progress (Tasks 1–5 Formally Completed & Verified; Task 6 Ready for Authorization)
+**Overall Status:** Tasks 1–7 Completed & Verified; Ready for Review Checkpoint 3 Approval Before Task 8  
 
 ---
 
@@ -18,34 +18,48 @@
 | **Task 3** | Validation, Conflict Engine, Snapshots & Privacy Scanner | **Completed** | 2026-11-04 | `a7d99fd` | Validation with strict start < end chronology; regex privacy scanner for Zoom/Teams/credentials; immutable attendee snapshot engine; room/attendee conflict detector; public projector retaining cancelled items. 54/54 tests passed. *(Review Checkpoint 1 Approved)* |
 | **Task 4** | Firestore Collections, Rules, Indexes & Benchmark | **Completed** | 2026-11-04 | `22aec2c` | Atomic transactions (`activities` + `publicActivities` + `auditLogs`); optimistic concurrency control (`expectedVersion`); live Firestore emulator rules verification; query benchmark with 520 synthetic documents returning 40 intersecting activities in 76ms. 67/67 tests passed. *(Review Checkpoint 2 Approved)* |
 | **Task 5** | Admin UI: Dashboard, Add/Edit Activity & Conflict Workflow | **Completed** | 2026-11-04 | `ab77e1d` | Full-screen responsive admin dashboard, Add/Edit/Duplicate activity workflow, real-time privacy scanner warning, live public preview card, conflict warning modal, and version concurrency dialog. Dynamic code splitting achieved (initial JS entry 3.19 kB gzip; total initial dashboard load 7.55 kB gzip). Full 13-scenario Playwright real browser verification pass passed (100% success). 73 unit/integration tests + 13 browser E2E tests verified. |
-| **Task 6** | Public UI: Dashboard, Calendar, Agenda & Detail | **Pending** | — | — | Public shell, WIB today dashboard, calendar views (month/week/day/list) with true range query (`startDate <= visibleEnd && endDate >= visibleStart`), debounced agenda search, and detail modal. |
-| **Task 7** | Official 8-Column Print, Validated XLSX & Migration | **Pending** | — | — | Indonesian 8-column layout (*No, Hari/Tanggal, Pukul, Kegiatan, Tempat, Penyelenggara, Dihadiri Oleh, Keterangan*), clean landscape print CSS, validated OpenXML `.xlsx` generator opening in Excel without corruption, legacy October 2026 data ingestion. *(Review Checkpoint 3)* |
+| **Task 6** | Public UI: Dashboard, Calendar, Agenda, Detail & Announcements | **Completed** | 2026-11-04 | `cbdd3a7` | Responsive public web app in Indonesian; executive dashboard with today's activities in WIB, 7-day upcoming, announcements feed, and quick jump-to-date; Month, Week, Day, and List calendar views with multi-day spanning; fundamental date-intersection queries (`startDate <= visibleEnd && endDate >= visibleStart`); debounced multi-criteria agenda search; sanitized activity detail dialog with zero private leaks; retained cancelled items with public notices. Full 11-scenario Playwright verification pass passed (100% success). 82 unit/integration tests + 11 browser E2E tests verified. |
+| **Task 7** | Master Data Management, Official 8-Column Reports, Validated XLSX & Migration | **Completed** | 2026-11-04 | `cc5df12` (7A), *(7B pending commit)* | **Phase 7A:** Master Data CRUD (Employees, Departments, Locations, Organizers, Categories), referential integrity safeguard on deactivation, duplicate name prevention, live form integration, and attendee snapshot preservation. **Phase 7B:** Official Indonesian 8-column layout (`No | Hari / Tanggal | Pukul | Kegiatan | Tempat | Penyelenggara | Dihadiri Oleh | Keterangan`), single-row multi-day event formatting (`Jumat–Minggu, 6–8 November 2026`), formula injection neutralization (`=`, `+`, `-`, `@`), genuine OpenXML XLSX generation via ExcelJS (7.9 KB), landscape A4 print template with Kop Surat and signature block, October 2026 legacy spreadsheet ingestion with Zoom credential isolation and deduplication. Full Playwright suites verified (Phase 7A: 8/8 scenarios; Phase 7B: 8/8 scenarios; 100% pass rate). 102 Vitest tests + 40 Playwright scenarios verified. *(Review Checkpoint 3)* |
 | **Task 8** | Performance Instrumentation, Staging Verification & Readiness | **Pending** | — | — | Telemetry for FCP, LCP, INP, CLS, data-visible latency, and read counts. Verification of <150KB gzip bundle budgets and Playwright E2E suite. *(Review Checkpoint 4)* |
 | **Task 9** | Gate 5 Authentication & Authorization Specification | **Pending** | — | — | Production Firebase Authentication runbook with custom role claims (`admin`, `editor`), security rule upgrades, and transition plan. |
 
 ---
 
-## 2. Test Totals at Latest Checkpoint (Task 5 Verified)
+## 2. Test Totals at Latest Checkpoint (Task 7 Formally Completed)
 
-- **Vitest Unit & Integration Suites:** 12 passed (12 total)
-- **Vitest Automated Tests:** 73 passed (73 total)
-- **Playwright Browser E2E Scenarios:** 13 passed (13 total, 100% pass rate)
-- **Visual Artifacts:** 14 verified browser screenshots in `tests/e2e/screenshots/`
-- **Initial-Load Bundle Size:** **7.55 kB gzip** *(Entry JS: 3.19 kB gzip, CSS: 2.54 kB gzip, Dashboard Route: 1.82 kB gzip)*
-- **Test Categories:**
-  - Configuration & Scaffolding: 7 tests (`monorepo_config.test.ts`)
-  - Schemas & Contracts: 3 tests (`schemas.test.ts`)
-  - WIB Time Engine & Intervals: 19 tests (`timeUtils.test.ts`)
+- **Vitest Unit & Integration Suites:** 16 passed (16 total)
+- **Vitest Automated Tests:** **102 passed** (102 total, 100% pass rate)
+- **Playwright Real-Browser Verification Suites:**
+  - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed** (100%)
+  - Master Data Suite (`masterDataVerification.mjs`): **8 / 8 passed** (100%)
+  - Public Portal Suite (`runPublicVerification.mjs`): **11 / 11 passed** (100%)
+  - Admin Portal Suite (`runVerification.mjs`): **13 / 13 passed** (100%)
+- **Total Real-Browser Scenarios:** **40 passed** (40 total, 100% pass rate)
+- **Total Automated Test Assertions:** **142 passed** (142 total, 100% pass rate)
+- **Visual Artifacts:** 29 verified browser screenshots in `tests/e2e/screenshots/` (Admin, Master, Public, Reports, Migration)
+- **Bundle Metrics:**
+  - Public Shell: `index.html` 1.14 kB (gzip: 0.57 kB), `public.css` 17.18 kB (gzip: 3.59 kB)
+  - Public Initial App Code: `index.js` **39.97 kB** (gzip: **11.44 kB**) *(Drastically reduced from 155.72 kB via vendor chunking!)*
+  - Public Vendor: `firebase-vendor` 871.46 kB (gzip: 225.69 kB), `exceljs-vendor` 951.42 kB (gzip: 275.26 kB, lazy-loaded on export)
+  - Admin Initial Shell: `index.js` 8.80 kB (gzip: 3.41 kB), `admin.css` 13.31 kB (gzip: 3.30 kB)
+  - Admin Lazy Modules: `ReportsPage` 14.21 kB (gzip: 4.86 kB), `MasterDataPage` 17.30 kB (gzip: 4.15 kB), `ActivityEditWorkflow` 22.56 kB (gzip: 6.34 kB)
+- **Test Categories Breakdown:**
+  - Monorepo Configuration & Rules: 7 tests (`monorepo_config.test.ts`)
+  - Schemas & Data Contracts: 3 tests (`schemas.test.ts`)
+  - WIB Time Engine & Date Arithmetic: 19 tests (`timeUtils.test.ts`)
   - Activity Validation: 9 tests (`activityValidator.test.ts`)
-  - Privacy Scanner: 5 tests (`privacyScanner.test.ts`)
+  - Privacy Scanner & Credential Blocker: 5 tests (`privacyScanner.test.ts`)
   - Attendee Snapshot Immutability: 3 tests (`attendeeSnapshot.test.ts`)
-  - Conflict Detection: 6 tests (`conflictDetector.test.ts`)
+  - Conflict Engine: 6 tests (`conflictDetector.test.ts`)
   - Public Projection & Isolation: 3 tests (`publicProjector.test.ts`)
-  - Admin UI Controller & Live Preview: 6 tests (`adminUi.test.ts`)
+  - Admin UI Controller: 6 tests (`adminUi.test.ts`)
+  - Public UI Controller: 9 tests (`publicUi.test.ts`)
+  - Master Data Validation & Snapshot Preservation: 8 tests (`masterData.test.ts`)
+  - Official 8-Column Reports, XLSX & Migration: 8 tests (`reportsAndMigration.test.ts`)
   - Live Firestore Security Rules (Emulator): 7 tests (`firestore.rules.test.ts`)
   - Repository Atomic Transactions (Emulator): 4 tests (`repository.emulator.test.ts`)
+  - Master Repository CRUD & Integrity (Emulator): 4 tests (`masterRepository.emulator.test.ts`)
   - Query Benchmark & Multi-Month Range (Emulator): 1 test (`queryBenchmark.emulator.test.ts`)
-  - Real Admin Browser Verification (Playwright): 13 scenarios (`runVerification.mjs`)
 
 ---
 
@@ -55,22 +69,31 @@
 |---|---|:---:|---|
 | **Checkpoint 1** | Task 3 Completion | **Approved** | 54 tests passing; validated start < end chronology gate; immutable attendee snapshots; conflict warnings; regex privacy blocker; public projector retaining cancelled items. Commits `70c7958` and `a7d99fd`. |
 | **Checkpoint 2** | Task 4 Completion | **Approved** | 67 tests passing; live Firestore emulator rules test passed; atomic transactions verified with optimistic concurrency; query benchmark executed with 520 records in 76ms. Commit `22aec2c`. |
-| **Task 5 Pass** | Task 5 Browser Verification | **Verified** | 73 unit tests passing; 13/13 real browser interaction scenarios verified via Playwright; Duplicate feature added; route code-splitting implemented (<8 kB gzip initial load). |
-| **Checkpoint 3** | Task 7 Completion | *Upcoming* | Official 8-column layout print view, OpenXML structure validated in Microsoft Excel, legacy migration parser. |
+| **Task 5 Pass** | Task 5 Browser Verification | **Approved** | 73 unit tests passing; 13/13 real browser interaction scenarios verified via Playwright; Duplicate feature added; route code-splitting implemented (<8 kB gzip initial load). Commit `ab77e1d`. |
+| **Task 6 Pass** | Task 6 Public Portal Implementation | **Approved** | 82 unit tests passing; 11/11 real public browser interaction scenarios verified via Playwright; multi-day spanning calendar; sanitized public detail dialog; zero private collection access. Commit `cbdd3a7`. |
+| **Checkpoint 3** | Task 7 Completion | **VERIFIED** | 102 Vitest tests + 40 Playwright browser scenarios passing (100%); Phase 7A Master Data CRUD verified (commit `cc5df12`); Phase 7B Official 8-column layout verified, genuine OpenXML XLSX (7,933 bytes) with formula injection protection verified, October 2026 migration with Zoom credential isolation verified. Ready for user authorization. |
 | **Checkpoint 4** | Task 8 Completion | *Upcoming* | Core Web Vitals telemetry, bundle budgets <150KB gzip, end-to-end browser workflows verified with Playwright. |
 
 ---
 
 ## 4. Technical Debt, Risks & Unresolved Decisions
 
-1. **Firestore Client Sanitization:** Firestore transactions throw runtime errors if objects contain `undefined` fields. `sanitizeDocumentData()` is maintained across all write pathways.
-2. **Billing Telemetry vs. Index Reads:** Client-reported read counts reflect document snapshots received (e.g. 40 docs for monthly calendar). Composite index evaluations are handled by Cloud Firestore backend infrastructure.
-3. **Client-Side vs Security Boundary:** In pre-Gate 5, browser-side validation and regex scanning are ergonomics and defense-in-depth safety rails. The sole security boundary is Firestore Security Rules denying unauthenticated writes.
-4. **Attendee Optionality:** Attendee lists are optional, triggering a nonblocking advisory warning rather than blocking form submission.
-5. **Admin Bundle Chunking:** Completed. Implemented route-based dynamic imports in `main.ts` and vendor chunking in `vite.config.ts`, reducing initial load from 228 kB to 7.55 kB gzip.
+1. **Initial Public Application Bundle Size Resolution:**
+   - Previous finding noted that public JavaScript was ~236.13 kB gzip. Through manual chunking in `apps/public/vite.config.ts` and dynamic subpath imports, `exceljs-vendor` was separated into an on-demand chunk. The core public application bundle is now **39.97 kB (gzip: 11.44 kB)**, well below the 150 kB budget!
+2. **Formula Injection Sanitization in Exports:**
+   - Prepending single quotes (`'`) successfully neutralizes formula execution in Microsoft Excel while remaining clean and readable to human users.
+3. **Historical Attendee Snapshot Preservation:**
+   - Confirmed by automated unit tests (`tests/unit/masterData.test.ts`) and browser verification (`tests/e2e/masterDataVerification.mjs` Scenario 8): changing employee positions in master data never alters existing activity attendee snapshots.
+4. **Referential Integrity Safeguard on Deactivation:**
+   - Intercepts deactivation of active locations, departments, categories, or organizers when they are currently referenced by scheduled activities, requiring operator confirmation.
+5. **Private Credential Isolation on Ingestion:**
+   - Meeting URLs (Zoom, Teams, Meet) and passcodes are strictly parsed and segregated to `privateMeetingUrl`. Public notes are cleansed before any Firestore persistence.
+6. **Billing Telemetry vs. Index Reads:**
+   - Client read counters reflect document snapshots received. Billed read implications are minimized via composite index evaluations and half-open range constraints.
 
 ---
 
 ## 5. Next Recommended Action
 
-With Task 5 fully completed, performance-optimized, and all 13 Admin UI scenarios verified via Playwright, proceed to **Task 6: Public UI: Dashboard, Calendar, Agenda & Announcements** upon user approval.
+Task 7 (Phase 7A and Phase 7B) is 100% complete, verified, and ready for **Review Checkpoint 3** approval.
+Awaiting user authorization before starting **Task 8: Performance Instrumentation, Staging Verification & Readiness**. Do NOT deploy to live production Firebase Hosting or activate paid Blaze services.
