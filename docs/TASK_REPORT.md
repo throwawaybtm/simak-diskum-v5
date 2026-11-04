@@ -5,7 +5,7 @@
 **Date:** 2026-11-04  
 **Status:** Completed & Formally Verified (100% Pass Rate across Unit, Integration & Browser Verification)  
 **Author:** Senior Software Architect & Firebase Full-Stack Engineer  
-**Git Commit:** *(Pending commit for Task 9)*  
+**Git Commit:** `7611376` (feat(auth): complete Task 9 Gate 5 authentication & authorization specification)  
 
 ---
 
