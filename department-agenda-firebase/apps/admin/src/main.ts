@@ -201,6 +201,29 @@ async function router() {
 }
 
 function bindActivitiesListEvents() {
+  const searchInput = document.getElementById('inputSearchActivities') as HTMLInputElement | null;
+  const stageSelect = document.getElementById('filterStageSelect') as HTMLSelectElement | null;
+  const rows = document.querySelectorAll<HTMLTableRowElement>('tr[data-activity-row]');
+
+  const applyFilters = () => {
+    const query = (searchInput?.value || '').trim().toLowerCase();
+    const stage = stageSelect?.value || 'ALL';
+
+    rows.forEach(row => {
+      const rowStage = row.getAttribute('data-stage') || 'INITIAL_ENTRY';
+      const rowTitle = row.getAttribute('data-title') || '';
+      const rowAgenda = row.getAttribute('data-agenda') || '';
+
+      const matchesStage = (stage === 'ALL' || rowStage === stage);
+      const matchesQuery = !query || rowTitle.includes(query) || rowAgenda.includes(query);
+
+      row.style.display = (matchesStage && matchesQuery) ? '' : 'none';
+    });
+  };
+
+  if (searchInput) searchInput.addEventListener('input', applyFilters);
+  if (stageSelect) stageSelect.addEventListener('change', applyFilters);
+
   document.querySelectorAll<HTMLButtonElement>('button[data-delete-id]').forEach(btn => {
     btn.onclick = async () => {
       const id = btn.getAttribute('data-delete-id');

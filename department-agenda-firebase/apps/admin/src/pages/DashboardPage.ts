@@ -11,6 +11,12 @@ export function renderDashboardPage(activities: ActivityDocument[]): string {
   const completed = activities.filter(a => a.status === 'COMPLETED').length;
   const cancelled = activities.filter(a => a.status === 'CANCELLED').length;
 
+  // Feature F01: Administrative Stage Counts
+  const stageInitial = activities.filter(a => (a.administrativeStage || 'INITIAL_ENTRY') === 'INITIAL_ENTRY').length;
+  const stageOffline = activities.filter(a => a.administrativeStage === 'OFFLINE_PROCESS').length;
+  const stageDetails = activities.filter(a => a.administrativeStage === 'DETAILS_COMPLETED').length;
+  const stageComplete = activities.filter(a => a.administrativeStage === 'ADMIN_COMPLETE').length;
+
   const now = new Date();
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -59,6 +65,28 @@ export function renderDashboardPage(activities: ActivityDocument[]): string {
         <div class="stat-card stat-cancelled">
           <div class="stat-num">${cancelled}</div>
           <div class="stat-label">Dibatalkan</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem;">
+        <h4 style="margin-bottom: 0.75rem; color: var(--text-dark, #1e293b); font-size: 1.05rem;">Tahap Administrasi & Berkas Masuk (Feature F01)</h4>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-num">${stageInitial}</div>
+            <div class="stat-label"><span class="stage-badge stage-initial">Input Awal</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">${stageOffline}</div>
+            <div class="stat-label"><span class="stage-badge stage-offline">Proses Offline</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">${stageDetails}</div>
+            <div class="stat-label"><span class="stage-badge stage-details">Detail Dilengkapi</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">${stageComplete}</div>
+            <div class="stat-label"><span class="stage-badge stage-complete">Administrasi Lengkap</span></div>
+          </div>
         </div>
       </div>
 

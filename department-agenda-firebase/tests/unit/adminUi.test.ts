@@ -243,5 +243,111 @@ describe('Admin UI Controller & Workflow Logic', () => {
       expect(html).toContain('target="_blank"');
       expect(html).toContain('rel="noopener noreferrer"');
     });
+
+    it('renders DashboardPage with administrative stage metrics and counts', async () => {
+      const { renderDashboardPage } = await import('../../apps/admin/src/pages/DashboardPage');
+      const sampleActivities: ActivityDocument[] = [
+        {
+          id: 'act_1',
+          title: 'Kegiatan Tahap 1',
+          startDate: '2026-11-05',
+          startTime: '09:00',
+          endDate: '2026-11-05',
+          endTime: '11:00',
+          openEnded: false,
+          locationId: 'loc_01',
+          organizerId: 'org_01',
+          categoryId: 'cat_01',
+          attendeeIds: [],
+          attendeeSnapshots: [],
+          guestAttendees: [],
+          status: 'SCHEDULED',
+          publicNotes: '',
+          privateNotes: '',
+          privateMeetingUrl: null,
+          version: 1,
+          createdAt: '2026-11-01T00:00:00Z',
+          createdBy: 'admin',
+          updatedAt: '2026-11-01T00:00:00Z',
+          updatedBy: 'admin',
+          administrativeStage: 'INITIAL_ENTRY'
+        },
+        {
+          id: 'act_2',
+          title: 'Kegiatan Tahap 4',
+          startDate: '2026-11-06',
+          startTime: '10:00',
+          endDate: '2026-11-06',
+          endTime: '12:00',
+          openEnded: false,
+          locationId: 'loc_01',
+          organizerId: 'org_01',
+          categoryId: 'cat_01',
+          attendeeIds: ['emp_01'],
+          attendeeSnapshots: [],
+          guestAttendees: [],
+          status: 'SCHEDULED',
+          publicNotes: '',
+          privateNotes: '',
+          privateMeetingUrl: null,
+          version: 2,
+          createdAt: '2026-11-01T00:00:00Z',
+          createdBy: 'admin',
+          updatedAt: '2026-11-01T00:00:00Z',
+          updatedBy: 'admin',
+          administrativeStage: 'ADMIN_COMPLETE',
+          invitationLetter: {
+            agendaNumber: '099/DKUM/2026'
+          }
+        }
+      ];
+
+      const html = renderDashboardPage(sampleActivities);
+      expect(html).toContain('Tahap Administrasi');
+      expect(html).toContain('Input Awal');
+      expect(html).toContain('Administrasi Lengkap');
+    });
+
+    it('renders ActivitiesPage with stage badges, stage filter, and agenda number search input', async () => {
+      const { renderActivitiesPage } = await import('../../apps/admin/src/pages/ActivitiesPage');
+      const sampleActivities: ActivityDocument[] = [
+        {
+          id: 'act_table_01',
+          title: 'Sosialisasi Sertifikasi Halal',
+          startDate: '2026-11-08',
+          startTime: '08:30',
+          endDate: '2026-11-08',
+          endTime: '11:30',
+          openEnded: false,
+          locationId: 'loc_01',
+          organizerId: 'org_01',
+          categoryId: 'cat_01',
+          attendeeIds: [],
+          attendeeSnapshots: [],
+          guestAttendees: [],
+          status: 'SCHEDULED',
+          publicNotes: '',
+          privateNotes: '',
+          privateMeetingUrl: null,
+          version: 1,
+          createdAt: '2026-11-01T00:00:00Z',
+          createdBy: 'admin',
+          updatedAt: '2026-11-01T00:00:00Z',
+          updatedBy: 'admin',
+          administrativeStage: 'ADMIN_COMPLETE',
+          invitationLetter: {
+            agendaNumber: '101/DKUM/XI/2026'
+          }
+        }
+      ];
+
+      const html = renderActivitiesPage(sampleActivities);
+      // Stage badge and No. Agenda
+      expect(html).toContain('stage-complete');
+      expect(html).toContain('101/DKUM/XI/2026');
+      // Stage filter and search input
+      expect(html).toContain('filterStageSelect');
+      expect(html).toContain('inputSearchActivities');
+    });
   });
 });
