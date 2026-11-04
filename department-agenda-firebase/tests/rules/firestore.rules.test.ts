@@ -8,6 +8,7 @@ import {
   type RulesTestEnvironment
 } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { saveActivity } from '../../shared/src/repository/activityRepository';
 
 describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () => {
   const hostedRules = fs.readFileSync(
@@ -145,6 +146,7 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
       categoryName: 'Rapat Internal',
       publicNotes: 'Pakaian: Batik Lengan Panjang',
       attendeeLabels: ['1. Kadis'],
+      version: 1,
       updatedAt: '2026-11-04T10:00:00Z'
     };
 
@@ -245,6 +247,7 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
       });
       validBatch.update(doc(editorDb, 'publicActivities', 'act_001'), {
         title: 'Updated Rapat Title',
+        version: 2,
         updatedAt: '2026-11-04T11:00:00Z'
       });
       await assertSucceeds(validBatch.commit());
@@ -479,6 +482,165 @@ describe('Firestore Security Rules: Strict Hosted vs Permissive Emulator', () =>
           actorLabel: 'UNVERIFIED'
         })
       );
+    });
+  });
+
+  describe('Gate 5A Regression: getAfter() Invariant Verification & Bypass Defenses', () => {
+    const editorAuth = { uid: 'editor_user_02', role: 'editor' };
+    const mockLocations = new Map<string, any>([
+      ['loc_01', { id: 'loc_01', name: 'Ruang Rapat Kadis (Lantai 2)', type: 'OFFICE', isBookableRoom: true, active: true }]
+    ]);
+    const mockOrganizers = new Map<string, any>([
+      ['org_01', { id: 'org_01', name: 'Sekretariat Dinas', active: true }]
+    ]);
+    const mockCategories = new Map<string, any>([
+      ['cat_01', { id: 'cat_01', name: 'Rapat Koordinasi', colorHex: '#0284c7', active: true }]
+    ]);
+    const lookups = {
+      locations: mockLocations,
+      organizers: mockOrganizers,
+      categories: mockCategories
+    };
+
+    const initialActivity = {
+      id: 'act_regr_01',
+      title: 'Rapat Koordinasi Khusus Batam',
+      startDate: '2026-11-12',
+      startTime: '09:00',
+      endDate: '2026-11-12',
+      endTime: '11:00',
+      openEnded: false,
+      locationId: 'loc_01',
+      organizerId: 'org_01',
+      categoryId: 'cat_01',
+      attendeeIds: [],
+      attendeeSnapshots: [],
+      guestAttendees: [],
+      status: 'SCHEDULED' as const,
+      publicNotes: 'Pakaian: PDH Resmi',
+      privateNotes: 'Catatan rahasia pimpinan',
+      privateMeetingUrl: null,
+      version: 1,
+      createdAt: '2026-11-04T10:00:00.000Z',
+      createdBy: editorAuth.uid,
+      updatedAt: '2026-11-04T10:00:00.000Z',
+      updatedBy: editorAuth.uid
+    };
+
+    it('1. creates a valid matching pair of activities/{id} and publicActivities/{id} using approved repository', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+      
+      const res = await saveActivity(editorDb as any, initialActivity, lookups, {
+        actorId: editorAuth.uid,
+        actorLabel: 'Editor User 02',
+        identitySource: 'AUTH_UID'
+      });
+
+      expect(res.newVersion).toBe(1);
+      const actSnap = await getDoc(doc(editorDb, 'activities', 'act_regr_01'));
+      const pubSnap = await getDoc(doc(editorDb, 'publicActivities', 'act_regr_01'));
+      expect(actSnap.exists()).toBe(true);
+      expect(pubSnap.exists()).toBe(true);
+      expect(pubSnap.data()?.version).toBe(1);
+      expect(actSnap.data()?.version).toBe(1);
+    });
+
+    it('2. denies attempt to update ONLY publicActivities/{id}.publicNotes without changing activities/{id}', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+
+      // Standalone update without version bump fails
+      await assertFails(
+        updateDoc(doc(editorDb, 'publicActivities', 'act_regr_01'), {
+          publicNotes: 'Catatan Palsu yang Diubah Mandiri'
+        })
+      );
+
+      // Standalone update even when attempting version bump fails
+      await assertFails(
+        updateDoc(doc(editorDb, 'publicActivities', 'act_regr_01'), {
+          publicNotes: 'Catatan Palsu yang Diubah Mandiri',
+          version: 2
+        })
+      );
+    });
+
+    it('3. denies attempt to modify other public-only fields while leaving core matching fields unchanged', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+
+      // Standalone update to locationName without updating activities
+      await assertFails(
+        updateDoc(doc(editorDb, 'publicActivities', 'act_regr_01'), {
+          locationName: 'Gedung Palsu Tidak Terdaftar',
+          version: 2
+        })
+      );
+
+      // Standalone update to attendeeLabels without updating activities
+      await assertFails(
+        updateDoc(doc(editorDb, 'publicActivities', 'act_regr_01'), {
+          attendeeLabels: ['Orang Asing Palsu'],
+          version: 2
+        })
+      );
+    });
+
+    it('4. denies attempt to update ONLY the private activity privateNotes or non-core fields', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+
+      // Standalone update to privateNotes with version bump but not updating publicActivities
+      await assertFails(
+        updateDoc(doc(editorDb, 'activities', 'act_regr_01'), {
+          privateNotes: 'Catatan internal rahasia baru',
+          version: 2
+        })
+      );
+    });
+
+    it('5. denies attempt to modify public projection in batch to contain text inconsistent with canonical private record', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+
+      const desyncBatch = writeBatch(editorDb);
+      desyncBatch.update(doc(editorDb, 'activities', 'act_regr_01'), {
+        publicNotes: 'Catatan Pakaian Batik Resmi',
+        version: 2,
+        updatedAt: '2026-11-04T12:00:00Z',
+        updatedBy: editorAuth.uid
+      });
+      desyncBatch.update(doc(editorDb, 'publicActivities', 'act_regr_01'), {
+        publicNotes: 'Catatan BEDA / TIDAK KONSISTEN',
+        version: 2,
+        updatedAt: '2026-11-04T12:00:00Z'
+      });
+
+      await assertFails(desyncBatch.commit());
+    });
+
+    it('6. verifies that legitimate coordinated updates via approved repository still succeed', async () => {
+      const editorDb = hostedEnv.authenticatedContext(editorAuth.uid, { role: editorAuth.role }).firestore();
+
+      const updatedActivity = {
+        ...initialActivity,
+        title: 'Rapat Koordinasi Khusus Batam (Resmi Diperbarui)',
+        publicNotes: 'Pakaian: PDH Hari Kamis (Lengkap)',
+        version: 1 // existing version
+      };
+
+      const res = await saveActivity(editorDb as any, updatedActivity, lookups, {
+        actorId: editorAuth.uid,
+        actorLabel: 'Editor User 02',
+        identitySource: 'AUTH_UID'
+      });
+
+      expect(res.newVersion).toBe(2);
+
+      const actSnap = await getDoc(doc(editorDb, 'activities', 'act_regr_01'));
+      const pubSnap = await getDoc(doc(editorDb, 'publicActivities', 'act_regr_01'));
+      expect(actSnap.data()?.version).toBe(2);
+      expect(pubSnap.data()?.version).toBe(2);
+      expect(actSnap.data()?.title).toBe('Rapat Koordinasi Khusus Batam (Resmi Diperbarui)');
+      expect(pubSnap.data()?.title).toBe('Rapat Koordinasi Khusus Batam (Resmi Diperbarui)');
+      expect(actSnap.data()?.publicNotes).toBe('Pakaian: PDH Hari Kamis (Lengkap)');
+      expect(pubSnap.data()?.publicNotes).toBe('Pakaian: PDH Hari Kamis (Lengkap)');
     });
   });
 });

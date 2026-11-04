@@ -5,7 +5,7 @@
 **Date:** 2026-11-04  
 **Status:** Completed & Formally Verified (100% Pass Rate across Unit, Integration, Rules & Browser Verification)  
 **Author:** Senior Software Architect & Firebase Full-Stack Engineer  
-**Git Commit:** `2708142` (feat(security): complete Gate 5A security hardening, coordinated rules, and honest architecture verification)  
+**Git Commit:** *To be recorded upon commit*  
 
 ---
 
@@ -13,16 +13,23 @@
 
 Following the formal specification established in Task 9, Gate 5A executed a rigorous security hardening and architectural audit pass for the Department Activity Scheduling System v5.0 (`simakdiskum`):
 
-### A. Cross-Document Atomic Coordination via `getAfter()` & `existsAfter()`
-1. **Rogue Modification Prevention:**
-   - Addressed vulnerability where an authenticated Editor could directly call Firestore client SDK methods to alter `publicActivities/{id}` independently of the canonical private record `activities/{id}`, risking public calendar defacement or state desynchronization.
-   - Implemented `hasMatchingPrivateActivity(id, publicData)` in `firebase/firestore.rules` using `existsAfter()` and `getAfter()` to assert that every create or update to `publicActivities` is accompanied in the same atomic transaction or batch by a corresponding write to `activities` with matching core fields (`id`, `title`, `startDate`, `endDate`, `startTime`, `status`).
-   - Implemented `hasMatchingPublicProjection(activityId, privateData)` to symmetrically enforce that internal activities cannot be written without committing their matching public projection.
-   - Conditioned `publicActivities` deletion so that Editors cannot delete a public projection unless the underlying private activity is deleted simultaneously (`!existsAfter(...)`), while Admins retain override deletion authority.
+### A. Resolution of `getAfter()` Limitations via Version Lockstep
+1. **The Vulnerability Identified:**
+   - In Cloud Firestore rules, `getAfter(path)` on an untouched document returns the **existing database state**.
+   - If coordination rules only assert equality on static fields (e.g. `startDate`, `startTime`), an Editor could execute a standalone `updateDoc` on `publicActivities/{id}` (e.g. changing `publicNotes` or `locationName`). Because `activities/{id}` already existed in the database with matching dates and titles, `getAfter()` would evaluate to true, allowing unauthorized standalone modifications.
+2. **The Synchronized Version Coordination Solution:**
+   - Added `version: int` to `publicActivities` schema, synchronized with `activities.version`.
+   - On create: both documents MUST be created in the same batch with `version == 1`.
+   - On update: both documents MUST increment version by exactly 1 (`request.resource.data.version == resource.data.version + 1`) AND match each other (`getAfter(...).data.version == request.resource.data.version`).
+   - Symmetrically, `activities` requires `getAfter(publicActivities).data.version == request.resource.data.version`.
+   - **Result:** Standalone writes to either collection are mathematically impossible. Any write to `publicActivities` without `activities` in the batch fails because `activities.version` in the database does not increment.
+3. **Comprehensive Text & Metadata Matching:**
+   - In addition to version lockstep, `hasMatchingPrivateActivity` and `hasMatchingPublicProjection` enforce strict equality on: `id`, `title`, `startDate`, `endDate`, `startTime`, `endTime`, `openEnded`, `status`, `publicNotes`, `updatedAt`, `version`, and `publicCancellationNotice`.
+   - An Editor cannot modify a public projection in a batch to contain text or metadata inconsistent with its canonical private record.
 
 ### B. Strict Server Timestamp Enforcement on Audit Trails
 1. **Elimination of Arbitrary Client Strings:**
-   - Removed previous rule fallbacks that accepted arbitrary client-generated ISO timestamp strings in `isValidAuditLog`.
+   - Removed all rule fallbacks accepting arbitrary client-generated ISO timestamp strings in `isValidAuditLog`.
    - Hardened `firestore.rules` to enforce strictly: `data.timestamp == request.time`.
 2. **Repository Alignment:**
    - Updated `shared/src/schema/audit.ts` to type `timestamp: any` and include `actorId?: string`.
@@ -30,20 +37,19 @@ Following the formal specification established in Task 9, Gate 5A executed a rig
    - Updated `shared/src/repository/masterRepository.ts` to write `timestamp: serverTimestamp()` and bind caller `actorId` for `addOrUpdateMasterRecord` and `toggleMasterRecordActive`.
    - Updated `apps/admin/src/pages/SettingsPage.ts` to write `serverTimestamp()` on signatory configuration changes.
 
-### C. Malicious Authenticated Editor Test Suite (21 Scenarios)
-1. **Rule Simulation of Rogue Client Operations:**
-   - Expanded `tests/rules/firestore.rules.test.ts` to 21 comprehensive scenarios.
-   - Verified rejection of independent writes to `publicActivities` outside coordinated batches.
-   - Verified rejection of independent writes to `activities` outside coordinated batches.
-   - Verified rejection of batch writes with desynchronized core fields (e.g. mismatched title or dates).
-   - Verified rejection of audit logs with arbitrary string timestamps.
-   - Verified rejection of audit logs attempting to spoof another user's UID (`actorId != request.auth.uid`).
-   - Verified rejection of optimistic concurrency lock bypasses.
+### C. Focused Gate 5A Regression Suite (6 Scenarios Verified)
+Added a dedicated test suite in `tests/rules/firestore.rules.test.ts` verifying all requirements:
+1. **Legitimate Creation:** Creates a valid matching pair of `activities/{id}` and `publicActivities/{id}` using the approved `saveActivity` repository -> **Passed (Version 1 committed)**.
+2. **Standalone Public Notes Edit:** Attempt to update ONLY `publicActivities/{id}.publicNotes` without `activities/{id}` -> **Passed (`PERMISSION_DENIED`)**.
+3. **Standalone Public Metadata Edit:** Attempt to modify `locationName` or `attendeeLabels` in `publicActivities` standalone -> **Passed (`PERMISSION_DENIED`)**.
+4. **Standalone Private Notes Edit:** Attempt to update ONLY `activities/{id}.privateNotes` with version bump standalone -> **Passed (`PERMISSION_DENIED`)**.
+5. **Inconsistent Projection Batch:** Attempt batch commit with inconsistent `publicNotes` between private and public docs -> **Passed (`PERMISSION_DENIED`)**.
+6. **Legitimate Coordinated Update:** Legitimate coordinated update via approved `saveActivity` repository -> **Passed (Version 2 committed in lockstep)**.
 
 ### D. Honest Architecture & Boundary Disclosures
 1. **API-Level Registration Risk (`accounts:signUp`):**
    - Documented that omitting a sign-up form in the client UI does not disable the Firebase Identity Toolkit REST endpoint.
-   - Documented the required Google Cloud Console setting (Identity Platform -> User account linking / User signup -> Uncheck "Enable create (sign-up)") returning `OPERATION_NOT_ALLOWED`.
+   - We explicitly **do not claim that self-signup is disabled** until verified directly in the live Google Cloud / Firebase Console under Identity Platform settings ("Enable create (sign-up)" turned off).
    - Documented the zero-trust fallback: self-registered users receive no custom claims, so Firestore rules deny all private operations.
 2. **Token Revocation Lifetime Realities:**
    - Documented that `auth.revokeRefreshTokens(uid)` prevents new ID token minting, but issued ID tokens (JWTs) remain valid for rule evaluation for up to 3600 seconds (1 hour) until natural expiration.
@@ -53,23 +59,24 @@ Following the formal specification established in Task 9, Gate 5A executed a rig
    - Corrected "zero downtime" claims to acknowledge 15–60s edge rule propagation.
    - Documented that Spark tier free quota limits (50k reads/day) prevent unexpected billing charges but present a real denial-of-service operational risk if traffic spikes occur.
 
-### E. Comprehensive Release-Readiness Checklist
-- Formulated an 11-point matrix distinguishing what was proven in the local emulator from what must be validated in the real Google Cloud hosted environment (email dispatch, claims propagation, cellular network latency, custom domains, desktop Excel rendering).
-
 ---
 
 ## 2. Files Created, Modified, or Maintained
 
 | File | Action | Purpose |
 |---|:---:|---|
-| [`firebase/firestore.rules`](file:///D:/Temp/department-agenda-firebase/firebase/firestore.rules) | **Modified** | Added cross-document coordination via `getAfter()` / `existsAfter()` and strict server timestamp `request.time` |
+| [`firebase/firestore.rules`](file:///D:/Temp/department-agenda-firebase/firebase/firestore.rules) | **Modified** | Hardened cross-document version lockstep, synchronized fields (`publicNotes`, `endTime`, `openEnded`, `updatedAt`), and server timestamp `request.time` |
+| [`shared/src/schema/publicDto.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/schema/publicDto.ts) | **Modified** | Added `version: number` to `PublicActivityDTO` |
+| [`shared/src/projection/publicProjector.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/projection/publicProjector.ts) | **Modified** | Mapped `version: privateRecord.version` into projected public DTO |
 | [`shared/src/schema/audit.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/schema/audit.ts) | **Modified** | Updated `AuditLog` typing for `serverTimestamp()` and `actorId` |
-| [`shared/src/repository/activityRepository.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/repository/activityRepository.ts) | **Modified** | Updated activity audit logs to emit `serverTimestamp()` and bind `actorId` |
-| [`shared/src/repository/masterRepository.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/repository/masterRepository.ts) | **Modified** | Updated master data audit logs to emit `serverTimestamp()` and bind `actorId` |
-| [`apps/admin/src/pages/SettingsPage.ts`](file:///D:/Temp/department-agenda-firebase/apps/admin/src/pages/SettingsPage.ts) | **Modified** | Updated signatory settings audit log to emit `serverTimestamp()` and bind `actorId` |
-| [`tests/rules/firestore.rules.test.ts`](file:///D:/Temp/department-agenda-firebase/tests/rules/firestore.rules.test.ts) | **Modified** | Expanded to 21 tests verifying coordinated batches, rogue editor defense, server timestamps, and claims |
+| [`shared/src/repository/activityRepository.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/repository/activityRepository.ts) | **Modified** | Emits `serverTimestamp()` and binds `actorId` in atomic transaction writes |
+| [`shared/src/repository/masterRepository.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/repository/masterRepository.ts) | **Modified** | Emits `serverTimestamp()` and binds `actorId` for master data operations |
+| [`apps/admin/src/pages/SettingsPage.ts`](file:///D:/Temp/department-agenda-firebase/apps/admin/src/pages/SettingsPage.ts) | **Modified** | Emits `serverTimestamp()` and binds `actorId` on signatory configuration updates |
+| [`tests/rules/firestore.rules.test.ts`](file:///D:/Temp/department-agenda-firebase/tests/rules/firestore.rules.test.ts) | **Modified** | Expanded to 27 tests including the 6-scenario `getAfter()` regression suite |
+| [`tests/unit/publicUi.test.ts`](file:///D:/Temp/department-agenda-firebase/tests/unit/publicUi.test.ts) | **Modified** | Added `version: 1` to sample DTO fixtures |
+| [`tests/integration/queryBenchmark.emulator.test.ts`](file:///D:/Temp/department-agenda-firebase/tests/integration/queryBenchmark.emulator.test.ts) | **Modified** | Added `version: 1` to benchmark fixture DTOs |
 | [`tests/e2e/runPublicVerification.mjs`](file:///D:/Temp/department-agenda-firebase/tests/e2e/runPublicVerification.mjs) | **Modified** | Updated day column header selector to query `.day-full` |
-| [`docs/gate5_auth_specification.md`](file:///D:/Temp/docs/gate5_auth_specification.md) | **Modified** | Gate 5A hardened specification with `getAfter()` mechanics, honest boundaries, and release-readiness checklist |
+| [`docs/gate5_auth_specification.md`](file:///D:/Temp/docs/gate5_auth_specification.md) | **Modified** | Hardened Gate 5A specification with version lockstep mechanics, honest boundaries, and release-readiness checklist |
 | [`department-agenda-firebase/docs/gate5_auth_specification.md`](file:///D:/Temp/department-agenda-firebase/docs/gate5_auth_specification.md) | **Modified** | Synchronized project copy of Gate 5A specification |
 | [`docs/TASK_PROGRESS.md`](file:///D:/Temp/docs/TASK_PROGRESS.md) | **Modified** | Updated progress ledger reflecting Gate 5A status |
 | [`docs/TASK_REPORT.md`](file:///D:/Temp/docs/TASK_REPORT.md) | **Modified** | This detailed Gate 5A report |
@@ -78,16 +85,16 @@ Following the formal specification established in Task 9, Gate 5A executed a rig
 
 ## 3. Actual Test Results & Verification Evidence
 
-### A. Vitest Automated Test Suite: 100% Pass Rate (137/137)
+### A. Vitest Automated Test Suite: 100% Pass Rate (143/143)
 ```
 Test Files  19 passed (19)
-Tests       137 passed (137)
-Start at    16:56:12
-Duration    9.63s
+Tests       143 passed (143)
+Start at    20:54:57
+Duration    8.98s
 ```
 
 Detailed test breakdown:
-- **Firestore Security Rules (`tests/rules/firestore.rules.test.ts`):** **21 passed** (Coordinated batches, rogue editor defense, strict `request.time` timestamps, optimistic concurrency, RBAC custom claims, immutable audit logs).
+- **Firestore Security Rules (`tests/rules/firestore.rules.test.ts`):** **27 passed** (21 core RBAC/coordinated batch tests + 6 focused `getAfter()` regression tests).
 - **Time Engine & Date Math (`tests/unit/timeUtils.test.ts`):** **27 passed** (WIB parsing, interval arithmetic, multi-month intersection, Indonesian formatting, announcement date robustness).
 - **Public UI Logic (`tests/unit/publicUi.test.ts`):** **11 passed** (Filtering, grouping, visible bounds, announcement rendering regression tests).
 - **Activity Validation (`tests/unit/activityValidator.test.ts`):** **9 passed**.
@@ -112,8 +119,8 @@ Detailed test breakdown:
 
 ### C. Monorepo Production Build Verification
 - Shared package: Clean TypeScript compilation (`tsc`).
-- Public web application: Vite production build succeeded in 3.98s.
-- Admin web application: Vite production build succeeded in 4.19s.
+- Public web application: Vite production build succeeded in 3.57s.
+- Admin web application: Vite production build succeeded in 3.95s.
 - Monorepo build exit code: `0`.
 
 ---

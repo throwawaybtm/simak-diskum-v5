@@ -86,6 +86,7 @@ describe('Firestore Query Benchmark & Long-Running Activity Verification', () =>
         categoryName: 'Pelatihan',
         publicNotes: 'Catatan umum',
         attendeeLabels: ['1. Kadis'],
+        version: 1,
         updatedAt: new Date().toISOString()
       };
 

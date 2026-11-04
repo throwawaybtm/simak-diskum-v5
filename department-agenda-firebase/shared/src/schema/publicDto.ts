@@ -24,5 +24,6 @@ export interface PublicActivityDTO {
   categoryName: string;
   publicNotes: string;             // Attire ("Pakaian: PSL") & public directions
   attendeeLabels: string[];        // Resolved public snapshot labels
+  version: number;                 // Synchronized with private activity version
   updatedAt: string;               // ISO 8601 UTC
 }

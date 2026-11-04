@@ -4,7 +4,7 @@
 **Target Architecture:** Firebase Hosting (Multi-site: `public` & `admin`), Cloud Firestore Standard Edition, Firebase Emulator Suite  
 **Development Tooling:** Vite, TypeScript, Vitest, Playwright, Firebase CLI, ExcelJS  
 **Last Updated:** 2026-11-04  
-**Overall Status:** Tasks 1–9 & Gate 5A Security Hardening Completed & Verified; Ready for Formal Gate 5A Review Checkpoint (Visual Makeover & Production Activation Pending Approval)  
+**Overall Status:** Tasks 1–9 & Gate 5A Security Hardening Completed & Verified (Final Regression Passed); Ready for Formal Gate 5A Review Checkpoint (Visual Makeover & Production Activation Pending Approval)  
 
 ---
 
@@ -22,14 +22,14 @@
 | **Task 7** | Master Data Management, Official 8-Column Reports, Validated XLSX & Migration | **Completed** | 2026-11-04 | `cc5df12` (7A), `a382e8b` (7B) | **Phase 7A:** Master Data CRUD (Employees, Departments, Locations, Organizers, Categories), referential integrity safeguard on deactivation, duplicate name prevention, live form integration, and attendee snapshot preservation. **Phase 7B:** Official Indonesian 8-column layout (`No | Hari / Tanggal | Pukul | Kegiatan | Tempat | Penyelenggara | Dihadiri Oleh | Keterangan`), single-row multi-day event formatting (`Jumat–Minggu, 6–8 November 2026`), formula injection neutralization (`=`, `+`, `-`, `@`), genuine OpenXML XLSX generation via ExcelJS (7.9 KB), landscape A4 print template with Kop Surat and signature block, October 2026 legacy spreadsheet ingestion with Zoom credential isolation and deduplication. Full Playwright suites verified (Phase 7A: 8/8 scenarios; Phase 7B: 8/8 scenarios; 100% pass rate). 102 Vitest tests + 40 Playwright scenarios verified. *(Review Checkpoint 3 Approved)* |
 | **Task 8** | Performance Instrumentation, Staging Verification & Readiness | **Completed** | 2026-11-04 | `f12df3e` | Core Web Vitals telemetry (FCP 44ms cold / 28ms warm; LCP 44ms; CLS 0.0000; Shell 1–2ms; Firestore Data 106–154ms; Read count: 30 docs); public bundle initial JS entry 41.16 kB (11.94 kB gzip) well under 150 kB budget; OpenXML XLSX parser verification; master safety & migration isolation; staging config verified for `simakdiskum` targets; dynamic official signatory settings with Firestore persistence. 113/113 Vitest tests + 40/40 Playwright E2E scenarios + 4 Performance audits passed. *(Review Checkpoint 4 Approved)* |
 | **Task 9** | Gate 5 Authentication & Authorization Specification | **Completed** | 2026-11-04 | `7611376` | Fixed announcement date defect (zero "Invalid Date WIB"); verified 7-day calendar usability across 375px, 768px, 1024px, 1440px viewports without clipping; authored 13-point security specification (`gate5_auth_specification.md`); designed and verified production `firestore.rules` (20/20 tests); least-privilege RBAC (Admin/Editor); append-only audit trail; staging-to-prod runbook; 100% Spark free tier compatible. 136 Vitest tests + 52 browser/audit executions verified. *(Gate 5 Review)* |
-| **Gate 5A**| Security Hardening & Honest Verification Pass | **Completed** | 2026-11-04 | `2708142` | Cross-document atomic coordination via `getAfter()` / `existsAfter()` in `firestore.rules`; rogue Editor modification of `publicActivities` without matching canonical `activities` blocked; strict server timestamp `request.time` enforcement on audit logs (removed string fallback); repositories aligned with `serverTimestamp()` and `actorId`; malicious editor test suite expanded to 21 passing rules tests; API-level sign-up risk (`accounts:signUp`) documented with Console mitigation; honest boundaries of browser-only architecture documented (unlinked audit limitations, 1-hour JWT token revocation window, edge rule propagation, quota exhaustion DoS risk); 11-point Release-Readiness Checklist established. 137 Vitest tests + 40 Playwright scenarios verified. |
+| **Gate 5A**| Security Hardening & Honest Verification Pass | **Completed** | 2026-11-04 | *Pending commit* | Addressed `getAfter()` limitation on untouched documents; implemented synchronized optimistic `version` lockstep across `activities` and `publicActivities`; full projection text matching (`publicNotes`, `endTime`, `openEnded`, `updatedAt`, `publicCancellationNotice`); 6-scenario regression passed (standalone publicNotes edits denied, standalone location edits denied, standalone privateNotes edits denied, desynced publicNotes batch denied, legitimate coordinated update allowed); strict server timestamp `request.time` enforced on audit logs; repositories aligned; API-level sign-up risk documented with Console mitigation; honest boundaries of browser-only architecture documented; 11-point Release-Readiness Checklist established. 143 Vitest tests (27 rules tests) + 40 Playwright scenarios verified. |
 
 ---
 
 ## 2. Test Totals at Latest Checkpoint (Gate 5A Completed & Formally Verified)
 
 - **Vitest Unit & Integration Suites:** 19 passed (19 total)
-- **Vitest Automated Tests:** **137 passed** (137 total, 100% pass rate)
+- **Vitest Automated Tests:** **143 passed** (143 total, 100% pass rate)
 - **Playwright Real-Browser Verification Suites:**
   - Responsive Calendar & Announcement Suite (`calendarResponsiveVerification.mjs`): **8 / 8 passed** (100%)
   - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed** (100%)
@@ -38,16 +38,16 @@
   - Admin Portal Suite (`runVerification.mjs`): **13 / 13 passed** (100%)
   - Performance Profiling Suite (`performanceProfiling.mjs`): **4 / 4 audits passed** (Desktop Cold, Desktop Warm, Mobile Throttled, Admin Settings)
 - **Total Real-Browser Scenarios:** **52 verified browser executions** (100% pass rate)
-- **Total Automated Test Assertions:** **189 passed** (189 total, 100% pass rate)
+- **Total Automated Test Assertions:** **195 passed** (195 total, 100% pass rate)
 - **Visual Artifacts:** 42 verified browser screenshots in `tests/e2e/screenshots/` (Admin, Master, Public, Reports, Migration, Performance, Responsive Calendar)
 - **Bundle Metrics:**
   - Public Shell: `index.html` 1.14 kB (gzip: 0.58 kB), `index.css` 17.41 kB (gzip: 3.66 kB)
   - Public Initial App Code: `index.js` **41.28 kB** (gzip: **11.99 kB**) *(Initial critical path well below 150 kB budget)*
   - Public Vendor: `firebase-vendor` 871.46 kB (gzip: 225.69 kB), `exceljs-vendor` 953.20 kB (gzip: 275.76 kB, lazy-loaded on export demand)
-  - Admin Initial Shell: `index.js` 9.48 kB (gzip: 3.64 kB), `index.css` 13.31 kB (gzip: 3.30 kB)
-  - Admin Lazy Modules: `SettingsPage` 5.19 kB (gzip: 2.08 kB), `ReportsPage` 14.68 kB (gzip: 5.09 kB), `MasterDataPage` 17.30 kB (gzip: 4.15 kB), `ActivityEditWorkflow` 22.56 kB (gzip: 6.34 kB)
+  - Admin Initial Shell: `index.js` 9.48 kB (gzip: 3.63 kB), `index.css` 13.31 kB (gzip: 3.30 kB)
+  - Admin Lazy Modules: `SettingsPage` 5.19 kB (gzip: 2.08 kB), `ReportsPage` 14.68 kB (gzip: 5.09 kB), `MasterDataPage` 17.30 kB (gzip: 4.15 kB), `ActivityEditWorkflow` 22.56 kB (gzip: 6.33 kB)
 - **Test Categories Breakdown:**
-  - Live Firestore Security Rules (Emulator): **21 tests** (`firestore.rules.test.ts`)
+  - Live Firestore Security Rules (Emulator): **27 tests** (`firestore.rules.test.ts`)
   - Monorepo Configuration & Rules: 7 tests (`monorepo_config.test.ts`)
   - Schemas & Data Contracts: 3 tests (`schemas.test.ts`)
   - WIB Time Engine & Date Arithmetic: 27 tests (`timeUtils.test.ts`)
@@ -80,7 +80,7 @@
 | **Checkpoint 3** | Task 7 Completion | **Approved** | 102 Vitest tests + 40 Playwright browser scenarios passing (100%); Phase 7A Master Data CRUD verified (commit `cc5df12`); Phase 7B Official 8-column layout verified, genuine OpenXML XLSX (7,933 bytes) with formula injection protection verified, October 2026 migration with Zoom credential isolation verified. Commits `cc5df12` and `a382e8b`. |
 | **Checkpoint 4** | Task 8 Completion | **Approved** | 113 Vitest tests + 40 Playwright browser scenarios + 4 performance profiling audits passing (100%). Core Web Vitals verified (FCP 44ms cold / 28ms warm, LCP 44ms, CLS 0.0000, Shell 1–2ms, Data 106–154ms). Public initial JS entry 41.16 kB (11.94 kB gzip) against 150 kB budget. OpenXML XLSX container compliance independently verified. Formula injection neutralized. Configurable official signatory implemented with Firestore persistence. Staging multi-site config verified for `simakdiskum` targets. Commit `f12df3e`. |
 | **Task 9 Review**| Task 9 Authentication Spec | **Accepted** | Production auth specification completed (`gate5_auth_specification.md`); custom role claims (Admin/Editor); append-only audit trail with actor ID binding; production rules verified (20/20 Vitest rules tests); announcement date bug fixed and verified; 7-day calendar verified responsive (375px–1440px); staging-to-prod runbook authored. |
-| **Gate 5A Checkpoint**| Security Hardening & Honest Verification | **READY FOR REVIEW** | Cross-document coordination via `getAfter()` implemented and verified; independent modification of `publicActivities` blocked; strict server timestamp `request.time` enforced (arbitrary string fallback deleted); repository serialization aligned; 21/21 rules tests passing; 137/137 Vitest tests passing; 40/40 Playwright scenarios passing; API sign-up risk and console mitigation documented; honest limitations of browser-only architecture documented; 11-point Release-Readiness Checklist established. Stopping before visual makeover. |
+| **Gate 5A Checkpoint**| Security Hardening & Honest Verification | **READY FOR REVIEW** | Addressed `getAfter()` limitation on untouched documents; implemented synchronized optimistic `version` lockstep across `activities` and `publicActivities`; full projection text matching (`publicNotes`, `endTime`, `openEnded`, `updatedAt`, `publicCancellationNotice`); 6-scenario regression passed (standalone publicNotes edits denied, standalone location edits denied, standalone privateNotes edits denied, desynced publicNotes batch denied, legitimate coordinated update allowed); strict server timestamp `request.time` enforced on audit logs; repositories aligned; API-level sign-up risk documented with Console mitigation; honest boundaries of browser-only architecture documented; 11-point Release-Readiness Checklist established. Stopping before visual makeover. |
 
 ---
 
@@ -105,4 +105,4 @@
 9. **Firebase Auth Token Revocation 1-Hour Window:**
    - *Limitation:* `auth.revokeRefreshTokens(uid)` prevents new ID token minting, but issued ID tokens (JWTs) remain valid for rule evaluation for up to 3600 seconds until natural expiration.
 10. **Identity Platform Console Sign-Up Toggle:**
-    - *Action Required:* In Google Cloud Console / Firebase Console, manually turn off "Enable create (sign-up)" in Identity Platform settings to block direct HTTP calls to the `accounts:signUp` endpoint.
+    - *Action Required:* In Google Cloud Console / Firebase Console, manually turn off "Enable create (sign-up)" in Identity Platform settings to block direct HTTP calls to the `accounts:signUp` endpoint. We do not claim this is disabled until verified in the actual project settings.

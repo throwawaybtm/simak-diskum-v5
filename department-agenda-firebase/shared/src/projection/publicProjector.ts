@@ -61,6 +61,7 @@ export function projectPublicActivity(
     categoryName: cat ? cat.name : 'Kegiatan',
     publicNotes: safePublicNotes,
     attendeeLabels,
+    version: privateRecord.version,
     updatedAt: privateRecord.updatedAt
   };
 

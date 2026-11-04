@@ -7,7 +7,7 @@
 - Public Portal: `simakdiskum.web.app` (Citizen & inter-agency calendar, agenda, and official 8-column reports)
 - Admin Portal: `simakdiskum-admin.web.app` (Operator scheduling, master data, signatory settings, audit trail, migration)
 **Roles Required:** `Admin` (Kepala Dinas / Administrator Sistem), `Editor` (Operator Agenda Dinas)  
-**Status:** Gate 5A Hardened & Formally Verified (21/21 Rules Scenarios Passing, 137/137 Unit/Integration Tests Passing, 40/40 Playwright Scenarios Passing)  
+**Status:** Gate 5A Hardened & Formally Verified (27/27 Rules Scenarios Passing, 143/143 Unit/Integration Tests Passing, 40/40 Playwright Scenarios Passing)  
 **Date:** 2026-11-04  
 
 ---
@@ -18,7 +18,7 @@ The security architecture of SIMAK DISKUM v5.0 is founded on a **defense-in-dept
 1. **Infrastructure Enforcement Layer (Cloud Firestore Security Rules):**
    - Security is **never** delegated to client-side visibility, URL obscurity, or hosting subdomains.
    - Any client request originating from any origin without a valid Firebase ID token carrying verified custom claims (`role == 'admin'` or `role == 'editor'`) is unconditionally rejected with `PERMISSION_DENIED` at the Google Cloud edge.
-   - Cross-document coordination using `getAfter()` and `existsAfter()` guarantees that public projections (`publicActivities`) and internal records (`activities`) cannot be written or modified independently or desynchronized by a malicious authenticated client.
+   - Cross-document coordination using synchronized versions and `getAfter()` / `existsAfter()` guarantees that public projections (`publicActivities`) and internal records (`activities`) cannot be written, updated, or modified independently, nor can they be desynchronized by a malicious authenticated client.
 2. **Identity & Credential Layer (Firebase Authentication):**
    - Authentic identity is managed via cryptographically signed Firebase ID tokens (JWTs) issued by Google's OAuth 2.0 authorization server.
    - User roles are encoded in **Firebase Custom User Claims**, preventing clients from claiming or altering their own roles.
@@ -46,8 +46,8 @@ flowchart TD
 
     subgraph Cloud Firestore Rule Engine
         RuleGateway{"Firestore Security Rules<br/>(Rules Version 2)"}
-        PublicColl[("publicActivities<br/>(Public Read, Staff Coordinated Write)")]
-        PrivateColl[("activities<br/>(Private, Staff Coordinated Write)")]
+        PublicColl[("publicActivities<br/>(Public Read, Version-Synchronized Write)")]
+        PrivateColl[("activities<br/>(Private, Version-Synchronized Write)")]
         MasterColl[("employees, locations, ...<br/>settings/signatory<br/>(Admin CRUD, Editor Read)")]
         AuditColl[("auditLogs<br/>(Append-Only, request.time Binding)")]
     end
@@ -64,8 +64,8 @@ flowchart TD
     AdminHost -->|Signed Bearer Token| RuleGateway
 
     RuleGateway -->|allow read: true| PublicColl
-    RuleGateway -->|auth.token.role in ['admin','editor'] + getAfter() Coordinated| PublicColl
-    RuleGateway -->|auth.token.role in ['admin','editor'] + getAfter() Coordinated| PrivateColl
+    RuleGateway -->|auth.token.role in ['admin','editor'] + Version Lockstep| PublicColl
+    RuleGateway -->|auth.token.role in ['admin','editor'] + Version Lockstep| PrivateColl
     RuleGateway -->|auth.token.role == 'admin'| MasterColl
     RuleGateway -->|actorId == auth.uid & time == request.time| AuditColl
     RuleGateway -.->|DENIED 403| Attacker
@@ -92,17 +92,18 @@ For the **2–5 designated operators** of Dinas Koperasi dan Usaha Mikro Kota Ba
 
 ## 3. Administrator Onboarding & Account Provisioning Runbook
 
-### A. API-Level Account Creation Risk & Safeguards (`accounts:signUp`)
+### A. API-Level Account Creation Risk & Console Action Required (`accounts:signUp`)
 > [!WARNING]
 > **Critical Security Warning: Hiding the registration UI does NOT disable API-level registration.**
 > Simply omitting a sign-up form in the client web application does not prevent an adversary from sending HTTP POST requests directly to the Firebase Identity Toolkit REST endpoint:
 > `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=API_KEY`
 > If Email/Password authentication is enabled with default settings, an unauthenticated user could create a Firebase Authentication account via curl or automated tools.
+> **We do NOT claim that self-signup is disabled until the actual Firebase project configuration has been verified in the live Google Cloud / Firebase Console.**
 
-#### Multi-Tiered Defenses Implemented:
-1. **Google Cloud / Firebase Console Hardening (Recommended Primary Safeguard):**
+#### Required Production Pre-Launch Configuration:
+1. **Google Cloud / Firebase Console Hardening (Mandatory Manual Step):**
    - In Google Cloud Console -> **Identity Platform** -> **Settings** -> **User account linking / User signup**, uncheck **"Enable create (sign-up)"**.
-   - Alternatively, configure Identity Platform Blocking Functions (requires Blaze plan) or enforce IP whitelisting. When sign-up is unchecked in the console, any unauthorized call to `accounts:signUp` returns `OPERATION_NOT_ALLOWED`.
+   - When unchecked, any call to `accounts:signUp` returns `OPERATION_NOT_ALLOWED`.
 2. **Zero-Trust Custom Claims RBAC (Defense-in-Depth):**
    - Even if an adversary exploits the API to create an authenticated user record, they possess **zero custom claims** (`token.role == null`).
    - All private collections (`activities`, `employees`, `departments`, `locations`, `organizers`, `categories`, `settings`, `auditLogs`) strictly require `hasRole('admin')` or `hasRole('editor')`.
@@ -166,8 +167,8 @@ When an operator leaves the department or is reassigned:
 
 | Collection & Document Path | Anonymous / Public | Operator (`role == 'editor'`) | Kepala Dinas (`role == 'admin'`) | Key Security Constraints & Invariants Enforced |
 | :--- | :---: | :---: | :---: | :--- |
-| `publicActivities/{id}` | **Read-Only** (`allow read: if true;`) | **Coordinated CRUD** | **Coordinated CRUD** | Strict projection schema; guaranteed exclusion of PII, private notes, and credentials; `id` immutable; **must match canonical `activities/{id}` via `getAfter()`**. |
-| `activities/{activityId}` | **Denied** | **Coordinated Read / Create / Update** | **Coordinated Read / Create / Update / Delete** | Private only; `version == 1` on create; `version == resource.data.version + 1` on update; `id`, `createdAt`, `createdBy` immutable; `cancelReason` required when `status == 'CANCELLED'`; **must match `publicActivities/{activityId}` via `getAfter()`**. Operators cannot delete. |
+| `publicActivities/{id}` | **Read-Only** (`allow read: if true;`) | **Coordinated CRUD** | **Coordinated CRUD** | Strict projection schema; guaranteed exclusion of PII, private notes, and credentials; `id` immutable; **must increment `version` in lockstep with canonical `activities/{id}` via `getAfter()`**. |
+| `activities/{activityId}` | **Denied** | **Coordinated Read / Create / Update** | **Coordinated Read / Create / Update / Delete** | Private only; `version == 1` on create; `version == resource.data.version + 1` on update; `id`, `createdAt`, `createdBy` immutable; `cancelReason` required when `status == 'CANCELLED'`; **must increment `version` in lockstep with `publicActivities/{activityId}` via `getAfter()`**. Operators cannot delete. |
 | `auditLogs/{logId}` | **Denied** | **Read / Create** (Append-Only) | **Read / Create** (Append-Only) | Identity binding `actorId == request.auth.uid`; timestamp binding `timestamp == request.time`; `update` and `delete` strictly prohibited (`false`). |
 | `employees/{id}` | **Denied** | **Read-Only** | **Full CRUD** | Master data locked; editors cannot tamper with personnel records; strict schema and name/position length checks. |
 | `departments/{id}` | **Denied** | **Read-Only** | **Full CRUD** | Master data locked; editors cannot tamper with department structure. |
@@ -183,7 +184,7 @@ When an operator leaves the department or is reassigned:
 
 ## 5. Verified Production Cloud Firestore Security Rules
 
-The following complete rules file is tested and verified against the Firestore Emulator (21/21 test scenarios passing in [`tests/rules/firestore.rules.test.ts`](file:///D:/Temp/department-agenda-firebase/tests/rules/firestore.rules.test.ts)):
+The following complete rules file is tested and verified against the Firestore Emulator (27/27 test scenarios passing in [`tests/rules/firestore.rules.test.ts`](file:///D:/Temp/department-agenda-firebase/tests/rules/firestore.rules.test.ts)):
 
 ```rules
 rules_version = '2';
@@ -273,13 +274,13 @@ service cloud.firestore {
         'openEnded', 'timeDisplay', 'dateDisplay', 'status',
         'publicCancellationNotice', 'locationName', 'locationType',
         'organizerName', 'categoryName', 'publicNotes', 'attendeeLabels',
-        'updatedAt'
+        'version', 'updatedAt'
       ];
       let required = [
         'id', 'title', 'startDate', 'startTime', 'endDate', 'endTime',
         'openEnded', 'timeDisplay', 'dateDisplay', 'status',
         'locationName', 'locationType', 'organizerName', 'categoryName',
-        'publicNotes', 'attendeeLabels', 'updatedAt'
+        'publicNotes', 'attendeeLabels', 'version', 'updatedAt'
       ];
 
       return data.keys().hasOnly(allowed) &&
@@ -305,6 +306,7 @@ service cloud.firestore {
              data.categoryName is string && data.categoryName.size() >= 1 && data.categoryName.size() <= 200 &&
              data.publicNotes is string && data.publicNotes.size() <= 1000 &&
              data.attendeeLabels is list && data.attendeeLabels.size() <= 100 &&
+             data.version is int && data.version >= 1 &&
              data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 50;
     }
 
@@ -448,7 +450,9 @@ service cloud.firestore {
              data.id == annId && data.title.size() >= 2 && data.content.size() >= 1;
     }
 
-    // Cross-document coordination validators
+    // Cross-document coordination validators:
+    // Guarantees that publicActivities/{id} and activities/{id} can never be created
+    // or updated independently, or contain desynchronized text, metadata, or versions.
     function hasMatchingPrivateActivity(id, publicData) {
       return existsAfter(/databases/$(database)/documents/activities/$(id)) &&
              getAfter(/databases/$(database)/documents/activities/$(id)).data.id == id &&
@@ -456,7 +460,15 @@ service cloud.firestore {
              getAfter(/databases/$(database)/documents/activities/$(id)).data.startDate == publicData.startDate &&
              getAfter(/databases/$(database)/documents/activities/$(id)).data.endDate == publicData.endDate &&
              getAfter(/databases/$(database)/documents/activities/$(id)).data.startTime == publicData.startTime &&
-             getAfter(/databases/$(database)/documents/activities/$(id)).data.status == publicData.status;
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.endTime == publicData.endTime &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.openEnded == publicData.openEnded &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.status == publicData.status &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.publicNotes == publicData.publicNotes &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.version == publicData.version &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.updatedAt == publicData.updatedAt &&
+             ((!('publicCancellationNotice' in publicData) && !('publicCancellationNotice' in getAfter(/databases/$(database)/documents/activities/$(id)).data)) ||
+              (('publicCancellationNotice' in publicData) && ('publicCancellationNotice' in getAfter(/databases/$(database)/documents/activities/$(id)).data) &&
+               getAfter(/databases/$(database)/documents/activities/$(id)).data.publicCancellationNotice == publicData.publicCancellationNotice));
     }
 
     function hasMatchingPublicProjection(activityId, privateData) {
@@ -466,33 +478,57 @@ service cloud.firestore {
              getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.startDate == privateData.startDate &&
              getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.endDate == privateData.endDate &&
              getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.startTime == privateData.startTime &&
-             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.status == privateData.status;
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.endTime == privateData.endTime &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.openEnded == privateData.openEnded &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.status == privateData.status &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.publicNotes == privateData.publicNotes &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.version == privateData.version &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.updatedAt == privateData.updatedAt &&
+             ((!('publicCancellationNotice' in privateData) && !('publicCancellationNotice' in getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data)) ||
+              (('publicCancellationNotice' in privateData) && ('publicCancellationNotice' in getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data) &&
+               getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.publicCancellationNotice == privateData.publicCancellationNotice));
     }
 
     // MATCH RULES
     match /publicActivities/{id} {
+      // Public read access for citizen calendar, agenda, and 8-column reports
       allow read: if true;
+
+      // Creation: Authenticated Admin and Editor only. Enforces version 1 and coordinated write with private canonical activity.
       allow create: if isEditorOrAdmin() &&
                     isValidPublicActivity(request.resource.data, id) &&
+                    request.resource.data.version == 1 &&
                     hasMatchingPrivateActivity(id, request.resource.data);
+
+      // Update: Authenticated Admin and Editor only. Enforces version increment (+1), immutability, and coordinated write with private canonical activity.
       allow update: if isEditorOrAdmin() &&
                     isValidPublicActivity(request.resource.data, id) &&
+                    request.resource.data.version == resource.data.version + 1 &&
                     areImmutableFieldsUnchanged(['id']) &&
                     hasMatchingPrivateActivity(id, request.resource.data);
+
+      // Deletion: Admin only, or Editor if private activity is also deleted in same batch
       allow delete: if isAdmin() || (isEditor() && !existsAfter(/databases/$(database)/documents/activities/$(id)));
     }
 
     match /activities/{activityId} {
+      // Read access strictly limited to authenticated Admin and Editor. Never public.
       allow read: if isEditorOrAdmin();
+
+      // Creation: Authenticated Admin and Editor. Enforces schema, version == 1, and coordinated public projection.
       allow create: if isEditorOrAdmin() &&
                     isValidActivity(request.resource.data, activityId) &&
                     request.resource.data.version == 1 &&
                     hasMatchingPublicProjection(activityId, request.resource.data);
+
+      // Update: Authenticated Admin and Editor. Enforces optimistic lock (+1), schema, immutability, and coordinated public projection.
       allow update: if isEditorOrAdmin() &&
                     isValidActivity(request.resource.data, activityId) &&
                     request.resource.data.version == resource.data.version + 1 &&
                     areImmutableFieldsUnchanged(['id', 'createdAt', 'createdBy']) &&
                     hasMatchingPublicProjection(activityId, request.resource.data);
+
+      // Deletion: Admin only (prevents accidental or unauthorized deletion by operators).
       allow delete: if isAdmin();
     }
 
@@ -566,27 +602,52 @@ service cloud.firestore {
 
 ---
 
-## 6. Coordinated Transaction & Cross-Document Atomic Guarantees
+## 6. Coordinated Transaction, `getAfter()` Limitations & Version Lockstep
 
 In SIMAK DISKUM v5.0, scheduling operations (saving, editing, cancelling) write simultaneously to:
 1. `activities/{id}` (Canonical private document)
 2. `publicActivities/{id}` (Sanitized projection)
 3. `auditLogs/{logId}` (Immutable audit trail)
 
-### A. Strict Cross-Document Synchronization via `getAfter()`
-Under earlier iterations, an authenticated Editor could theoretically invoke the client SDK to modify `publicActivities/{id}` independently without altering `activities/{id}`, risking public defacement or state desynchronization.
-Under Gate 5A:
-- `hasMatchingPrivateActivity(id, publicData)` uses `existsAfter()` and `getAfter()` to assert that the post-transaction state of `activities/{id}` exists and has matching core scheduling metadata (`id`, `title`, `startDate`, `endDate`, `startTime`, `status`).
-- `hasMatchingPublicProjection(activityId, privateData)` symmetrically asserts that `publicActivities/{activityId}` exists and has matching core scheduling metadata.
-- **Result:** An Editor cannot alter the public calendar without simultaneously updating the private activity within the same atomic batch or transaction. Independent writes fail with `PERMISSION_DENIED`.
+### A. Limitations of `getAfter()` on Untouched Documents
+In Cloud Firestore, calling `getAfter(path)` behaves differently depending on whether `path` is part of the pending write batch:
+- If `path` is modified in the transaction, `getAfter(path)` evaluates to the **post-transaction state**.
+- If `path` is **NOT modified** in the transaction, `getAfter(path)` evaluates to the **current pre-existing database state**.
 
-### B. Administrative Write Path Audit (Honest Browser-Only Assessment)
+**The Vulnerability Identified:**
+If rules only check static core fields (e.g. `startDate`, `startTime`) without requiring post-transaction mutations, a malicious authenticated Editor could execute a standalone `updateDoc` on `publicActivities/{id}` (e.g. altering `publicNotes`, `locationName`, or `attendeeLabels`). Since `activities/{id}` already exists in the database with matching dates and titles, `getAfter(activities/{id})` would evaluate to true, allowing unauthorized standalone modifications.
+
+### B. The Synchronized Version & Full Projection Consistency Solution
+To completely eliminate this bypass vector without exceeding Firestore rule-call limits:
+1. **Synchronized Optimistic Version Lock (`version`):**
+   - Both `activities/{id}` and `publicActivities/{id}` track an integer `version`.
+   - On create: both MUST start at `version == 1` and match.
+   - On update: `publicActivities` enforces `request.resource.data.version == resource.data.version + 1` AND `getAfter(activities).data.version == request.resource.data.version`.
+   - Symmetrically, `activities` enforces `request.resource.data.version == resource.data.version + 1` AND `getAfter(publicActivities).data.version == request.resource.data.version`.
+   - **Result:** It is mathematically impossible for an Editor to update either document standalone. Any attempt to update `publicActivities` without simultaneously updating `activities` in the same batch fails with `PERMISSION_DENIED` because `activities.version` in the database does not increment.
+2. **Text & Metadata Consistency Checks:**
+   - Both documents must match on: `id`, `title`, `startDate`, `endDate`, `startTime`, `endTime`, `openEnded`, `status`, `publicNotes`, `version`, `updatedAt`, and `publicCancellationNotice`.
+   - Any attempt to commit a batch with inconsistent public notes, dates, or cancellation notices fails with `PERMISSION_DENIED`.
+
+### C. 6-Scenario Regression Verification Evidence
+The solution was verified with 6 focused regression tests in [`tests/rules/firestore.rules.test.ts`](file:///D:/Temp/department-agenda-firebase/tests/rules/firestore.rules.test.ts):
+
+| Scenario | Tested Action | Expected Result | Actual Result |
+| :--- | :--- | :---: | :---: |
+| **1. Legitimate Creation** | Create valid matching pair using approved `saveActivity` repository | **ALLOW** | **PASS (Version 1)** |
+| **2. Standalone Public Notes Edit** | Attempt to update ONLY `publicActivities/{id}.publicNotes` without `activities/{id}` | **DENY** | **PASS (`PERMISSION_DENIED`)** |
+| **3. Standalone Public Metadata Edit** | Attempt to modify `locationName` or `attendeeLabels` in `publicActivities` standalone | **DENY** | **PASS (`PERMISSION_DENIED`)** |
+| **4. Standalone Private Notes Edit** | Attempt to update ONLY `activities/{id}.privateNotes` with version bump standalone | **DENY** | **PASS (`PERMISSION_DENIED`)** |
+| **5. Inconsistent Projection Batch** | Attempt batch commit with inconsistent `publicNotes` between private and public docs | **DENY** | **PASS (`PERMISSION_DENIED`)** |
+| **6. Legitimate Coordinated Update** | Update activity and projection via approved `saveActivity` repository | **ALLOW** | **PASS (Version 2, Synced)** |
+
+### D. Administrative Write Path Audit (Honest Browser-Only Assessment)
 We conducted an exhaustive audit of all administrative write paths:
 
 | Operation Path | Enforced at Security Rules Engine? | Browser-Only Architecture Limitation |
 | :--- | :---: | :--- |
-| **Activity + Public Projection Synchronization** | **YES (`getAfter`)** | Fully enforced at the rule level. Any attempt to write one without the other in the same batch fails. |
-| **Optimistic Concurrency Version Lock** | **YES (`version + 1`)** | Fully enforced at the rule level. Stale writes are blocked regardless of client client logic. |
+| **Activity + Public Projection Lockstep** | **YES (`version + 1` & `getAfter`)** | Fully enforced at the rule level. Any attempt to write one without the other in the same batch fails. |
+| **Optimistic Concurrency Version Lock** | **YES (`version + 1`)** | Fully enforced at the rule level. Stale writes are blocked regardless of client logic. |
 | **Cancellation Reason Requirement** | **YES (`isValidCancelReason`)** | Fully enforced at the rule level. Status cannot transition to `CANCELLED` without `cancelReason`. |
 | **Audit Log Server Timestamp Binding** | **YES (`data.timestamp == request.time`)** | Fully enforced at the rule level. Arbitrary client strings are rejected. |
 | **Audit Log Actor Identity Binding** | **YES (`actorId == request.auth.uid`)** | Fully enforced at the rule level. Callers cannot impersonate another user's UID. |
@@ -634,7 +695,7 @@ sequenceDiagram
 
     Note over Admin,Hosting: Phase 1: Authentication & Console Hardening
     Admin->>Auth: Enable Email/Password Provider on project "simakdiskum"
-    Admin->>Auth: Disable public self-signup in Identity Platform settings
+    Admin->>Auth: Verify and disable public self-signup in Identity Platform console settings
     Admin->>CLI: Run scripts/provisionOperator.mjs (Create Admin & Editor accounts + Set Claims)
     Admin->>Auth: Issue password setup links to operators
 
@@ -712,8 +773,8 @@ It is vital to explicitly document the limitations of browser-side code:
    - Browser code can be modified in developer tools (`F12`). Only the backend rule `allow update, delete: if false;` on `auditLogs` prevents malicious alteration or deletion of past entries.
 3. **Data Confidentiality & Secret Shielding:**
    - Hiding private meeting links, passcodes, and cancellation reasons in CSS or JavaScript does not protect data if the client downloads the raw Firestore document. True confidentiality is achieved because `activities` collection reads require `isEditorOrAdmin()`, and `publicActivities` projections physically omit those fields.
-4. **Cross-Document Batch Coordination:**
-   - Client code could crash or be interrupted mid-operation. Security rules utilizing `getAfter()` enforce that the public projection and private canonical document MUST be committed synchronously in the same transaction or batch.
+4. **Cross-Document Batch Coordination & Version Lockstep:**
+   - Client code could crash or be interrupted mid-operation. Security rules utilizing `version + 1` lockstep and `getAfter()` enforce that the public projection and private canonical document MUST be committed synchronously in the same transaction or batch.
 
 ---
 
@@ -723,8 +784,8 @@ The following matrix documents what has been verified in the local emulator vers
 
 | Verification Area | Verified Locally (Emulator & Playwright)? | Verification Method / Evidence | Requires Live Production Verification? | Remaining Risk / Follow-up Action |
 | :--- | :---: | :--- | :---: | :--- |
-| **Security Rules Evaluation** | **YES** | 21/21 scenarios in `tests/rules/firestore.rules.test.ts` passing | **YES** | Run smoke test against `simakdiskum` staging project after rule deployment. |
-| **Cross-Document Coordination** | **YES** | Coordinated batch tests pass; independent writes blocked | **YES** | Verify batch commit latency in production environment. |
+| **Security Rules Evaluation** | **YES** | 27/27 scenarios in `tests/rules/firestore.rules.test.ts` passing | **YES** | Run smoke test against `simakdiskum` staging project after rule deployment. |
+| **Cross-Document Version Coordination** | **YES** | 6/6 regression scenarios passing; standalone edits blocked | **YES** | Verify batch commit latency in production environment. |
 | **Server Timestamp Binding** | **YES** | `request.time` matches Firestore server timestamp | **NO** | Rule behavior is identical in emulator and production. |
 | **Public vs Admin Privacy Isolation** | **YES** | Zero private notes, passcodes, or attendee PII in public DOM | **NO** | Sanitized DTO schema guaranteed by rules and projector. |
 | **Responsive Calendar across Viewports** | **YES** | 375px, 768px, 1024px, 1440px verified in Chromium | **YES** | Verify on physical mobile devices (Android Chrome, iOS Safari) in Batam. |
@@ -741,7 +802,7 @@ The following matrix documents what has been verified in the local emulator vers
 
 Before deploying to live Firebase production or activating authentication, the following formal authorizations are required:
 
-- [ ] **Approval A (Gate 5A Security Hardening):** Formal approval of the cross-document `getAfter()` rules, strict server timestamps, and documented browser architecture boundaries.
+- [ ] **Approval A (Gate 5A Security Hardening):** Formal approval of the cross-document version coordination rules, strict server timestamps, and documented browser architecture boundaries.
 - [ ] **Approval B (Production Provisioning Runbook):** Explicit list of designated government operator email addresses and assigned roles (`Admin` or `Editor`).
 - [ ] **Approval C (Visual Makeover Authorization):** Explicit authorization to proceed to the visual styling and aesthetic refresh phase.
 - [ ] **Approval D (Live Deployment Execution):** Explicit command to execute `firebase deploy` targeting `simakdiskum`.

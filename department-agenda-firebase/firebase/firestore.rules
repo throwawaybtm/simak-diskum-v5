@@ -255,13 +255,13 @@ service cloud.firestore {
         'openEnded', 'timeDisplay', 'dateDisplay', 'status',
         'publicCancellationNotice', 'locationName', 'locationType',
         'organizerName', 'categoryName', 'publicNotes', 'attendeeLabels',
-        'updatedAt'
+        'version', 'updatedAt'
       ];
       let required = [
         'id', 'title', 'startDate', 'startTime', 'endDate', 'endTime',
         'openEnded', 'timeDisplay', 'dateDisplay', 'status',
         'locationName', 'locationType', 'organizerName', 'categoryName',
-        'publicNotes', 'attendeeLabels', 'updatedAt'
+        'publicNotes', 'attendeeLabels', 'version', 'updatedAt'
       ];
 
       return data.keys().hasOnly(allowed) &&
@@ -287,6 +287,7 @@ service cloud.firestore {
              data.categoryName is string && data.categoryName.size() >= 1 && data.categoryName.size() <= 200 &&
              data.publicNotes is string && data.publicNotes.size() <= 1000 &&
              data.attendeeLabels is list && data.attendeeLabels.size() <= 100 &&
+             data.version is int && data.version >= 1 &&
              data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 50;
     }
 
@@ -501,7 +502,7 @@ service cloud.firestore {
 
     // Cross-document coordination validators:
     // Guarantees that publicActivities/{id} and activities/{id} can never be created
-    // or updated independently or with mismatched core fields.
+    // or updated independently, or contain desynchronized text, metadata, or versions.
     function hasMatchingPrivateActivity(id, publicData) {
       return existsAfter(/databases/$(database)/documents/activities/$(id)) &&
              getAfter(/databases/$(database)/documents/activities/$(id)).data.id == id &&
@@ -509,7 +510,15 @@ service cloud.firestore {
              getAfter(/databases/$(database)/documents/activities/$(id)).data.startDate == publicData.startDate &&
              getAfter(/databases/$(database)/documents/activities/$(id)).data.endDate == publicData.endDate &&
              getAfter(/databases/$(database)/documents/activities/$(id)).data.startTime == publicData.startTime &&
-             getAfter(/databases/$(database)/documents/activities/$(id)).data.status == publicData.status;
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.endTime == publicData.endTime &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.openEnded == publicData.openEnded &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.status == publicData.status &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.publicNotes == publicData.publicNotes &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.version == publicData.version &&
+             getAfter(/databases/$(database)/documents/activities/$(id)).data.updatedAt == publicData.updatedAt &&
+             ((!('publicCancellationNotice' in publicData) && !('publicCancellationNotice' in getAfter(/databases/$(database)/documents/activities/$(id)).data)) ||
+              (('publicCancellationNotice' in publicData) && ('publicCancellationNotice' in getAfter(/databases/$(database)/documents/activities/$(id)).data) &&
+               getAfter(/databases/$(database)/documents/activities/$(id)).data.publicCancellationNotice == publicData.publicCancellationNotice));
     }
 
     function hasMatchingPublicProjection(activityId, privateData) {
@@ -519,7 +528,15 @@ service cloud.firestore {
              getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.startDate == privateData.startDate &&
              getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.endDate == privateData.endDate &&
              getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.startTime == privateData.startTime &&
-             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.status == privateData.status;
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.endTime == privateData.endTime &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.openEnded == privateData.openEnded &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.status == privateData.status &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.publicNotes == privateData.publicNotes &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.version == privateData.version &&
+             getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.updatedAt == privateData.updatedAt &&
+             ((!('publicCancellationNotice' in privateData) && !('publicCancellationNotice' in getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data)) ||
+              (('publicCancellationNotice' in privateData) && ('publicCancellationNotice' in getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data) &&
+               getAfter(/databases/$(database)/documents/publicActivities/$(activityId)).data.publicCancellationNotice == privateData.publicCancellationNotice));
     }
 
     // ===============================================================
@@ -531,14 +548,16 @@ service cloud.firestore {
       // Public read access for citizen calendar, agenda, and 8-column reports
       allow read: if true;
 
-      // Creation: Authenticated Admin and Editor only. Enforces coordinated write with private canonical activity.
+      // Creation: Authenticated Admin and Editor only. Enforces version 1 and coordinated write with private canonical activity.
       allow create: if isEditorOrAdmin() &&
                     isValidPublicActivity(request.resource.data, id) &&
+                    request.resource.data.version == 1 &&
                     hasMatchingPrivateActivity(id, request.resource.data);
 
-      // Update: Authenticated Admin and Editor only. Enforces coordinated write with private canonical activity.
+      // Update: Authenticated Admin and Editor only. Enforces version increment (+1), immutability, and coordinated write with private canonical activity.
       allow update: if isEditorOrAdmin() &&
                     isValidPublicActivity(request.resource.data, id) &&
+                    request.resource.data.version == resource.data.version + 1 &&
                     areImmutableFieldsUnchanged(['id']) &&
                     hasMatchingPrivateActivity(id, request.resource.data);
 

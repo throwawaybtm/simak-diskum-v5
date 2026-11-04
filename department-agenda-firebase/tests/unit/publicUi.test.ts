@@ -33,6 +33,7 @@ describe('Public UI Logic & Calendar Engine', () => {
       categoryName: 'Pelatihan',
       publicNotes: 'Pakaian: Bebas Rapi. Membawa laptop.',
       attendeeLabels: ['Kepala Dinas — Drs. Hendri Arifin, M.Si', 'Kabid Koperasi — Ahmad Fauzi, SE'],
+      version: 1,
       updatedAt: '2026-11-01T08:00:00Z'
     },
     {
@@ -52,6 +53,7 @@ describe('Public UI Logic & Calendar Engine', () => {
       categoryName: 'Pameran',
       publicNotes: 'Terbuka untuk umum.',
       attendeeLabels: ['Kepala Dinas — Drs. Hendri Arifin, M.Si'],
+      version: 1,
       updatedAt: '2026-11-02T10:00:00Z'
     },
     {
@@ -72,6 +74,7 @@ describe('Public UI Logic & Calendar Engine', () => {
       categoryName: 'Rapat',
       publicNotes: 'Peserta wajib membawa laporan audit.',
       attendeeLabels: ['Sekretaris Dinas — Rini Marlina, S.Sos'],
+      version: 1,
       updatedAt: '2026-11-03T12:00:00Z'
     }
   ];
