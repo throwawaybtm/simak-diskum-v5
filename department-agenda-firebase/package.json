@@ -16,7 +16,7 @@
     "build": "npm run build:shared && npm run build:public && npm run build:admin",
     "test": "vitest run",
     "test:watch": "vitest",
-    "emulators": "firebase emulators:start --only firestore,hosting",
+    "emulators": "firebase emulators:start --config firebase.emulator.json --project demo-department-agenda --only firestore,hosting",
     "lint": "tsc --noEmit"
   },
   "devDependencies": {

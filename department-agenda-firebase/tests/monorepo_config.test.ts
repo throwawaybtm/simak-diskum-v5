@@ -34,18 +34,28 @@ describe('Task 1: Monorepo & Firebase Configuration Verification', () => {
     expect(adminTarget.public).toBe('apps/admin/dist');
     expect(adminTarget.rewrites).toEqual([{ source: '**', destination: '/index.html' }]);
 
-    // Check Firestore rules and indexes configuration
+    // Check Firestore rules and indexes configuration in production config
     expect(fb.firestore).toBeDefined();
     expect(fb.firestore.rules).toBe('firebase/firestore.rules');
     expect(fb.firestore.indexes).toBe('firebase/firestore.indexes.json');
 
-    // Check emulator configuration
+    // Check emulator configuration in firebase.json
     expect(fb.emulators).toBeDefined();
     expect(fb.emulators.firestore).toBeDefined();
     expect(fb.emulators.firestore.port).toBe(8080);
-    expect(fb.emulators.firestore.rules).toBe('firebase/emulator.rules');
     expect(fb.emulators.hosting).toBeDefined();
     expect(fb.emulators.hosting.port).toBe(5000);
+
+    // Check separate firebase.emulator.json
+    const emulatorConfigPath = path.join(rootDir, 'firebase.emulator.json');
+    expect(fs.existsSync(emulatorConfigPath), 'firebase.emulator.json must exist').toBe(true);
+    const fbEmu = JSON.parse(fs.readFileSync(emulatorConfigPath, 'utf8'));
+    expect(fbEmu.firestore.rules).toBe('firebase/emulator.rules');
+
+    // Verify package.json emulator startup command
+    const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
+    expect(pkg.scripts.emulators).toContain('--config firebase.emulator.json');
+    expect(pkg.scripts.emulators).toContain('--project demo-department-agenda');
   });
 
   it('verifies strict deny-by-default hosted rules and separate emulator rules', () => {
