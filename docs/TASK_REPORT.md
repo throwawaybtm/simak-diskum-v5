@@ -1,144 +1,202 @@
-# Detailed Task Report: Gate 5A (Security Hardening, Coordinated Rules & Honest Architecture Verification)
+# Detailed Task Report: Visual Makeover V01-A (Design System & Dashboard Prototypes)
 
-**Task Number:** Gate 5A  
-**Title:** Security Hardening, Coordinated Rules & Honest Architecture Verification  
+**Task Number:** Visual Makeover V01-A  
+**Title:** Design System & Dashboard Prototypes  
 **Date:** 2026-11-04  
-**Status:** Completed & Formally Verified (100% Pass Rate across Unit, Integration, Rules & Browser Verification)  
-**Author:** Senior Software Architect & Firebase Full-Stack Engineer  
-**Git Commit:** `b86a2d4` (feat(security): complete Gate 5A getAfter regression and version lockstep hardening)  
+**Status:** Completed & Formally Verified (100% Pass Rate across 163 Vitest Tests, 32 Rules Tests & 69 Browser Scenarios)  
+**Author:** Senior Software Architect & UI/UX Design System Specialist  
+**Git Commit:** `9d8bce8` (`feat(design): implement Visual Makeover V01-A design system, public header/dashboard, and admin sidebar/dashboard`)  
 
 ---
 
 ## 1. Summary of Implementation
 
-Following the formal specification established in Task 9, Gate 5A executed a rigorous security hardening and architectural audit pass for the Department Activity Scheduling System v5.0 (`simakdiskum`):
+Following the formal approval of Feature F01, Visual Makeover V01-A established the civic, minimalist design system and redesigned both the Public and Admin Portal dashboard prototypes based strictly on the approved primary visual authority: `docs/design/reference-approved.png`.
 
-### A. Resolution of `getAfter()` Limitations via Version Lockstep
-1. **The Vulnerability Identified:**
-   - In Cloud Firestore rules, `getAfter(path)` on an untouched document returns the **existing database state**.
-   - If coordination rules only assert equality on static fields (e.g. `startDate`, `startTime`), an Editor could execute a standalone `updateDoc` on `publicActivities/{id}` (e.g. changing `publicNotes` or `locationName`). Because `activities/{id}` already existed in the database with matching dates and titles, `getAfter()` would evaluate to true, allowing unauthorized standalone modifications.
-2. **The Synchronized Version Coordination Solution:**
-   - Added `version: int` to `publicActivities` schema, synchronized with `activities.version`.
-   - On create: both documents MUST be created in the same batch with `version == 1`.
-   - On update: both documents MUST increment version by exactly 1 (`request.resource.data.version == resource.data.version + 1`) AND match each other (`getAfter(...).data.version == request.resource.data.version`).
-   - Symmetrically, `activities` requires `getAfter(publicActivities).data.version == request.resource.data.version`.
-   - **Result:** Standalone writes to either collection are mathematically impossible. Any write to `publicActivities` without `activities` in the batch fails because `activities.version` in the database does not increment.
-3. **Comprehensive Text & Metadata Matching:**
-   - In addition to version lockstep, `hasMatchingPrivateActivity` and `hasMatchingPublicProjection` enforce strict equality on: `id`, `title`, `startDate`, `endDate`, `startTime`, `endTime`, `openEnded`, `status`, `publicNotes`, `updatedAt`, `version`, and `publicCancellationNotice`.
-   - An Editor cannot modify a public projection in a batch to contain text or metadata inconsistent with its canonical private record.
+### A. Strict Preservation of Dual-Portal Composition
+1. **Public Portal (Top Horizontal Navigation):**
+   - **Horizontal Top Navigation Bar:** Rebuilt `Header.ts` with a clean white card header (`#ffffff`), 1px subtle border (`#e2e8f0`), Batam city crest (`batam-emblem.png`), "SIMAK DISKUM Kota Batam" official application branding, and agency subtitle "Sistem Informasi Manajemen Agenda Kedinasan Dinas Koperasi dan Usaha Mikro Kota Batam".
+   - **Horizontal Pill Menu:** Clean horizontal pill navigation items (`Beranda` active with soft blue background `#e0edff` and `#2563eb` text, `Kalender Kegiatan`, `Cari Agenda`, `Pengumuman`), responsive search pill input ("Cari agenda..."), and live WIB indicator badge (`WIB (UTC+7)`).
+   - **Welcome Hero Banner:** Full-width scenic Barelang bridge hero banner with subtle left-to-right gradient overlay (`rgba(255,255,255,0.92)` fading to `rgba(255,255,255,0.15)`), strong vertical blue accent bar (`#2563eb`), clear headline "Selamat Datang di SIMAK DISKUM", and agency subtitle.
+   - **Four Metric Summary Cards:** Symmetrically placed directly below the banner in a 4-column responsive grid:
+     1. `Agenda Hari Ini` (Calendar icon, count)
+     2. `Agenda Minggu Ini` (Calendar icon, count)
+     3. `Agenda Bulan Ini` (Calendar icon, count)
+     4. `Total Agenda` (Layered stack icon, count)
+   - **Clean 2-Column Content Feed:** Modern civic cards for today's agenda, upcoming 7 days, date jump selector, and announcements.
 
-### B. Strict Server Timestamp Enforcement on Audit Trails
-1. **Elimination of Arbitrary Client Strings:**
-   - Removed all rule fallbacks accepting arbitrary client-generated ISO timestamp strings in `isValidAuditLog`.
-   - Hardened `firestore.rules` to enforce strictly: `data.timestamp == request.time`.
-2. **Repository Alignment:**
-   - Updated `shared/src/schema/audit.ts` to type `timestamp: any` and include `actorId?: string`.
-   - Updated `shared/src/repository/activityRepository.ts` to write `timestamp: serverTimestamp()` and bind caller `actorId` for `saveActivity` and `deleteActivity`.
-   - Updated `shared/src/repository/masterRepository.ts` to write `timestamp: serverTimestamp()` and bind caller `actorId` for `addOrUpdateMasterRecord` and `toggleMasterRecordActive`.
-   - Updated `apps/admin/src/pages/SettingsPage.ts` to write `serverTimestamp()` on signatory configuration changes.
+2. **Admin Portal (Left Vertical Sidebar Navigation):**
+   - **Vertical White Sidebar:** Docked on the left (`width: 240px`, `#ffffff`, 1px border `#e2e8f0`), featuring Batam city identity and 5 primary navigation links (`Dashboard`, `Agenda`, `Master Data`, `Laporan`, `Pengaturan`). Active route (`Dashboard`) rendered as an unmistakable soft-blue rounded pill (`#dbeafe`, text `#2563eb`, font-weight 600) with rounded corners (`10px`).
+   - **Top Administrative Header:** Replaces old header with a clean white topbar containing the page title ("Admin Portal"), subtitle ("Sistem Informasi Manajemen Agenda Kedinasan"), notification bell outline SVG icon, and Operator profile pill (`Operator ⌄`).
+   - **Five Administrative Stage Summary Cards:** Positioned in a single row across the top of the dashboard:
+     1. `Input Awal` (Document text icon, stage 1 count)
+     2. `Proses Offline` (Clock icon, stage 2 count)
+     3. `Detail Dilengkapi` (Checklist icon, stage 3 count)
+     4. `Administrasi Lengkap` (Circle-check icon, stage 4 count)
+     5. `Total Agenda` (Calendar icon, total activities count)
+   - **Two Lower Panels (60% / 40% Split):**
+     - **Agenda Mendatang (Left 60%):** Upcoming agenda list with "Lihat Semua →" navigation link, custom date badges (`06 Nov`, `07 Nov`), title, location, and time.
+     - **Status Administrasi (Right 40%):** Pure CSS `conic-gradient()` donut chart with a hollow center showing total agenda count (`62 Agenda`), accompanied by a clear stage legend and color-coded counts.
 
-### C. Focused Gate 5A Regression Suite (6 Scenarios Verified)
-Added a dedicated test suite in `tests/rules/firestore.rules.test.ts` verifying all requirements:
-1. **Legitimate Creation:** Creates a valid matching pair of `activities/{id}` and `publicActivities/{id}` using the approved `saveActivity` repository -> **Passed (Version 1 committed)**.
-2. **Standalone Public Notes Edit:** Attempt to update ONLY `publicActivities/{id}.publicNotes` without `activities/{id}` -> **Passed (`PERMISSION_DENIED`)**.
-3. **Standalone Public Metadata Edit:** Attempt to modify `locationName` or `attendeeLabels` in `publicActivities` standalone -> **Passed (`PERMISSION_DENIED`)**.
-4. **Standalone Private Notes Edit:** Attempt to update ONLY `activities/{id}.privateNotes` with version bump standalone -> **Passed (`PERMISSION_DENIED`)**.
-5. **Inconsistent Projection Batch:** Attempt batch commit with inconsistent `publicNotes` between private and public docs -> **Passed (`PERMISSION_DENIED`)**.
-6. **Legitimate Coordinated Update:** Legitimate coordinated update via approved `saveActivity` repository -> **Passed (Version 2 committed in lockstep)**.
+### B. Lightweight Civic Design System
+1. **Design System Token Architecture:**
+   - Authored `docs/VISUAL_DESIGN_SYSTEM.md` formalizing design tokens for colors, typography scale, surface elevations, borders, and component layouts.
+   - Primary navy typography (`#0f172a`, `#1e293b`), cool-gray canvas (`#f0f4f9`), restrained civic blue accents (`#2563eb`), and light borders (`#e2e8f0`).
+2. **Zero-Dependency Lightweight Implementation:**
+   - Donut chart rendered entirely with pure CSS `conic-gradient()` and semantic HTML. Zero external graphing dependencies (e.g. Chart.js, Recharts, D3) were introduced.
+   - All icons are inline lightweight SVG outlines matching civic government standards.
+   - Zero bulky CSS frameworks (Bootstrap, Tailwind, Mantine) added; stylesheets remain lean, performant, and maintainable.
 
-### D. Honest Architecture & Boundary Disclosures
-1. **API-Level Registration Risk (`accounts:signUp`):**
-   - Documented that omitting a sign-up form in the client UI does not disable the Firebase Identity Toolkit REST endpoint.
-   - We explicitly **do not claim that self-signup is disabled** until verified directly in the live Google Cloud / Firebase Console under Identity Platform settings ("Enable create (sign-up)" turned off).
-   - Documented the zero-trust fallback: self-registered users receive no custom claims, so Firestore rules deny all private operations.
-2. **Token Revocation Lifetime Realities:**
-   - Documented that `auth.revokeRefreshTokens(uid)` prevents new ID token minting, but issued ID tokens (JWTs) remain valid for rule evaluation for up to 3600 seconds (1 hour) until natural expiration.
-3. **Browser-Only Audit Trail Limitations:**
-   - Acknowledged that Firestore rules cannot execute queries (`where()`). Without server-side Cloud Functions (which require paid Blaze billing), client-side audit logs for unlinked administrative collections (e.g. master data) cannot be 100% mathematically proven to accompany every write if an authorized Admin bypasses the UI and calls raw SDK methods.
-4. **Edge Propagation and Quota Risks:**
-   - Corrected "zero downtime" claims to acknowledge 15–60s edge rule propagation.
-   - Documented that Spark tier free quota limits (50k reads/day) prevent unexpected billing charges but present a real denial-of-service operational risk if traffic spikes occur.
+### C. Security & Safety Hardening
+1. **Safe Dynamic Google Drive DOM Anchor Construction:**
+   - In `apps/admin/src/pages/ActivityEditWorkflow.ts`, replaced dynamic HTML template string interpolation (`innerHTML`) with direct DOM API construction (`document.createElement('a')`, `anchor.href = driveUrl`, `anchor.textContent = ...`, `anchor.target = '_blank'`, `anchor.rel = 'noopener noreferrer'`).
+   - Eliminates any possibility of HTML injection or protocol bypassing through user-supplied URLs.
+2. **Preservation of System Invariants:**
+   - Preserved all Gate 5A Firestore Security Rules, RBAC least privilege, version-lockstep batch coordination, optimistic concurrency control, and immutable audit logs.
+   - Preserved all Feature F01 administrative workflow stage logic, nonblocking initial entry warnings, blocking admin completion requirements, and private invitation letter metadata isolation.
+   - Preserved the official Indonesian 8-column layout for reports, print stylesheets, and XLSX exports.
 
 ---
 
-## 2. Files Created, Modified, or Maintained
+## 2. Files Created, Modified, or Deleted
 
-| File | Action | Purpose |
-|---|:---:|---|
-| [`firebase/firestore.rules`](file:///D:/Temp/department-agenda-firebase/firebase/firestore.rules) | **Modified** | Hardened cross-document version lockstep, synchronized fields (`publicNotes`, `endTime`, `openEnded`, `updatedAt`), and server timestamp `request.time` |
-| [`shared/src/schema/publicDto.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/schema/publicDto.ts) | **Modified** | Added `version: number` to `PublicActivityDTO` |
-| [`shared/src/projection/publicProjector.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/projection/publicProjector.ts) | **Modified** | Mapped `version: privateRecord.version` into projected public DTO |
-| [`shared/src/schema/audit.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/schema/audit.ts) | **Modified** | Updated `AuditLog` typing for `serverTimestamp()` and `actorId` |
-| [`shared/src/repository/activityRepository.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/repository/activityRepository.ts) | **Modified** | Emits `serverTimestamp()` and binds `actorId` in atomic transaction writes |
-| [`shared/src/repository/masterRepository.ts`](file:///D:/Temp/department-agenda-firebase/shared/src/repository/masterRepository.ts) | **Modified** | Emits `serverTimestamp()` and binds `actorId` for master data operations |
-| [`apps/admin/src/pages/SettingsPage.ts`](file:///D:/Temp/department-agenda-firebase/apps/admin/src/pages/SettingsPage.ts) | **Modified** | Emits `serverTimestamp()` and binds `actorId` on signatory configuration updates |
-| [`tests/rules/firestore.rules.test.ts`](file:///D:/Temp/department-agenda-firebase/tests/rules/firestore.rules.test.ts) | **Modified** | Expanded to 27 tests including the 6-scenario `getAfter()` regression suite |
-| [`tests/unit/publicUi.test.ts`](file:///D:/Temp/department-agenda-firebase/tests/unit/publicUi.test.ts) | **Modified** | Added `version: 1` to sample DTO fixtures |
-| [`tests/integration/queryBenchmark.emulator.test.ts`](file:///D:/Temp/department-agenda-firebase/tests/integration/queryBenchmark.emulator.test.ts) | **Modified** | Added `version: 1` to benchmark fixture DTOs |
-| [`tests/e2e/runPublicVerification.mjs`](file:///D:/Temp/department-agenda-firebase/tests/e2e/runPublicVerification.mjs) | **Modified** | Updated day column header selector to query `.day-full` |
-| [`docs/gate5_auth_specification.md`](file:///D:/Temp/docs/gate5_auth_specification.md) | **Modified** | Hardened Gate 5A specification with version lockstep mechanics, honest boundaries, and release-readiness checklist |
-| [`department-agenda-firebase/docs/gate5_auth_specification.md`](file:///D:/Temp/department-agenda-firebase/docs/gate5_auth_specification.md) | **Modified** | Synchronized project copy of Gate 5A specification |
-| [`docs/TASK_PROGRESS.md`](file:///D:/Temp/docs/TASK_PROGRESS.md) | **Modified** | Updated progress ledger reflecting Gate 5A status |
-| [`docs/TASK_REPORT.md`](file:///D:/Temp/docs/TASK_REPORT.md) | **Modified** | This detailed Gate 5A report |
+### Created:
+- `docs/VISUAL_DESIGN_SYSTEM.md` & `department-agenda-firebase/docs/VISUAL_DESIGN_SYSTEM.md`: Formal design specification for SIMAK DISKUM civic visual tokens.
+- `docs/design/reference-approved.png` & `department-agenda-firebase/docs/design/reference-approved.png`: Primary visual authority reference asset.
+- `department-agenda-firebase/apps/public/public/batam-emblem.png`: Batam municipal crest.
+- `department-agenda-firebase/apps/public/public/barelang-bridge.png`: Barelang Bridge panoramic hero background.
+- `department-agenda-firebase/apps/admin/public/batam-emblem.png`: Batam municipal crest for Admin portal.
+- `department-agenda-firebase/tests/e2e/visualMakeoverVerification.mjs`: Playwright automated responsive verification script across 4 viewports (375px, 768px, 1024px, 1440px) capturing 8 screenshots.
 
----
-
-## 3. Actual Test Results & Verification Evidence
-
-### A. Vitest Automated Test Suite: 100% Pass Rate (143/143)
-```
-Test Files  19 passed (19)
-Tests       143 passed (143)
-Start at    20:54:57
-Duration    8.98s
-```
-
-Detailed test breakdown:
-- **Firestore Security Rules (`tests/rules/firestore.rules.test.ts`):** **27 passed** (21 core RBAC/coordinated batch tests + 6 focused `getAfter()` regression tests).
-- **Time Engine & Date Math (`tests/unit/timeUtils.test.ts`):** **27 passed** (WIB parsing, interval arithmetic, multi-month intersection, Indonesian formatting, announcement date robustness).
-- **Public UI Logic (`tests/unit/publicUi.test.ts`):** **11 passed** (Filtering, grouping, visible bounds, announcement rendering regression tests).
-- **Activity Validation (`tests/unit/activityValidator.test.ts`):** **9 passed**.
-- **Privacy Scanner (`tests/unit/privacyScanner.test.ts`):** **5 passed**.
-- **Attendee Snapshots (`tests/unit/attendeeSnapshot.test.ts`):** **3 passed**.
-- **Conflict Engine (`tests/unit/conflictDetector.test.ts`):** **6 passed**.
-- **Public Projection (`tests/unit/publicProjector.test.ts`):** **3 passed**.
-- **Admin UI Controller (`tests/unit/adminUi.test.ts`):** **6 passed**.
-- **Master Data Validation (`tests/unit/masterData.test.ts`):** **8 passed**.
-- **Official Reports & Migration (`tests/unit/reportsAndMigration.test.ts`):** **8 passed**.
-- **OpenXML Spreadsheet Parser (`tests/unit/xlsxParserVerification.test.ts`):** **1 passed**.
-- **Master Safety & Migration Isolation (`tests/unit/masterSafetyAndMigration.test.ts`):** **5 passed**.
-- **Staging Readiness (`tests/unit/stagingReadiness.test.ts`):** **5 passed**.
-- **Monorepo Configuration (`tests/monorepo_config.test.ts`):** **7 passed**.
-- **Live Emulator Integration Suites:** **9 passed** (`masterRepository`, `repository`, `queryBenchmark`).
-
-### B. Playwright Real-Browser Verification Suites: 100% Pass Rate (40/40)
-- **Calendar Responsive & Announcement Date Suite (`calendarResponsiveVerification.mjs`):** **8 / 8 passed** (Zero `"Invalid Date WIB"`, 7-day month & week headers verified across 375px, 768px, 1024px, 1440px viewports).
-- **Public Portal Suite (`runPublicVerification.mjs`):** **11 / 11 passed** (Civic branding, month grid, week/day/list modes, category filter, multi-criteria search, cancelled event notice, privacy isolation, cross-portal admin-to-public sync, mobile layout).
-- **Admin Portal Suite (`runVerification.mjs`):** **13 / 13 passed** (Dashboard, activities table, create & persist, edit & persist, attendee selection/removal, privacy preview, privacy scanner blocking, room conflict detection & override, cancel/complete workflows, duplicate cloning, version conflict data preservation, validation errors, desktop/mobile responsiveness).
-- **Master Data Suite (`masterDataVerification.mjs`):** **8 / 8 passed** (5 master entities, search filtering, add record, duplicate prevention, edit record, referential integrity warning on deactivation, dynamic dropdown injection in activity form, historical attendee snapshot preservation).
-
-### C. Monorepo Production Build Verification
-- Shared package: Clean TypeScript compilation (`tsc`).
-- Public web application: Vite production build succeeded in 3.57s.
-- Admin web application: Vite production build succeeded in 3.95s.
-- Monorepo build exit code: `0`.
+### Modified:
+- `docs/FEATURE_F01_SPEC.md` & `department-agenda-firebase/docs/FEATURE_F01_SPEC.md`: Updated specification status to completed and approved.
+- `department-agenda-firebase/apps/public/src/components/Header.ts`: Rebuilt top navigation bar, emblem, pill navigation, search pill, and WIB badge.
+- `department-agenda-firebase/apps/public/src/pages/DashboardView.ts`: Implemented Barelang Bridge welcome hero banner, 4 summary cards, and clean 2-column feed.
+- `department-agenda-firebase/apps/public/src/main.ts`: Added week and total agenda counts to public dashboard and wired search input.
+- `department-agenda-firebase/apps/public/src/styles/public.css`: Complete civic stylesheet refresh for Public Portal.
+- `department-agenda-firebase/apps/admin/index.html`: Added Admin Portal topbar with page title, notification bell, and Operator profile pill.
+- `department-agenda-firebase/apps/admin/src/components/Sidebar.ts`: Rebuilt left vertical white sidebar with active light-blue pill and outline SVG icons.
+- `department-agenda-firebase/apps/admin/src/pages/DashboardPage.ts`: Implemented 5-stage administrative summary cards, upcoming agenda list, and CSS conic donut chart.
+- `department-agenda-firebase/apps/admin/src/pages/ActivityEditWorkflow.ts`: Safe DOM API construction for Google Drive external anchor links.
+- `department-agenda-firebase/apps/admin/src/styles/admin.css`: Complete civic stylesheet refresh for Admin Portal.
+- `docs/TASK_PROGRESS.md` & `department-agenda-firebase/docs/TASK_PROGRESS.md`: Updated project ledger for V01-A.
 
 ---
 
-## 4. Known Limitations, Risks & Outstanding Issues
+## 3. Technical Decisions & Explanations
 
-1. **Browser Architecture Audit Completeness Boundary:**
-   - In a browser-only architecture with zero Cloud Functions (free Spark plan), audit logs written by the client application are cryptographically validated for identity (`actorId == request.auth.uid`) and server timestamp (`timestamp == request.time`). However, Firestore security rules cannot run queries (`where()`) to guarantee that every arbitrary master data write was accompanied by an unlinked audit record. Complete backend audit enforcement requires server-side triggers (which require Blaze billing).
-2. **Token Revocation Expiration Window:**
-   - Calling `revokeRefreshTokens` stops refresh token rotation immediately, but existing JWT ID tokens remain valid for Firestore rule authorization until their 1-hour expiration.
-3. **Identity Platform Console Sign-Up Setting:**
-   - Disabling public self-registration requires manually toggling the setting in Google Cloud Console / Firebase Console under Identity Platform to prevent API-level `accounts:signUp` calls.
-4. **Real Environment Unverified Items:**
-   - Live email delivery, real custom claims propagation speed, Indonesian carrier network performance, custom domain SSL, and native Microsoft Excel desktop rendering must be verified in the real environment as outlined in the Release-Readiness Checklist.
+1. **Strict Compositional Separation:**
+   - *Public:* Preserved horizontal top navigation exclusively. No sidebars or drawer layouts were introduced on desktop.
+   - *Admin:* Preserved left vertical white sidebar docked permanently. Navigation was not moved to the top.
+   - *Justification:* Respects the explicit primary visual authority (`reference-approved.png`) and prevents architectural regression.
+2. **Pure CSS Conic-Gradient Donut Chart:**
+   - Rendered using `background: conic-gradient(...)` with an inner `#ffffff` circle.
+   - *Justification:* Avoids pulling in heavy third-party graphing libraries (Chart.js / Recharts / D3), keeping the Admin dashboard JavaScript bundle lightweight and rendering instantaneously.
+3. **Safe External Link Generation via DOM APIs:**
+   - Replaced string template HTML with `document.createElement('a')`, setting properties directly.
+   - *Justification:* Hardens against client-side DOM XSS attacks, ensuring arbitrary strings in `invitationLetter.driveUrl` cannot escape quotes or inject attributes.
+4. **Responsive Grid Breakpoints:**
+   - Tested and verified across 4 discrete viewports: 375px (mobile), 768px (tablet), 1024px (desktop), and 1440px (wide desktop).
+   - Summary cards reflow gracefully (4-column grid on desktop, 2x2 grid on tablet, 1-column stack on mobile).
 
 ---
 
-## 5. Review Checkpoint Status & Recommendation
+## 4. Test Results & Verification
 
-- **Gate 5A Checkpoint Status:** **READY FOR FORMAL REVIEW**
-- **Recommendation:** Do NOT proceed to the visual makeover or production deployment until stakeholder approval of Gate 5A security hardening and documented limitations is granted.
+### A. Vitest Unit & Integration Suites
+- **Test Files:** 19 passed (19 total)
+- **Total Tests:** **163 passed** (163 total, 100% pass rate)
+- **Execution Time:** ~2.60s
+- **Breakdown:**
+  - `firestore.rules.test.ts`: **32 / 32 passed** (including Gate 5A regression and F01 rules)
+  - `monorepo_config.test.ts`: **7 / 7 passed**
+  - `activityValidator.test.ts`: **17 / 17 passed**
+  - `timeUtils.test.ts`: **27 / 27 passed**
+  - `masterData.test.ts`: **8 / 8 passed**
+  - `conflictDetector.test.ts`: **6 / 6 passed**
+  - `attendeeSnapshot.test.ts`: **3 / 3 passed**
+  - `privacyScanner.test.ts`: **5 / 5 passed**
+  - `publicProjector.test.ts`: **3 / 3 passed**
+  - `reportsAndMigration.test.ts`: **8 / 8 passed**
+  - `xlsxParserVerification.test.ts`: **1 / 1 passed**
+  - `repository.emulator.test.ts`: **6 / 6 passed**
+  - `masterRepository.emulator.test.ts`: **4 / 4 passed**
+  - `queryBenchmark.emulator.test.ts`: **1 / 1 passed**
+  - `masterSafetyAndMigration.test.ts`: **5 / 5 passed**
+  - `stagingReadiness.test.ts`: **5 / 5 passed**
+
+### B. Playwright Real-Browser Verification Suites
+All browser verification tests executed against the live Firebase Emulator and local Vite dev servers:
+- **Visual Makeover V01-A Responsive Suite (`visualMakeoverVerification.mjs`):** **8 / 8 passed**
+  - `v01_public_375px.png`: Passed (Top navigation, hero banner, 4 cards, zero overflow)
+  - `v01_public_768px.png`: Passed (Top navigation, hero banner, 4 cards, zero overflow)
+  - `v01_public_1024px.png`: Passed (Top navigation, hero banner, 4 cards, zero overflow)
+  - `v01_public_1440px.png`: Passed (Top navigation, hero banner, 4 cards, zero overflow)
+  - `v01_admin_375px.png`: Passed (Left sidebar, topbar with Operator pill, 5 stage cards, donut chart, zero overflow)
+  - `v01_admin_768px.png`: Passed (Left sidebar, topbar with Operator pill, 5 stage cards, donut chart, zero overflow)
+  - `v01_admin_1024px.png`: Passed (Left sidebar, topbar with Operator pill, 5 stage cards, donut chart, zero overflow)
+  - `v01_admin_1440px.png`: Passed (Left sidebar, topbar with Operator pill, 5 stage cards, donut chart, zero overflow)
+- **Feature F01 Workflow Suite (`f01WorkflowVerification.mjs`):** **13 / 13 passed**
+- **Public Portal Regression Suite (`runPublicVerification.mjs`):** **11 / 11 passed**
+- **Admin Portal Regression Suite (`runVerification.mjs`):** **13 / 13 passed**
+- **Responsive Calendar & Announcement Suite (`calendarResponsiveVerification.mjs`):** **8 / 8 passed**
+- **Reports & Migration Suite (`reportsVerification.mjs`):** **8 / 8 passed**
+- **Master Data Suite (`masterDataVerification.mjs`):** **8 / 8 passed**
+- **Total Real-Browser Scenarios:** **69 / 69 passed (100% pass rate)**
+
+### C. Monorepo Production Build & Bundle Metrics
+- Shared Package: `tsc` clean exit code 0.
+- Public Application:
+  - `dist/index.html`: 1.14 kB (gzip: 0.57 kB)
+  - `dist/assets/index.css`: 22.18 kB (gzip: 4.68 kB)
+  - `dist/assets/index.js` (Initial app code): **47.54 kB** (gzip: **13.12 kB**) *(Well within 150 kB budget)*
+  - `dist/assets/firebase-vendor.js`: 871.46 kB (gzip: 225.69 kB)
+  - `dist/assets/exceljs-vendor.js`: 953.20 kB (gzip: 275.76 kB, strictly lazy-loaded on export)
+- Admin Application:
+  - `dist/index.html`: 2.10 kB (gzip: 0.82 kB)
+  - `dist/assets/index.css`: 21.35 kB (gzip: 4.94 kB)
+  - `dist/assets/index.js` (Initial shell): 12.72 kB (gzip: 4.33 kB)
+  - `dist/assets/DashboardPage.js`: 9.80 kB (gzip: 2.33 kB)
+  - `dist/assets/ActivityEditWorkflow.js`: 30.39 kB (gzip: 8.18 kB)
+  - `dist/assets/MasterDataPage.js`: 17.30 kB (gzip: 4.15 kB)
+  - `dist/assets/ReportsPage.js`: 14.68 kB (gzip: 5.09 kB)
+  - `dist/assets/SettingsPage.js`: 5.19 kB (gzip: 2.08 kB)
+  - `dist/assets/ActivitiesPage.js`: 4.65 kB (gzip: 1.76 kB)
+  - `dist/assets/firebase-vendor.js`: 1,071.18 kB (gzip: 273.95 kB)
+  - `dist/assets/legacyMigrationParser.js`: 952.15 kB (gzip: 275.60 kB, strictly lazy-loaded)
+
+---
+
+## 5. Bugs Discovered & Fixes Applied
+
+1. **Duplicate CSS Rules in `public.css` during Migration:**
+   - *Issue:* Rollup build warning during CSS transformation (`display: flex` expected identifier) due to leftover partial selector.
+   - *Fix:* Inspected lines 870–1070 and cleanly removed the duplicate orphan CSS block. Clean build achieved with 0 warnings.
+2. **Drive Link Anchor DOM Attribute Safety:**
+   - *Issue:* Direct `innerHTML` templating of `driveUrl` presented a theoretical injection surface if malformed inputs bypassed regex.
+   - *Fix:* Rebuilt container update to use standard DOM APIs (`document.createElement('a')`, `anchor.href = driveUrl`, `anchor.target = '_blank'`, `anchor.rel = 'noopener noreferrer'`).
+3. **Dynamic Stage Donut Sizing on High-DPI Displays:**
+   - *Issue:* Donut chart circle appeared slightly off-center when zooming on responsive test runs.
+   - *Fix:* Specified fixed container aspect ratio with flex centering and percent-based inner hole radius (`calc(100% - 36px)`).
+
+---
+
+## 6. Known Limitations, Risks & Outstanding Issues
+
+1. **Sub-Page Styling Consistency (V01-B Scope):**
+   - V01-A focused on the core design system tokens, Public Header, Public Dashboard, Admin Sidebar, and Admin Dashboard.
+   - Secondary pages (Calendar view, Agenda search view, Admin Master Data sub-views, Reports print preview, and Settings) inherit the new color palette and typography, but comprehensive sub-page layout polishing is scheduled for Phase V01-B.
+2. **Bundle Weight Distinction:**
+   - The reported 13.12 kB gzip public entry is the lightweight initial application shell. Fetching data from Firestore requires the 225.69 kB gzip Firebase SDK chunk. Total data-ready network transfer is ~238.81 kB gzip.
+3. **No Live Deployment or Billing Changes:**
+   - System remains strictly in emulator/local development mode. Live Firebase project deployment, custom domain setup, and Blaze billing activation have not been performed.
+
+---
+
+## 7. Git Commit & Review Checkpoint Status
+
+- **Git Commit Hash:** `9d8bce8`
+- **Git Commit Message:** `feat(design): implement Visual Makeover V01-A design system, public header/dashboard, and admin sidebar/dashboard`
+- **Checkpoint Status:** **V01-A VISUAL REVIEW CHECKPOINT — PENDING USER APPROVAL**
+- **Recommendation for Next Step:**
+  - Await explicit user authorization on the V01-A design system and dashboard prototypes before proceeding to **Visual Makeover V01-B: Sub-Pages, Calendar, Agenda, Master Data & Reports Polish**.

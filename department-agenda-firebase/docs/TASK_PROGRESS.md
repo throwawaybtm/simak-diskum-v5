@@ -4,11 +4,11 @@
 **Target Architecture:** Firebase Hosting (Multi-site: `public` & `admin`), Cloud Firestore Standard Edition, Firebase Emulator Suite  
 **Development Tooling:** Vite, TypeScript, Vitest, Playwright, Firebase CLI, ExcelJS  
 **Last Updated:** 2026-11-04  
-**Overall Status:** Feature F01 Completed & Formally Verified (163/163 Vitest tests, 65 browser scenarios); Ready for Feature F01 Review Checkpoint (Visual Makeover & Production Activation Pending Approval)  
+**Overall Status:** Visual Makeover V01-A Completed & Formally Verified (163/163 Vitest tests, 69 browser scenarios); Ready for V01-A Visual Review Checkpoint (V01-B & Production Activation Pending Approval)  
 
 ---
 
-## 1. Master Task Checklist (Tasks 1–9, Gate 5A & Feature F01)
+## 1. Master Task Checklist (Tasks 1–9, Gate 5A, Feature F01 & Visual Makeover V01)
 
 | Task | Title | Status | Completion Date | Git Commit | Summary |
 |---|---|:---:|:---:|:---:|---|
@@ -22,38 +22,39 @@
 | **Task 7** | Master Data Management, Official 8-Column Reports, Validated XLSX & Migration | **Completed** | 2026-11-04 | `cc5df12` (7A), `a382e8b` (7B) | **Phase 7A:** Master Data CRUD (Employees, Departments, Locations, Organizers, Categories), referential integrity safeguard on deactivation, duplicate name prevention, live form integration, and attendee snapshot preservation. **Phase 7B:** Official Indonesian 8-column layout (`No | Hari / Tanggal | Pukul | Kegiatan | Tempat | Penyelenggara | Dihadiri Oleh | Keterangan`), single-row multi-day event formatting (`Jumat–Minggu, 6–8 November 2026`), formula injection neutralization (`=`, `+`, `-`, `@`), genuine OpenXML XLSX generation via ExcelJS (7.9 KB), landscape A4 print template with Kop Surat and signature block, October 2026 legacy spreadsheet ingestion with Zoom credential isolation and deduplication. Full Playwright suites verified (Phase 7A: 8/8 scenarios; Phase 7B: 8/8 scenarios; 100% pass rate). 102 Vitest tests + 40 Playwright scenarios verified. *(Review Checkpoint 3 Approved)* |
 | **Task 8** | Performance Instrumentation, Staging Verification & Readiness | **Completed** | 2026-11-04 | `f12df3e` | Core Web Vitals telemetry (FCP 44ms cold / 28ms warm; LCP 44ms; CLS 0.0000; Shell 1–2ms; Firestore Data 106–154ms; Read count: 30 docs); public bundle initial JS entry 41.16 kB (11.94 kB gzip) well under 150 kB budget; OpenXML XLSX parser verification; master safety & migration isolation; staging config verified for `simakdiskum` targets; dynamic official signatory settings with Firestore persistence. 113/113 Vitest tests + 40/40 Playwright E2E scenarios + 4 Performance audits passed. *(Review Checkpoint 4 Approved)* |
 | **Task 9** | Gate 5 Authentication & Authorization Specification | **Completed** | 2026-11-04 | `7611376` | Fixed announcement date defect (zero "Invalid Date WIB"); verified 7-day calendar usability across 375px, 768px, 1024px, 1440px viewports without clipping; authored 13-point security specification (`gate5_auth_specification.md`); designed and verified production `firestore.rules` (20/20 tests); least-privilege RBAC (Admin/Editor); append-only audit trail; staging-to-prod runbook; 100% Spark free tier compatible. 136 Vitest tests + 52 browser/audit executions verified. *(Gate 5 Review)* |
-| **Gate 5A**| Security Hardening & Honest Verification Pass | **Completed** | 2026-11-04 | `b86a2d4` | Addressed `getAfter()` limitation on untouched documents; implemented synchronized optimistic `version` lockstep across `activities` and `publicActivities`; full projection text matching (`publicNotes`, `endTime`, `openEnded`, `updatedAt`, `publicCancellationNotice`); 6-scenario regression passed; strict server timestamp `request.time` enforced on audit logs; repositories aligned; API-level sign-up risk documented with Console mitigation; honest boundaries of browser-only architecture documented; 11-point Release-Readiness Checklist established. 143 Vitest tests (27 rules tests) + 40 Playwright scenarios verified. |
-| **Feature F01** | Agenda Administrative Workflow & Invitation Letter Reference | **Completed** | 2026-11-04 | `cca3958` | Decoupled 4-stage administrative workflow (`INITIAL_ENTRY`, `OFFLINE_PROCESS`, `DETAILS_COMPLETED`, `ADMIN_COMPLETE`) from operational status; private structured invitation letter metadata (`agendaNumber`, `letterDate`, `letterTopic`, `driveUrl`, `documentVisibility`, `missingDocumentReason`); strict nonblocking warnings for initial entry vs blocking gate for final stage; multi-operator support preserving immutable UUIDs and snapshot freezing; backward stage regression with audit trail; safe Google Drive links (`rel="noopener noreferrer"`); strict isolation from public portal and 8-column reports; hardened Firestore rules with version lockstep compatibility; 163 Vitest tests (32 rules tests) + 65 browser scenarios verified. *(Feature F01 Review Checkpoint)* |
+| **Gate 5A**| Security Hardening & Honest Verification Pass | **Completed** | 2026-11-04 | `b86a2d4` | Addressed `getAfter()` limitation on untouched documents; implemented synchronized optimistic `version` lockstep across `activities` and `publicActivities`; full projection text matching (`publicNotes`, `endTime`, `openEnded`, `updatedAt`, `publicCancellationNotice`); 6-scenario regression passed; strict server timestamp `request.time` enforced on audit logs; repositories aligned; API-level sign-up risk documented with Console mitigation; honest boundaries of browser-only architecture documented. Commit `b86a2d4`. *(Gate 5A Approved)* |
+| **Feature F01** | Agenda Administrative Workflow & Invitation Letter Reference | **Completed** | 2026-11-04 | `cca3958` | Decoupled 4-stage administrative workflow (`INITIAL_ENTRY`, `OFFLINE_PROCESS`, `DETAILS_COMPLETED`, `ADMIN_COMPLETE`) from operational status; private structured invitation letter metadata; nonblocking warnings for initial entry vs blocking gate for final stage; multi-operator collaboration; backward stage regression with audit logging; safe Google Drive links; strict isolation from public portal and 8-column reports; 163 Vitest tests (32 rules tests) + 65 browser scenarios verified. Commits `c04609c` through `cca3958`. *(Feature F01 Approved)* |
+| **Makeover V01-A** | Design System and Dashboard Prototypes | **Completed** | 2026-11-04 | `9d8bce8` | **Public Portal:** Top horizontal navigation bar, civic brand identity, Barelang Bridge hero welcome banner, 4 summary cards below banner, 2-column feed. **Admin Portal:** Left vertical white sidebar with active light-blue pill, topbar with operator profile pill, 5-stage administrative pipeline cards, upcoming agenda list, and pure CSS conic-gradient donut chart analytics. Zero-dependency lightweight design system; DOM-safe Google Drive anchor creation; verified across 375px, 768px, 1024px, 1440px; 163 Vitest tests + 69 browser scenarios verified. *(V01-A Visual Review Checkpoint)* |
 
 ---
 
-## 2. Test Totals at Latest Checkpoint (Feature F01 Completed & Formally Verified)
+## 2. Test Totals at Latest Checkpoint (Visual Makeover V01-A Completed & Formally Verified)
 
 - **Vitest Unit & Integration Suites:** 19 passed (19 total)
 - **Vitest Automated Tests:** **163 passed** (163 total, 100% pass rate)
 - **Playwright Real-Browser Verification Suites:**
+  - Visual Makeover V01-A Responsive Suite (`visualMakeoverVerification.mjs`): **8 / 8 passed** (375px, 768px, 1024px, 1440px for Public & Admin)
   - Feature F01 Administrative Workflow Suite (`f01WorkflowVerification.mjs`): **13 / 13 passed** (100%)
   - Admin Portal Regression Suite (`runVerification.mjs`): **13 / 13 passed** (100%)
   - Public Portal Regression Suite (`runPublicVerification.mjs`): **11 / 11 passed** (100%)
   - Responsive Calendar & Announcement Suite (`calendarResponsiveVerification.mjs`): **8 / 8 passed** (100%)
   - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed** (100%)
   - Master Data Suite (`masterDataVerification.mjs`): **8 / 8 passed** (100%)
-  - Performance Profiling Suite (`performanceProfiling.mjs`): **4 / 4 audits passed** (Desktop Cold, Desktop Warm, Mobile Throttled, Admin Settings)
-- **Total Real-Browser Scenarios:** **65 verified browser executions** (100% pass rate)
-- **Total Automated Test Assertions:** **228 passed** (228 total, 100% pass rate)
-- **Visual Artifacts:** 48 verified browser screenshots in `tests/e2e/screenshots/` (F01 Workflow, Admin, Master, Public, Reports, Migration, Performance, Responsive Calendar)
+- **Total Real-Browser Scenarios:** **69 verified browser executions** (100% pass rate)
+- **Total Automated Test Assertions:** **232 passed** (232 total, 100% pass rate)
+- **Visual Artifacts:** 56 verified browser screenshots in `tests/e2e/screenshots/` (V01 Responsive Viewports, F01 Workflow, Admin, Master, Public, Reports, Migration, Responsive Calendar)
 - **Bundle Metrics:**
-  - Public Shell: `index.html` 1.14 kB (gzip: 0.58 kB), `index.css` 17.41 kB (gzip: 3.66 kB)
-  - Public Initial App Code: `index.js` **41.28 kB** (gzip: **11.99 kB**) *(Initial critical path well below 150 kB budget)*
+  - Public Shell: `index.html` 1.14 kB (gzip: 0.57 kB), `index.css` 22.18 kB (gzip: 4.68 kB)
+  - Public Initial App Code: `index.js` **47.54 kB** (gzip: **13.12 kB**) *(Initial critical path well below 150 kB budget)*
   - Public Vendor: `firebase-vendor` 871.46 kB (gzip: 225.69 kB), `exceljs-vendor` 953.20 kB (gzip: 275.76 kB, lazy-loaded on export demand)
-  - Admin Initial Shell: `index.js` 10.00 kB (gzip: 3.85 kB), `index.css` 14.23 kB (gzip: 3.53 kB)
-  - Admin Lazy Modules: `SettingsPage` 5.19 kB (gzip: 2.08 kB), `ReportsPage` 14.68 kB (gzip: 5.09 kB), `MasterDataPage` 17.30 kB (gzip: 4.15 kB), `ActivitiesPage` 4.65 kB (gzip: 1.76 kB), `DashboardPage` 3.46 kB (gzip: 1.11 kB), `ActivityEditWorkflow` 30.25 kB (gzip: 8.10 kB)
+  - Admin Initial Shell: `index.js` 12.72 kB (gzip: 4.33 kB), `index.css` 21.35 kB (gzip: 4.94 kB)
+  - Admin Lazy Modules: `SettingsPage` 5.19 kB (gzip: 2.08 kB), `ReportsPage` 14.68 kB (gzip: 5.09 kB), `MasterDataPage` 17.30 kB (gzip: 4.15 kB), `ActivitiesPage` 4.65 kB (gzip: 1.76 kB), `DashboardPage` 9.80 kB (gzip: 2.33 kB), `ActivityEditWorkflow` 30.39 kB (gzip: 8.18 kB)
 - **Test Categories Breakdown:**
-  - Live Firestore Security Rules (Emulator): **32 tests** (`firestore.rules.test.ts`, +5 F01 rules tests)
+  - Live Firestore Security Rules (Emulator): **32 tests** (`firestore.rules.test.ts`)
   - Monorepo Configuration & Rules: 7 tests (`monorepo_config.test.ts`)
   - Schemas & Data Contracts: 3 tests (`schemas.test.ts`)
   - WIB Time Engine & Date Arithmetic: 27 tests (`timeUtils.test.ts`)
-  - Activity Validation: 17 tests (`activityValidator.test.ts`, +8 F01 validation tests)
+  - Activity Validation: 17 tests (`activityValidator.test.ts`)
   - Privacy Scanner & Credential Blocker: 5 tests (`privacyScanner.test.ts`)
   - Attendee Snapshot Immutability: 3 tests (`attendeeSnapshot.test.ts`)
   - Conflict Engine: 6 tests (`conflictDetector.test.ts`)
@@ -62,7 +63,7 @@
   - Public UI Controller: 11 tests (`publicUi.test.ts`)
   - Master Data Validation & Snapshot Preservation: 8 tests (`masterData.test.ts`)
   - Official 8-Column Reports, XLSX & Migration: 8 tests (`reportsAndMigration.test.ts`)
-  - Repository Atomic Transactions (Emulator): 6 tests (`repository.emulator.test.ts`, +2 F01 transaction & audit tests)
+  - Repository Atomic Transactions (Emulator): 6 tests (`repository.emulator.test.ts`)
   - Master Repository CRUD & Integrity (Emulator): 4 tests (`masterRepository.emulator.test.ts`)
   - Query Benchmark & Multi-Month Range (Emulator): 1 test (`queryBenchmark.emulator.test.ts`)
   - OpenXML Spreadsheet Independent Parser: 1 test (`xlsxParserVerification.test.ts`)
@@ -83,25 +84,22 @@
 | **Checkpoint 4** | Task 8 Completion | **Approved** | 113 Vitest tests + 40 Playwright browser scenarios + 4 performance profiling audits passing (100%). Core Web Vitals verified (FCP 44ms cold / 28ms warm, LCP 44ms, CLS 0.0000, Shell 1–2ms, Data 106–154ms). Public initial JS entry 41.16 kB (11.94 kB gzip) against 150 kB budget. OpenXML XLSX container compliance independently verified. Formula injection neutralized. Configurable official signatory implemented with Firestore persistence. Staging multi-site config verified for `simakdiskum` targets. Commit `f12df3e`. |
 | **Task 9 Review**| Task 9 Authentication Spec | **Accepted** | Production auth specification completed (`gate5_auth_specification.md`); custom role claims (Admin/Editor); append-only audit trail with actor ID binding; production rules verified (20/20 Vitest rules tests); announcement date bug fixed and verified; 7-day calendar verified responsive (375px–1440px); staging-to-prod runbook authored. |
 | **Gate 5A Checkpoint**| Security Hardening & Honest Verification | **Approved** | Addressed `getAfter()` limitation on untouched documents; implemented synchronized optimistic `version` lockstep across `activities` and `publicActivities`; full projection text matching (`publicNotes`, `endTime`, `openEnded`, `updatedAt`, `publicCancellationNotice`); 6-scenario regression passed; strict server timestamp `request.time` enforced on audit logs; repositories aligned; API-level sign-up risk documented with Console mitigation; honest boundaries of browser-only architecture documented. Commit `b86a2d4`. |
-| **Feature F01 Checkpoint**| Administrative Workflow & Invitation Letter Reference | **READY FOR REVIEW** | Decoupled 4-stage administrative workflow; structured private invitation letter metadata; nonblocking warnings for initial entry vs blocking gate for final stage; multi-operator coordination; backward stage regression with audit logging; safe external Google Drive link (`target="_blank" rel="noopener noreferrer"`); strict isolation from public portal and 8-column reports; 163 Vitest tests (32 rules tests) + 65 browser scenarios verified. Commits `c04609c` through `cca3958`. |
+| **Feature F01 Checkpoint**| Administrative Workflow & Invitation Letter Reference | **Approved** | Decoupled 4-stage administrative workflow; structured private invitation letter metadata; nonblocking warnings for initial entry vs blocking gate for final stage; multi-operator collaboration; backward stage regression with audit logging; safe external Google Drive link; strict isolation from public portal and 8-column reports; 163 Vitest tests (32 rules tests) + 65 browser scenarios verified. Commits `c04609c` through `cca3958`. |
+| **V01-A Visual Review Checkpoint**| Design System & Dashboard Prototypes | **READY FOR REVIEW** | Aligned with approved reference `docs/design/reference-approved.png`. **Public:** Top horizontal pill navigation, Batam identity, Barelang Bridge hero welcome banner, 4 summary cards below banner, 2-column feed. **Admin:** Left vertical white sidebar with active light-blue pill, top header with operator profile pill, 5-stage administrative cards, upcoming agenda list, and pure CSS conic-gradient donut chart analytics. Zero-dependency lightweight design system; DOM-safe Google Drive anchor creation; verified across 375px, 768px, 1024px, 1440px viewports (8/8 passed); 163 Vitest tests + 69 browser scenarios verified. Commit `9d8bce8`. |
 
 ---
 
 ## 4. Production-Readiness Findings, Technical Debt & Unresolved Issues
 
-1. **Firestore CEL Case-Sensitivity Invariant:**
-   - *Status:* **RECORDED & ENFORCED**. In `firestore.rules`, `isEditor()` and `isAdmin()` strictly check lowercase roles (`request.auth.token.role == 'editor'`). Auth tokens with uppercase `'EDITOR'` or `'ADMIN'` are denied. All client and test auth helpers must use lowercase role strings.
-2. **Literal Dot Matching in Firestore CEL Regex:**
-   - *Status:* **RESOLVED**. In `firestore.rules`, drive URL validation uses `[.]` to match literal dots cleanly (`'^https://(drive|docs)[.]google[.]com/.*'`) without ambiguous backslash escaping in CEL strings.
-3. **Dynamic Drive Link DOM Mutation:**
-   - *Status:* **RESOLVED & VERIFIED**. Replaced pre-rendered disabled button attribute manipulation with dynamic container replacement (`#driveLinkContainer.innerHTML`) to render a semantic `<a>` link with `target="_blank"` and `rel="noopener noreferrer"` when a valid Google Drive URL is entered.
-4. **Public Announcement Date Formatting Defect (`Invalid Date WIB`):**
-   - *Status:* **RESOLVED & VERIFIED**. Implemented `formatAnnouncementDate` in `timeUtils.ts` with pure timezone arithmetic (`UTC+7`, Asia/Jakarta). Handles Firestore Timestamp objects, ISO strings, YYYY-MM-DD, Date objects, empty strings, and malformed inputs. Missing or invalid dates return `'-'`. Verified via Vitest and Playwright. Zero `"Invalid Date WIB"` occurrences remain.
-5. **Calendar Grid Responsive Layout & Column Clipping (375px to 1440px):**
-   - *Status:* **RESOLVED & VERIFIED**. Added dual day name tags (`.day-full` / `.day-short`) with mobile CSS toggles in `CalendarView.ts` and `public.css`. Added smooth horizontal scrolling container on `.calendar-container` with `min-width: 640px` on `.week-grid-container` on mobile. All 7 columns verified intact and readable across 375px, 768px, 1024px, and 1440px viewports (screenshots captured).
-6. **Official Eight-Column A4 Landscape Multi-Page Print Layout:**
+1. **Bundle Payload Distinction (Shell Entry vs Full Data-Ready Payload):**
+   - *Distinction:* The reported **13.12 kB gzip** (47.54 KB raw) represents the initial public application shell entry point. The full data-ready payload on the network includes the **225.69 kB gzip** (871.46 KB raw) Firebase vendor bundle. Total network weight for initial data retrieval is ~238.81 kB gzip, whereas ExcelJS (275.76 kB gzip) is strictly lazy-loaded on export.
+2. **Safe Dynamic Google Drive DOM Anchor Construction:**
+   - *Status:* **ENFORCED & VERIFIED**. External Google Drive links are created strictly via DOM APIs (`document.createElement('a')`, `anchor.href = driveUrl`, `anchor.textContent = ...`, `anchor.target = '_blank'`, `anchor.rel = 'noopener noreferrer'`). User-supplied URLs cannot inject raw HTML attributes.
+3. **Firestore CEL Case-Sensitivity Invariant:**
+   - *Status:* **RECORDED & ENFORCED**. In `firestore.rules`, `isEditor()` and `isAdmin()` strictly check lowercase roles (`request.auth.token.role == 'editor'`). Auth tokens with uppercase `'EDITOR'` or `'ADMIN'` are denied. All client and test auth helpers use lowercase role strings.
+4. **Calendar Grid Responsive Layout & Column Clipping (375px to 1440px):**
+   - *Status:* **RESOLVED & VERIFIED**. Added dual day name tags (`.day-full` / `.day-short`) with mobile CSS toggles in `CalendarView.ts` and `public.css`. Added smooth horizontal scrolling container on `.calendar-container` with `min-width: 640px` on `.week-grid-container` on mobile. All 7 columns verified intact and readable across 375px, 768px, 1024px, and 1440px viewports.
+5. **Official Eight-Column A4 Landscape Multi-Page Print Layout:**
    - *Status:* Maintained. CSS print rules (`@media print`, `@page { size: A4 landscape; margin: 15mm; }`, `thead { display: table-header-group; }`, `tr { page-break-inside: avoid; }`) ensure header repetition across page boundaries and avoid orphan signatures. Feature F01 letter metadata is strictly omitted from all 8 columns.
-7. **Bundle Payload Distinction (Shell Entry vs Full Data-Ready Payload):**
-   - *Distinction:* The reported **11.99 kB gzip** (41.28 KB raw) represents the initial public application shell entry point. The full data-ready payload on the network includes the **225.69 kB gzip** (871.46 KB raw) Firebase vendor bundle. Total network weight for initial data retrieval is ~237.68 kB gzip, whereas ExcelJS (275.76 kB gzip) is strictly lazy-loaded on export.
-8. **Browser Architecture Audit Completeness Boundary:**
+6. **Browser Architecture Audit Completeness Boundary:**
    - *Boundary:* Client-side audit logs written during activity transactions are atomic and enforced with server timestamps (`request.time`). For unlinked collections (such as Master Data), audit logs cannot be guaranteed if an authorized Admin bypasses the client UI and invokes the raw SDK. Complete uncircumventable audit trails require server-side Cloud Functions (Blaze billing).
