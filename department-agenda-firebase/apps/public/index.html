@@ -4,19 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jadwal Kegiatan - Dinas Koperasi dan Usaha Mikro Kota Batam</title>
-  <link rel="stylesheet" href="./src/styles/main.css">
+  <link rel="stylesheet" href="./src/styles/public.css">
 </head>
 <body>
-  <div id="app">
-    <header class="app-header">
-      <div class="header-container">
-        <h1 class="header-title">Dinas Koperasi dan Usaha Mikro Kota Batam</h1>
-        <p class="header-subtitle">Portal Informasi Jadwal Kegiatan Resmi</p>
-      </div>
-    </header>
+  <div id="app" class="public-layout">
+    <div id="app-header"></div>
     <main id="main-content" class="main-container">
       <div class="loading-shell">Memuat jadwal kegiatan...</div>
     </main>
+    <footer class="app-footer">
+      <div class="footer-container">
+        <p>© 2026 Dinas Koperasi dan Usaha Mikro Kota Batam • Pemerintah Kota Batam</p>
+        <p class="footer-sub">Portal Informasi Resmi Jadwal Kegiatan & Agenda Kedinasan — Zona Waktu Operasional: Asia/Jakarta (WIB)</p>
+      </div>
+    </footer>
+    <div id="modal-container"></div>
   </div>
   <script type="module" src="./src/main.ts"></script>
 </body>

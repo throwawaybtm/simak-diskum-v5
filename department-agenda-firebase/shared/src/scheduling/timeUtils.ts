@@ -222,6 +222,17 @@ export function formatIndonesianDateSpan(startDate: string, endDate: string): st
 }
 
 /**
+ * Formats month and year into Indonesian standard format
+ * e.g. "Oktober 2026"
+ */
+export function formatIndonesianMonthYear(year: number, month: number): string {
+  if (month < 1 || month > 12) {
+    throw new Error(`Invalid month: ${month}, must be between 1 and 12`);
+  }
+  return `${INDONESIAN_MONTHS[month - 1]} ${year}`;
+}
+
+/**
  * Formats time display for Indonesian government layout
  * e.g. "07.00 WIB s.d. selesai" or "09.00 - 11.00 WIB"
  */
