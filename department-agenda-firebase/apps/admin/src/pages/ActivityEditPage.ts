@@ -4,6 +4,7 @@
  */
 
 import type { Location, Organizer, Category, Employee } from '@department-agenda/shared';
+import { isValidGoogleDriveUrl } from '@department-agenda/shared';
 import type { ActivityFormState, FormValidationResult } from '../components/ActivityFormController';
 import { renderPublicPreviewCard } from '../components/PublicPreviewCard';
 import { generateLivePreviewDto } from '../components/ActivityFormController';
@@ -19,6 +20,11 @@ export function renderActivityEditPage(
   const isNew = form.version === 0;
   const previewDto = generateLivePreviewDto(form, locations, organizers, categories, employees);
   const previewHtml = renderPublicPreviewCard(previewDto);
+
+  const isDriveUrlValid = form.invitationLetter?.driveUrl ? isValidGoogleDriveUrl(form.invitationLetter.driveUrl) : false;
+  const driveLinkHtml = isDriveUrlValid
+    ? `<a href="${form.invitationLetter!.driveUrl}" id="linkOpenDriveFile" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm drive-external-link">📄 Buka Berkas di Google Drive ↗</a>`
+    : `<button type="button" id="linkOpenDriveFile" class="btn btn-secondary btn-sm drive-external-link" disabled style="opacity: 0.5;">📄 Buka Berkas di Google Drive</button>`;
 
   const locOptions = locations.map(l => `
     <option value="${l.id}" ${form.locationId === l.id ? 'selected' : ''}>
@@ -129,6 +135,23 @@ export function renderActivityEditPage(
                 <input type="text" id="inputPublicCancelNotice" value="${form.publicCancellationNotice || ''}" placeholder="Pemberitahuan yang akan ditampilkan ke masyarakat...">
               </div>
             </div>
+
+            <div class="form-group stage-selector-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color, #e2e8f0);">
+              <label for="selectAdministrativeStage"><strong>Tahap Administrasi Kegiatan:</strong></label>
+              <select id="selectAdministrativeStage">
+                <option value="INITIAL_ENTRY" ${form.administrativeStage === 'INITIAL_ENTRY' ? 'selected' : ''}>1. Input Awal (INITIAL_ENTRY) — Rujukan awal masuk</option>
+                <option value="OFFLINE_PROCESS" ${form.administrativeStage === 'OFFLINE_PROCESS' ? 'selected' : ''}>2. Proses Offline (OFFLINE_PROCESS) — Disposisi & koordinasi internal</option>
+                <option value="DETAILS_COMPLETED" ${form.administrativeStage === 'DETAILS_COMPLETED' ? 'selected' : ''}>3. Detail Dilengkapi (DETAILS_COMPLETED) — Peserta & catatan siap</option>
+                <option value="ADMIN_COMPLETE" ${form.administrativeStage === 'ADMIN_COMPLETE' ? 'selected' : ''}>4. Administrasi Lengkap (ADMIN_COMPLETE) — Arsip, No. Agenda & berkas tervalidasi</option>
+              </select>
+              <small class="hint-text">Tahapan alur administrasi internal dinas, tidak mempengaruhi status operasional acara.</small>
+            </div>
+
+            <div id="stageRegressionContainer" class="alert alert-warning stage-regression-alert" style="${form.stageChangeReason ? '' : 'display: none;'} margin-top: 1rem;">
+              <label for="inputStageChangeReason"><strong>⚠️ Alasan Pemindahan ke Tahap Sebelumnya (Wajib untuk audit trail):</strong></label>
+              <input type="text" id="inputStageChangeReason" value="${form.stageChangeReason || ''}" placeholder="Contoh: Koreksi penugasan pejabat dinas sesuai arahan pimpinan">
+              <small>Alasan ini akan direkam ke dalam log audit resmi.</small>
+            </div>
           </div>
 
           <!-- 2. WAKTU & JADWAL (WIB) -->
@@ -214,6 +237,46 @@ export function renderActivityEditPage(
               <div class="form-group">
                 <label for="inputPrivateMeetingUrl">Tautan Rapat Daring & Kredensial Privat:</label>
                 <input type="text" id="inputPrivateMeetingUrl" value="${form.privateMeetingUrl || ''}" placeholder="https://us02web.zoom.us/j/... (hanya dapat dilihat di admin)">
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. RUJUKAN SURAT UNDANGAN & ARSIP -->
+          <div class="panel form-panel invitation-letter-panel">
+            <h3 class="panel-title">6. Berkas & Rujukan Surat Undangan (Arsip Internal)</h3>
+            <p class="field-hint">Catat rujukan surat masuk fisik dan tautan dokumen Google Drive dinas. Data ini bersifat <strong>PRIVAT</strong> dan tidak dipublikasikan ke portal publik.</p>
+            <div class="form-row">
+              <div class="form-group col">
+                <label for="inputAgendaNumber">No. Agenda Surat Masuk:</label>
+                <input type="text" id="inputAgendaNumber" value="${form.invitationLetter?.agendaNumber || ''}" placeholder="Contoh: 045.2/DKUM/XI/2026">
+                <small class="hint-text">Nomor agenda registrasi buku surat masuk dinas (bukan kolom No urut laporan).</small>
+              </div>
+              <div class="form-group col">
+                <label for="inputLetterDate">Tanggal Surat:</label>
+                <input type="date" id="inputLetterDate" value="${form.invitationLetter?.letterDate || ''}">
+                <small class="hint-text">Tanggal surat fisik yang tertera pada lembar dokumen.</small>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="inputLetterTopic">Topik / Perihal Surat Masuk:</label>
+              <input type="text" id="inputLetterTopic" value="${form.invitationLetter?.letterTopic || ''}" placeholder="Contoh: Undangan Rapat Koordinasi Penataan PKL Batam Center">
+            </div>
+            <div class="form-group">
+              <label for="inputDriveUrl">Tautan Google Drive Dokumen Surat (HTTPS):</label>
+              <div class="drive-url-input-wrap">
+                <input type="url" id="inputDriveUrl" value="${form.invitationLetter?.driveUrl || ''}" placeholder="https://drive.google.com/file/d/... atau docs.google.com/...">
+                ${driveLinkHtml}
+              </div>
+              <small class="hint-text">Wajib berupa tautan HTTPS resmi dari drive.google.com atau docs.google.com.</small>
+            </div>
+            <div class="form-group missing-exception-wrap">
+              <label class="checkbox-inline">
+                <input type="checkbox" id="checkMissingDocException" ${form.invitationLetter?.missingDocumentReason ? 'checked' : ''}>
+                <span><strong>Pengecualian Berkas Fisik:</strong> Centang jika kegiatan berasal dari undangan lisan/verbal atau tanpa dokumen surat masuk fisik.</span>
+              </label>
+              <div id="missingReasonGroup" style="${form.invitationLetter?.missingDocumentReason ? '' : 'display: none;'} margin-top: 0.5rem;">
+                <label for="inputMissingDocReason">Alasan Pengecualian (Wajib untuk tahap Administrasi Lengkap tanpa surat):</label>
+                <input type="text" id="inputMissingDocReason" value="${form.invitationLetter?.missingDocumentReason || ''}" placeholder="Contoh: Undangan lisan langsung dari Walikota Batam">
               </div>
             </div>
           </div>

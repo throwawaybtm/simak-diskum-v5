@@ -5,8 +5,8 @@
 
 import type { Firestore } from 'firebase/firestore';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Location, Organizer, Category, Employee, ActivityDocument } from '@department-agenda/shared';
-import { saveActivity } from '@department-agenda/shared';
+import type { Location, Organizer, Category, Employee, ActivityDocument, AdministrativeStage } from '@department-agenda/shared';
+import { saveActivity, isValidGoogleDriveUrl } from '@department-agenda/shared';
 
 import { renderActivityEditPage } from './ActivityEditPage';
 import { renderConflictWarningModal } from '../components/ConflictWarningModal';
@@ -36,10 +36,12 @@ export interface WorkflowContext {
 }
 
 let currentFormState: ActivityFormState | null = null;
+let initialLoadedStage: AdministrativeStage = 'INITIAL_ENTRY';
 
 export async function handleEditRoute(hash: string, container: HTMLElement, context: WorkflowContext) {
   if (hash === 'activities/new') {
     currentFormState = createInitialActivityFormState();
+    initialLoadedStage = 'INITIAL_ENTRY';
     renderWorkflow(container, context);
   } else if (hash.startsWith('activities/edit/')) {
     const activityId = hash.replace('activities/edit/', '');
@@ -48,9 +50,19 @@ export async function handleEditRoute(hash: string, container: HTMLElement, cont
       const snap = await getDoc(doc(context.db, 'activities', activityId));
       if (snap.exists()) {
         const docData = snap.data() as ActivityDocument;
+        initialLoadedStage = docData.administrativeStage || 'INITIAL_ENTRY';
         currentFormState = {
           ...docData,
-          guestAttendees: docData.guestAttendees || []
+          guestAttendees: docData.guestAttendees || [],
+          administrativeStage: docData.administrativeStage || 'INITIAL_ENTRY',
+          invitationLetter: docData.invitationLetter || {
+            agendaNumber: '',
+            letterDate: '',
+            letterTopic: '',
+            driveUrl: '',
+            documentVisibility: 'INTERNAL',
+            missingDocumentReason: ''
+          }
         };
         renderWorkflow(container, context);
       } else {
@@ -66,13 +78,24 @@ export async function handleEditRoute(hash: string, container: HTMLElement, cont
       const snap = await getDoc(doc(context.db, 'activities', activityId));
       if (snap.exists()) {
         const docData = snap.data() as ActivityDocument;
+        initialLoadedStage = 'INITIAL_ENTRY';
         currentFormState = {
           ...docData,
           id: crypto.randomUUID(),
           version: 0,
           title: `[Duplikat] ${docData.title}`,
           conflictOverrideReason: undefined,
-          guestAttendees: docData.guestAttendees ? [...docData.guestAttendees] : []
+          stageChangeReason: undefined,
+          guestAttendees: docData.guestAttendees ? [...docData.guestAttendees] : [],
+          administrativeStage: docData.administrativeStage || 'INITIAL_ENTRY',
+          invitationLetter: docData.invitationLetter ? { ...docData.invitationLetter } : {
+            agendaNumber: '',
+            letterDate: '',
+            letterTopic: '',
+            driveUrl: '',
+            documentVisibility: 'INTERNAL',
+            missingDocumentReason: ''
+          }
         };
         renderWorkflow(container, context);
       } else {
@@ -135,6 +158,67 @@ function syncStateFromInputs(context: WorkflowContext) {
   if (privateUrlInput) currentFormState.privateMeetingUrl = privateUrlInput.value || null;
   if (cancelReasonInput) currentFormState.cancelReason = cancelReasonInput.value;
   if (publicNoticeInput) currentFormState.publicCancellationNotice = publicNoticeInput.value;
+
+  // Feature F01: Administrative Stage & Invitation Letter Sync
+  const stageSelect = document.getElementById('selectAdministrativeStage') as HTMLSelectElement | null;
+  const agendaInput = document.getElementById('inputAgendaNumber') as HTMLInputElement | null;
+  const letterDateInput = document.getElementById('inputLetterDate') as HTMLInputElement | null;
+  const letterTopicInput = document.getElementById('inputLetterTopic') as HTMLInputElement | null;
+  const driveUrlInput = document.getElementById('inputDriveUrl') as HTMLInputElement | null;
+  const checkMissingException = document.getElementById('checkMissingDocException') as HTMLInputElement | null;
+  const missingReasonInput = document.getElementById('inputMissingDocReason') as HTMLInputElement | null;
+  const stageChangeReasonInput = document.getElementById('inputStageChangeReason') as HTMLInputElement | null;
+
+  if (stageSelect) currentFormState.administrativeStage = stageSelect.value as AdministrativeStage;
+
+  currentFormState.invitationLetter = {
+    agendaNumber: agendaInput ? agendaInput.value : (currentFormState.invitationLetter?.agendaNumber || ''),
+    letterDate: letterDateInput ? letterDateInput.value : (currentFormState.invitationLetter?.letterDate || ''),
+    letterTopic: letterTopicInput ? letterTopicInput.value : (currentFormState.invitationLetter?.letterTopic || ''),
+    driveUrl: driveUrlInput ? driveUrlInput.value : (currentFormState.invitationLetter?.driveUrl || ''),
+    documentVisibility: 'INTERNAL',
+    missingDocumentReason: (checkMissingException && checkMissingException.checked && missingReasonInput) ? missingReasonInput.value : ''
+  };
+
+  if (stageChangeReasonInput) {
+    currentFormState.stageChangeReason = stageChangeReasonInput.value;
+  }
+
+  // Handle stage regression alert visibility
+  const regressionContainer = document.getElementById('stageRegressionContainer');
+  if (regressionContainer && stageSelect) {
+    const STAGE_ORDER: Record<string, number> = {
+      INITIAL_ENTRY: 1,
+      OFFLINE_PROCESS: 2,
+      DETAILS_COMPLETED: 3,
+      ADMIN_COMPLETE: 4
+    };
+    const currentOrder = STAGE_ORDER[currentFormState.administrativeStage] || 1;
+    const initialOrder = STAGE_ORDER[initialLoadedStage] || 1;
+    regressionContainer.style.display = (currentOrder < initialOrder) ? 'block' : 'none';
+  }
+
+  // Handle missing document exception reason visibility
+  const missingReasonGroup = document.getElementById('missingReasonGroup');
+  if (missingReasonGroup && checkMissingException) {
+    missingReasonGroup.style.display = checkMissingException.checked ? 'block' : 'none';
+  }
+
+  // Dynamically update the Google Drive external link button
+  const driveUrl = currentFormState.invitationLetter?.driveUrl || '';
+  const driveLink = document.getElementById('linkOpenDriveFile');
+  if (driveLink) {
+    if (driveUrl && isValidGoogleDriveUrl(driveUrl)) {
+      driveLink.setAttribute('href', driveUrl);
+      driveLink.removeAttribute('disabled');
+      (driveLink as HTMLElement).style.opacity = '1';
+      driveLink.className = 'btn btn-secondary btn-sm drive-external-link';
+    } else {
+      driveLink.removeAttribute('href');
+      driveLink.setAttribute('disabled', 'true');
+      (driveLink as HTMLElement).style.opacity = '0.5';
+    }
+  }
 
   if (guestInput) {
     currentFormState.guestAttendees = guestInput.value
@@ -263,6 +347,7 @@ async function saveWorkflowActivity(context: WorkflowContext) {
       expectedVersion: isNew ? undefined : currentFormState.version,
       actorLabel: 'UNVERIFIED',
       conflictOverrideReason: currentFormState.conflictOverrideReason,
+      stageChangeReason: currentFormState.stageChangeReason,
       employeesMasterList: context.masterEmployees,
       isAttendeeEdited: true
     };

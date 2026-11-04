@@ -163,4 +163,85 @@ describe('Admin UI Controller & Workflow Logic', () => {
     expect(warnings).toHaveLength(1);
     expect(warnings[0].type).toBe('VENUE_CONFLICT');
   });
+
+  describe('Feature F01: Admin Form Controller & UI Rendering', () => {
+    it('initializes form state with administrativeStage INITIAL_ENTRY and empty invitationLetter', () => {
+      const form = createInitialActivityFormState();
+      expect(form.administrativeStage).toBe('INITIAL_ENTRY');
+      expect(form.invitationLetter).toBeDefined();
+      expect(form.invitationLetter?.agendaNumber).toBe('');
+      expect(form.invitationLetter?.driveUrl).toBe('');
+    });
+
+    it('validates form state for ADMIN_COMPLETE stage requiring letter metadata or exception', () => {
+      const form = createInitialActivityFormState();
+      form.title = 'Rapat Lengkap Administrasi';
+      form.startDate = '2026-11-01';
+      form.endDate = '2026-11-01';
+      form.startTime = '09:00';
+      form.endTime = '11:00';
+      form.locationId = 'loc_01';
+      form.organizerId = 'org_01';
+      form.categoryId = 'cat_01';
+      form.administrativeStage = 'ADMIN_COMPLETE';
+
+      // 1. Without letter or exception -> invalid
+      const resIncomplete = validateActivityForm(form);
+      expect(resIncomplete.valid).toBe(false);
+      expect(resIncomplete.errors.some(e => e.includes('Administrasi Lengkap'))).toBe(true);
+
+      // 2. With valid letter data -> valid
+      form.invitationLetter = {
+        agendaNumber: '045/DKUM/2026',
+        letterDate: '2026-10-28',
+        letterTopic: 'Undangan Rapat Koordinasi',
+        driveUrl: 'https://drive.google.com/file/d/123/view',
+        documentVisibility: 'INTERNAL'
+      };
+      const resComplete = validateActivityForm(form);
+      expect(resComplete.valid).toBe(true);
+      expect(resComplete.errors).toHaveLength(0);
+    });
+
+    it('renders ActivityEditPage with administrative stage selector and invitation letter panel', async () => {
+      const { renderActivityEditPage } = await import('../../apps/admin/src/pages/ActivityEditPage');
+      const form = createInitialActivityFormState();
+      form.invitationLetter = {
+        agendaNumber: '088/DKUM/XI/2026',
+        letterDate: '2026-11-02',
+        letterTopic: 'Undangan Sosialisasi Perizinan',
+        driveUrl: 'https://drive.google.com/file/d/abc_test_url/view',
+        documentVisibility: 'INTERNAL'
+      };
+
+      const validation = validateActivityForm(form);
+      const html = renderActivityEditPage(
+        form,
+        validation,
+        masterLocations,
+        masterOrganizers,
+        masterCategories,
+        masterEmployees
+      );
+
+      // Verify Administrative Stage selector exists
+      expect(html).toContain('Tahap Administrasi Kegiatan');
+      expect(html).toContain('INITIAL_ENTRY');
+      expect(html).toContain('OFFLINE_PROCESS');
+      expect(html).toContain('DETAILS_COMPLETED');
+      expect(html).toContain('ADMIN_COMPLETE');
+
+      // Verify Invitation Letter panel exists with fields
+      expect(html).toContain('Berkas & Rujukan Surat Undangan');
+      expect(html).toContain('inputAgendaNumber');
+      expect(html).toContain('inputLetterDate');
+      expect(html).toContain('inputLetterTopic');
+      expect(html).toContain('inputDriveUrl');
+
+      // Verify safe Google Drive external link
+      expect(html).toContain('href="https://drive.google.com/file/d/abc_test_url/view"');
+      expect(html).toContain('target="_blank"');
+      expect(html).toContain('rel="noopener noreferrer"');
+    });
+  });
 });

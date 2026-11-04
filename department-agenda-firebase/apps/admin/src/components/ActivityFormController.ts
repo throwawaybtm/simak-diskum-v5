@@ -3,7 +3,7 @@
  * Manages form lifecycle, real-time validation, credential blocking, and live preview.
  */
 
-import type { ActivityDocument, ActivityStatus, AttendeeSnapshot } from '@department-agenda/shared';
+import type { ActivityDocument, ActivityStatus, AttendeeSnapshot, AdministrativeStage, InvitationLetterMetadata } from '@department-agenda/shared';
 import type { Location, Organizer, Category, Employee } from '@department-agenda/shared';
 import type { PublicActivityDTO } from '@department-agenda/shared';
 import {
@@ -37,6 +37,9 @@ export interface ActivityFormState {
   privateMeetingUrl: string | null;
   version: number;
   conflictOverrideReason?: string;
+  stageChangeReason?: string;
+  administrativeStage: AdministrativeStage;
+  invitationLetter?: InvitationLetterMetadata;
 }
 
 export interface FormValidationResult {
@@ -74,7 +77,16 @@ export function createInitialActivityFormState(): ActivityFormState {
     publicNotes: '',
     privateNotes: '',
     privateMeetingUrl: null,
-    version: 0
+    version: 0,
+    administrativeStage: 'INITIAL_ENTRY',
+    invitationLetter: {
+      agendaNumber: '',
+      letterDate: '',
+      letterTopic: '',
+      driveUrl: '',
+      documentVisibility: 'INTERNAL',
+      missingDocumentReason: ''
+    }
   };
 }
 
