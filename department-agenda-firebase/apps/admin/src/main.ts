@@ -179,6 +179,17 @@ async function router() {
       masterEmployees,
       loadActivities
     });
+  } else if (hash === 'settings') {
+    const [{ mountSettingsPage }, { db }] = await Promise.all([
+      import('./pages/SettingsPage'),
+      import('./firebase')
+    ]);
+    await mountSettingsPage(contentContainer, {
+      db,
+      onSettingsSaved: async () => {
+        console.log('[Admin] Settings saved successfully.');
+      }
+    });
   } else {
     contentContainer.innerHTML = `
       <div class="panel">
@@ -213,9 +224,19 @@ function bindActivitiesListEvents() {
 
 // Bootstrap
 window.addEventListener('DOMContentLoaded', async () => {
+  const adminStartTime = performance.now();
   console.log(`[Admin App] v${SYSTEM_VERSION} (${TIMEZONE}) loaded.`);
   await loadMasterData();
+  const shellRenderMs = Math.round(performance.now() - adminStartTime);
   await router();
+  const dataReadyMs = Math.round(performance.now() - adminStartTime);
+
+  (window as any).__ADMIN_PERF_TELEMETRY__ = {
+    shellRenderMs,
+    dataReadyMs,
+    activitiesCount: cachedActivities.length
+  };
+  console.log(`[Admin Telemetry] Shell: ${shellRenderMs}ms | Data Ready: ${dataReadyMs}ms | Activities: ${cachedActivities.length}`);
 });
 
 window.addEventListener('hashchange', router);

@@ -1,20 +1,10 @@
 {
   "projects": {
-    "default": "staging-agenda-batam",
-    "staging": "staging-agenda-batam",
-    "production": "prod-agenda-batam"
+    "default": "simakdiskum",
+    "staging": "simakdiskum",
+    "production": "simakdiskum"
   },
   "targets": {
-    "staging-agenda-batam": {
-      "hosting": {
-        "public": [
-          "staging-agenda-batam-public"
-        ],
-        "admin": [
-          "staging-agenda-batam-admin"
-        ]
-      }
-    },
     "simakdiskum": {
       "hosting": {
         "public": [

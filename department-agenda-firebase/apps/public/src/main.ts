@@ -12,7 +12,9 @@ import {
   formatIndonesianDate,
   formatIndonesianDateSpan,
   parseWibDate,
-  addDaysToWibDate
+  addDaysToWibDate,
+  captureClientPerformance,
+  type ClientPerformanceSnapshot
 } from '@department-agenda/shared';
 import { db } from './firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -623,7 +625,11 @@ function attachGlobalEventHandlers(): void {
 
 // --- INITIALIZATION ---
 
+let shellRenderTime = 0;
+let dataReadyTime = 0;
+
 async function init(): Promise<void> {
+  const startTime = performance.now();
   console.log(`[Public App] Starting v${SYSTEM_VERSION} (Timezone: ${TIMEZONE})...`);
 
   // Handle route navigation
@@ -632,7 +638,11 @@ async function init(): Promise<void> {
     renderApp();
   });
 
-  // Initial load
+  // 1. Immediate Shell Render (FCP & Shell speed)
+  renderApp();
+  shellRenderTime = Math.round(performance.now() - startTime);
+
+  // 2. Data Fetch from Firestore
   const initialBounds = getVisibleMonthBounds(calendarYear, calendarMonth);
   // Broad initial fetch to ensure today, current month, and adjacent quarters are available
   const startYear = `${calendarYear - 1}-10-01`;
@@ -645,6 +655,18 @@ async function init(): Promise<void> {
 
   isInitialLoaded = true;
   renderApp();
+  dataReadyTime = Math.round(performance.now() - startTime);
+
+  // Expose telemetry on window for Playwright and performance audit
+  (window as any).__PERF_TELEMETRY__ = {
+    shellRenderMs: shellRenderTime,
+    dataReadyMs: dataReadyTime,
+    activitiesCount: activitiesMap.size,
+    announcementsCount: announcementsCache.length,
+    getSnapshot: () => captureClientPerformance(dataReadyTime, activitiesMap.size)
+  };
+
+  console.log(`[Public App Telemetry] Shell: ${shellRenderTime}ms | Data Ready: ${dataReadyTime}ms | Activities: ${activitiesMap.size}`);
 }
 
 // Bootstrap

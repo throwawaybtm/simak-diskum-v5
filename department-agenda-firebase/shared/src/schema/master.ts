@@ -38,3 +38,22 @@ export interface Category {
   colorHex: string;
   active: boolean;
 }
+
+export interface SignatorySettings {
+  name: string;
+  nip: string;
+  position: string;
+  department: string;
+  city: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export const DEFAULT_SIGNATORY_SETTINGS: SignatorySettings = {
+  name: 'Drs. HENDRI ARIFIN, M.Si',
+  nip: '19710312 199803 1 004',
+  position: 'Kepala Dinas',
+  department: 'Dinas Koperasi dan Usaha Mikro Kota Batam',
+  city: 'Batam'
+};
+

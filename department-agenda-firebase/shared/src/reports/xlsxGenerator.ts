@@ -8,12 +8,19 @@
 import ExcelJS from 'exceljs';
 import type { EightColumnReportRow } from './eightColumnReport';
 import { sanitizeFormulaInjection } from './eightColumnReport';
+import type { SignatorySettings } from '../schema/master';
+import { DEFAULT_SIGNATORY_SETTINGS } from '../schema/master';
 
 export interface GenerateXlsxOptions {
   departmentName?: string;
   subTitle?: string;
   periodLabel: string;
   rows: EightColumnReportRow[];
+  signatory?: SignatorySettings;
+  signatoryName?: string;
+  signatoryNip?: string;
+  signatoryPosition?: string;
+  signDateStr?: string;
 }
 
 export async function generateEightColumnXlsx(
@@ -143,6 +150,28 @@ export async function generateEightColumnXlsx(
       right: { style: 'thin', color: { argb: 'FF334155' } }
     };
   }
+
+  // 4. Official Signature Block (Columns F-H)
+  worksheet.addRow([]);
+  worksheet.addRow([]);
+
+  const signatoryName = options.signatory?.name || options.signatoryName || DEFAULT_SIGNATORY_SETTINGS.name;
+  const signatoryNip = options.signatory?.nip || options.signatoryNip || DEFAULT_SIGNATORY_SETTINGS.nip;
+  const signatoryPosition = options.signatory?.position || options.signatoryPosition || DEFAULT_SIGNATORY_SETTINGS.position;
+  const signatoryCity = options.signatory?.city || 'Batam';
+  const signDate = options.signDateStr || new Date().toISOString().slice(0, 10);
+
+  const sigDateRow = worksheet.addRow(['', '', '', '', '', `${signatoryCity}, ${signDate}`]);
+  const sigPosRow = worksheet.addRow(['', '', '', '', '', signatoryPosition]);
+  worksheet.addRow([]);
+  worksheet.addRow([]);
+  const sigNameRow = worksheet.addRow(['', '', '', '', '', signatoryName]);
+  const sigNipRow = worksheet.addRow(['', '', '', '', '', `NIP. ${signatoryNip}`]);
+
+  sigDateRow.getCell(6).font = { name: 'Arial', size: 9 };
+  sigPosRow.getCell(6).font = { name: 'Arial', size: 9 };
+  sigNameRow.getCell(6).font = { name: 'Arial', bold: true, underline: true, size: 9 };
+  sigNipRow.getCell(6).font = { name: 'Arial', size: 9 };
 
   const rawBuffer = await workbook.xlsx.writeBuffer();
   return rawBuffer instanceof Uint8Array ? rawBuffer : new Uint8Array(rawBuffer);

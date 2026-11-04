@@ -12,7 +12,8 @@
  */
 
 import type { ActivityDocument } from '../schema/activity';
-import type { Location, Organizer, Category, Employee } from '../schema/master';
+import type { Location, Organizer, Category, Employee, SignatorySettings } from '../schema/master';
+import { DEFAULT_SIGNATORY_SETTINGS } from '../schema/master';
 import {
   formatIndonesianDateSpan,
   formatTimeDisplay,
@@ -153,6 +154,7 @@ export interface HtmlReportOptions {
   startDate: string;
   endDate: string;
   rows: EightColumnReportRow[];
+  signatory?: SignatorySettings;
   signatoryName?: string;
   signatoryNip?: string;
   signatoryPosition?: string;
@@ -163,7 +165,11 @@ export interface HtmlReportOptions {
  * Generates official Indonesian Government A4 Landscape HTML Report with Letterhead
  */
 export function generateEightColumnHtmlReport(options: HtmlReportOptions): string {
-  const department = options.departmentName || 'DINAS KOPERASI DAN USAHA MIKRO';
+  const signatoryName = options.signatory?.name || options.signatoryName || DEFAULT_SIGNATORY_SETTINGS.name;
+  const signatoryNip = options.signatory?.nip || options.signatoryNip || DEFAULT_SIGNATORY_SETTINGS.nip;
+  const signatoryPosition = options.signatory?.position || options.signatoryPosition || DEFAULT_SIGNATORY_SETTINGS.position;
+  const signatoryCity = options.signatory?.city || 'Batam';
+  const department = options.departmentName || options.signatory?.department || DEFAULT_SIGNATORY_SETTINGS.department;
   const subTitle = options.subTitle || 'LAPORAN AGENDA KEGIATAN KEDINASAN';
   const periodLabel = `Periode: ${formatIndonesianDateSpan(options.startDate, options.endDate)}`;
   const signDate = options.currentDateStr
@@ -325,11 +331,11 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
 
   <div class="signature-container">
     <div class="signature-block">
-      <div>Batam, ${signDate}</div>
-      <div>${options.signatoryPosition || 'Kepala Dinas'}</div>
+      <div>${signatoryCity}, ${signDate}</div>
+      <div>${signatoryPosition}</div>
       <div class="signature-space"></div>
-      <div class="signatory-name">${options.signatoryName || 'Drs. HENDRI ARIFIN, M.Si'}</div>
-      <div class="signatory-nip">NIP. ${options.signatoryNip || '19710312 199803 1 004'}</div>
+      <div class="signatory-name">${signatoryName}</div>
+      <div class="signatory-nip">NIP. ${signatoryNip}</div>
     </div>
   </div>
 </body>

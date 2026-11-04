@@ -9,13 +9,14 @@
  * 5. October 2026 legacy spreadsheet migration engine with Zoom credential isolation and deduplication.
  */
 
-import type { ActivityDocument, Location, Organizer, Category, Employee } from '@department-agenda/shared';
+import type { ActivityDocument, Location, Organizer, Category, Employee, SignatorySettings } from '@department-agenda/shared';
 import {
   buildEightColumnReportRows,
   generateEightColumnHtmlReport,
   generateEightColumnXlsx,
   parseLegacySpreadsheetData,
   saveActivity,
+  DEFAULT_SIGNATORY_SETTINGS,
   type EightColumnReportRow,
   type LegacySpreadsheetRow,
   type LegacyMigrationResult,
@@ -39,6 +40,18 @@ export async function mountReportsPage(
 
   let currentActivities = await loadActivities();
   let activeTab: 'report' | 'migration' = 'report';
+
+  // Load configured signatory from Firestore settings (or default)
+  let currentSignatory: SignatorySettings = { ...DEFAULT_SIGNATORY_SETTINGS };
+  try {
+    const [{ doc, getDoc }] = await Promise.all([import('firebase/firestore')]);
+    const sigSnap = await getDoc(doc(db, 'settings', 'signatory'));
+    if (sigSnap.exists()) {
+      currentSignatory = { ...DEFAULT_SIGNATORY_SETTINGS, ...sigSnap.data() } as SignatorySettings;
+    }
+  } catch (err) {
+    console.warn('[ReportsPage] Could not load signatory settings, using defaults:', err);
+  }
 
   // Filters state
   let startDate = '2026-11-01';
@@ -386,7 +399,8 @@ export async function mountReportsPage(
           startDate,
           endDate,
           rows,
-          departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM'
+          departmentName: currentSignatory.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
+          signatory: currentSignatory
         });
 
         const printWindow = window.open('', '_blank');
@@ -416,9 +430,10 @@ export async function mountReportsPage(
           const rows = getFilteredRows();
           const periodLabel = formatIndonesianDateSpan(startDate, endDate);
           const buffer = await generateEightColumnXlsx({
-            departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
+            departmentName: currentSignatory.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
             periodLabel,
-            rows
+            rows,
+            signatory: currentSignatory
           });
 
           const blob = new Blob([buffer], {
