@@ -4,7 +4,7 @@
 **Target Architecture:** Firebase Hosting (Multi-site: `public` & `admin`), Cloud Firestore Standard Edition, Firebase Emulator Suite  
 **Development Tooling:** Vite, TypeScript, Vitest, Playwright, Firebase CLI  
 **Last Updated:** 2026-11-04  
-**Overall Status:** In Progress (Tasks 1–5 Completed; Task 6 Pending Approval)
+**Overall Status:** In Progress (Tasks 1–5 Formally Completed & Verified; Task 6 Ready for Authorization)
 
 ---
 
@@ -17,7 +17,7 @@
 | **Task 2** | Schemas, Synthetic Fixtures & WIB Time Engine | **Completed** | 2026-11-04 | `1192514` | Pure TypeScript schemas (`ActivityDocument`, `AttendeeSnapshot`, `Master`, `Audit`, `PublicDTO`). Pure WIB date arithmetic (`Asia/Jakarta`). Half-open intervals, open-ended events, leap year math, multi-month interval logic, and Indonesian text formatting. 29/29 tests passed. |
 | **Task 3** | Validation, Conflict Engine, Snapshots & Privacy Scanner | **Completed** | 2026-11-04 | `a7d99fd` | Validation with strict start < end chronology; regex privacy scanner for Zoom/Teams/credentials; immutable attendee snapshot engine; room/attendee conflict detector; public projector retaining cancelled items. 54/54 tests passed. *(Review Checkpoint 1 Approved)* |
 | **Task 4** | Firestore Collections, Rules, Indexes & Benchmark | **Completed** | 2026-11-04 | `22aec2c` | Atomic transactions (`activities` + `publicActivities` + `auditLogs`); optimistic concurrency control (`expectedVersion`); live Firestore emulator rules verification; query benchmark with 520 synthetic documents returning 40 intersecting activities in 76ms. 67/67 tests passed. *(Review Checkpoint 2 Approved)* |
-| **Task 5** | Admin UI: Dashboard, Add/Edit Activity & Conflict Workflow | **Completed** | 2026-11-04 | `eb42063` | Full-screen responsive admin dashboard, Add/Edit activity form, real-time privacy scanner warning, live public preview card, conflict warning modal, and version mismatch dialog. 73/73 tests passed. |
+| **Task 5** | Admin UI: Dashboard, Add/Edit Activity & Conflict Workflow | **Completed** | 2026-11-04 | `ab77e1d` | Full-screen responsive admin dashboard, Add/Edit/Duplicate activity workflow, real-time privacy scanner warning, live public preview card, conflict warning modal, and version concurrency dialog. Dynamic code splitting achieved (initial JS entry 3.19 kB gzip; total initial dashboard load 7.55 kB gzip). Full 13-scenario Playwright real browser verification pass passed (100% success). 73 unit/integration tests + 13 browser E2E tests verified. |
 | **Task 6** | Public UI: Dashboard, Calendar, Agenda & Detail | **Pending** | — | — | Public shell, WIB today dashboard, calendar views (month/week/day/list) with true range query (`startDate <= visibleEnd && endDate >= visibleStart`), debounced agenda search, and detail modal. |
 | **Task 7** | Official 8-Column Print, Validated XLSX & Migration | **Pending** | — | — | Indonesian 8-column layout (*No, Hari/Tanggal, Pukul, Kegiatan, Tempat, Penyelenggara, Dihadiri Oleh, Keterangan*), clean landscape print CSS, validated OpenXML `.xlsx` generator opening in Excel without corruption, legacy October 2026 data ingestion. *(Review Checkpoint 3)* |
 | **Task 8** | Performance Instrumentation, Staging Verification & Readiness | **Pending** | — | — | Telemetry for FCP, LCP, INP, CLS, data-visible latency, and read counts. Verification of <150KB gzip bundle budgets and Playwright E2E suite. *(Review Checkpoint 4)* |
@@ -25,11 +25,13 @@
 
 ---
 
-## 2. Test Totals at Latest Checkpoint (Task 5)
+## 2. Test Totals at Latest Checkpoint (Task 5 Verified)
 
-- **Total Test Suites:** 12 passed (12 total)
-- **Total Tests Passed:** 73 passed (73 total)
-- **Test Execution Time:** 1.30s
+- **Vitest Unit & Integration Suites:** 12 passed (12 total)
+- **Vitest Automated Tests:** 73 passed (73 total)
+- **Playwright Browser E2E Scenarios:** 13 passed (13 total, 100% pass rate)
+- **Visual Artifacts:** 14 verified browser screenshots in `tests/e2e/screenshots/`
+- **Initial-Load Bundle Size:** **7.55 kB gzip** *(Entry JS: 3.19 kB gzip, CSS: 2.54 kB gzip, Dashboard Route: 1.82 kB gzip)*
 - **Test Categories:**
   - Configuration & Scaffolding: 7 tests (`monorepo_config.test.ts`)
   - Schemas & Contracts: 3 tests (`schemas.test.ts`)
@@ -43,6 +45,7 @@
   - Live Firestore Security Rules (Emulator): 7 tests (`firestore.rules.test.ts`)
   - Repository Atomic Transactions (Emulator): 4 tests (`repository.emulator.test.ts`)
   - Query Benchmark & Multi-Month Range (Emulator): 1 test (`queryBenchmark.emulator.test.ts`)
+  - Real Admin Browser Verification (Playwright): 13 scenarios (`runVerification.mjs`)
 
 ---
 
@@ -52,6 +55,7 @@
 |---|---|:---:|---|
 | **Checkpoint 1** | Task 3 Completion | **Approved** | 54 tests passing; validated start < end chronology gate; immutable attendee snapshots; conflict warnings; regex privacy blocker; public projector retaining cancelled items. Commits `70c7958` and `a7d99fd`. |
 | **Checkpoint 2** | Task 4 Completion | **Approved** | 67 tests passing; live Firestore emulator rules test passed; atomic transactions verified with optimistic concurrency; query benchmark executed with 520 records in 76ms. Commit `22aec2c`. |
+| **Task 5 Pass** | Task 5 Browser Verification | **Verified** | 73 unit tests passing; 13/13 real browser interaction scenarios verified via Playwright; Duplicate feature added; route code-splitting implemented (<8 kB gzip initial load). |
 | **Checkpoint 3** | Task 7 Completion | *Upcoming* | Official 8-column layout print view, OpenXML structure validated in Microsoft Excel, legacy migration parser. |
 | **Checkpoint 4** | Task 8 Completion | *Upcoming* | Core Web Vitals telemetry, bundle budgets <150KB gzip, end-to-end browser workflows verified with Playwright. |
 
@@ -59,14 +63,14 @@
 
 ## 4. Technical Debt, Risks & Unresolved Decisions
 
-1. **Firestore Client Sanitization:** Firestore transactions throw runtime errors if objects contain `undefined` fields. `sanitizeDocumentData()` must be maintained across all write pathways.
+1. **Firestore Client Sanitization:** Firestore transactions throw runtime errors if objects contain `undefined` fields. `sanitizeDocumentData()` is maintained across all write pathways.
 2. **Billing Telemetry vs. Index Reads:** Client-reported read counts reflect document snapshots received (e.g. 40 docs for monthly calendar). Composite index evaluations are handled by Cloud Firestore backend infrastructure.
 3. **Client-Side vs Security Boundary:** In pre-Gate 5, browser-side validation and regex scanning are ergonomics and defense-in-depth safety rails. The sole security boundary is Firestore Security Rules denying unauthenticated writes.
 4. **Attendee Optionality:** Attendee lists are optional, triggering a nonblocking advisory warning rather than blocking form submission.
-5. **Admin Bundle Chunking:** Admin application bundle currently gzip sizes at ~228 kB. Will evaluate dynamic code-splitting during Task 8 optimization.
+5. **Admin Bundle Chunking:** Completed. Implemented route-based dynamic imports in `main.ts` and vendor chunking in `vite.config.ts`, reducing initial load from 228 kB to 7.55 kB gzip.
 
 ---
 
 ## 5. Next Recommended Action
 
-With Task 5 verified and completed (73/73 tests passing and clean builds across all packages), proceed to **Task 6: Public UI: Dashboard, Calendar, Agenda & Announcements**.
+With Task 5 fully completed, performance-optimized, and all 13 Admin UI scenarios verified via Playwright, proceed to **Task 6: Public UI: Dashboard, Calendar, Agenda & Announcements** upon user approval.

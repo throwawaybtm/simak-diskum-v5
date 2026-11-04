@@ -5,7 +5,7 @@
 
 export function renderVersionConflictDialog(storedVersion: number, expectedVersion: number): string {
   return `
-    <div class="modal-backdrop" id="versionConflictModal">
+    <div class="modal-backdrop version-modal" id="versionConflictModal">
       <div class="modal-card danger-card">
         <div class="modal-header danger-header">
           <h3>⚡ Konflik Perubahan Bersamaan (Version Conflict)</h3>

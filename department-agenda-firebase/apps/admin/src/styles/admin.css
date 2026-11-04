@@ -264,6 +264,8 @@ body {
 
 .btn-edit { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
 .btn-delete { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+.btn-duplicate { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.btn-duplicate:hover { background: #dbeafe; }
 
 /* FORMS */
 .form-group {

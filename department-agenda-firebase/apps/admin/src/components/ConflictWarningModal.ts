@@ -17,7 +17,7 @@ export function renderConflictWarningModal(warnings: ConflictWarning[]): string 
   `).join('');
 
   return `
-    <div class="modal-backdrop" id="conflictModal">
+    <div class="modal-backdrop conflict-modal" id="conflictModal">
       <div class="modal-card">
         <div class="modal-header warning-header">
           <h3>⚠️ Peringatan Bentrok Jadwal (${warnings.length})</h3>

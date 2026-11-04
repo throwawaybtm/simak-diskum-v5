@@ -7,7 +7,16 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     sourcemap: true,
-    target: 'es2022'
+    target: 'es2022',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/firebase')) {
+            return 'firebase-vendor';
+          }
+        }
+      }
+    }
   },
   resolve: {
     alias: {
@@ -18,3 +27,4 @@ export default defineConfig({
     port: 3001
   }
 });
+

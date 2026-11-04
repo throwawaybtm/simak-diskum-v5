@@ -1,29 +1,12 @@
 /**
  * Admin Application Entrypoint & Interactive Router
- * Ties together Sidebar, Activities List, Add/Edit Workflow, Conflict Warning Modal,
- * and live Firestore Emulator operations.
+ * Implements route-based dynamic code-splitting for optimal initial load bundle performance.
  */
 
-import { SYSTEM_VERSION, TIMEZONE } from '@department-agenda/shared';
+const SYSTEM_VERSION = '5.0.0';
+const TIMEZONE = 'Asia/Jakarta'; // WIB (UTC+7)
 import type { Location, Organizer, Category, Employee, ActivityDocument } from '@department-agenda/shared';
-import { saveActivity, deleteActivity } from '@department-agenda/shared';
-import { db } from './firebase';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
-
 import { renderSidebar } from './components/Sidebar';
-import { renderDashboardPage } from './pages/DashboardPage';
-import { renderActivitiesPage } from './pages/ActivitiesPage';
-import { renderActivityEditPage } from './pages/ActivityEditPage';
-import { renderConflictWarningModal } from './components/ConflictWarningModal';
-import { renderVersionConflictDialog } from './components/VersionConflictDialog';
-import { renderPublicPreviewCard } from './components/PublicPreviewCard';
-import {
-  createInitialActivityFormState,
-  validateActivityForm,
-  generateLivePreviewDto,
-  evaluateActivityConflicts,
-  type ActivityFormState
-} from './components/ActivityFormController';
 
 // In-memory master data cache for administrative session
 let masterLocations: Location[] = [];
@@ -32,15 +15,23 @@ let masterCategories: Category[] = [];
 let masterEmployees: Employee[] = [];
 let cachedActivities: ActivityDocument[] = [];
 
-let currentFormState: ActivityFormState | null = null;
 let currentLookups = {
   locations: new Map<string, Location>(),
   organizers: new Map<string, Organizer>(),
   categories: new Map<string, Category>()
 };
 
+async function getFirestoreModule() {
+  const [{ db }, { collection, getDocs }] = await Promise.all([
+    import('./firebase'),
+    import('firebase/firestore')
+  ]);
+  return { db, collection, getDocs };
+}
+
 async function loadMasterData() {
   try {
+    const { db, collection, getDocs } = await getFirestoreModule();
     const locSnap = await getDocs(collection(db, 'locations'));
     masterLocations = locSnap.docs.map(d => ({ id: d.id, ...d.data() } as Location));
 
@@ -100,6 +91,7 @@ async function loadMasterData() {
 
 async function loadActivities(): Promise<ActivityDocument[]> {
   try {
+    const { db, collection, getDocs } = await getFirestoreModule();
     const snap = await getDocs(collection(db, 'activities'));
     cachedActivities = snap.docs.map(d => ({ id: d.id, ...d.data() } as ActivityDocument));
     return cachedActivities;
@@ -109,7 +101,7 @@ async function loadActivities(): Promise<ActivityDocument[]> {
   }
 }
 
-// Router and View Renderer
+// Router and Dynamic View Renderer
 async function router() {
   const hash = window.location.hash.replace('#', '') || 'dashboard';
   const sidebarContainer = document.querySelector('.admin-sidebar');
@@ -121,33 +113,34 @@ async function router() {
   if (!contentContainer) return;
 
   if (hash === 'dashboard') {
-    const activities = await loadActivities();
+    const [{ renderDashboardPage }, activities] = await Promise.all([
+      import('./pages/DashboardPage'),
+      loadActivities()
+    ]);
     contentContainer.innerHTML = renderDashboardPage(activities);
   } else if (hash === 'activities') {
-    const activities = await loadActivities();
+    const [{ renderActivitiesPage }, activities] = await Promise.all([
+      import('./pages/ActivitiesPage'),
+      loadActivities()
+    ]);
     contentContainer.innerHTML = renderActivitiesPage(activities);
     bindActivitiesListEvents();
-  } else if (hash === 'activities/new') {
-    currentFormState = createInitialActivityFormState();
-    renderEditWorkflow(contentContainer);
-  } else if (hash.startsWith('activities/edit/')) {
-    const activityId = hash.replace('activities/edit/', '');
-    contentContainer.innerHTML = '<div class="loading-shell">Memuat data kegiatan...</div>';
-    try {
-      const snap = await getDoc(doc(db, 'activities', activityId));
-      if (snap.exists()) {
-        const docData = snap.data() as ActivityDocument;
-        currentFormState = {
-          ...docData,
-          guestAttendees: docData.guestAttendees || []
-        };
-        renderEditWorkflow(contentContainer);
-      } else {
-        contentContainer.innerHTML = '<div class="alert alert-danger">Kegiatan tidak ditemukan di database.</div>';
-      }
-    } catch (err) {
-      contentContainer.innerHTML = `<div class="alert alert-danger">Gagal memuat data: ${err}</div>`;
-    }
+  } else if (hash === 'activities/new' || hash.startsWith('activities/edit/') || hash.startsWith('activities/duplicate/')) {
+    const [{ handleEditRoute }, { db }, activities] = await Promise.all([
+      import('./pages/ActivityEditWorkflow'),
+      import('./firebase'),
+      loadActivities()
+    ]);
+    await handleEditRoute(hash, contentContainer, {
+      db,
+      masterLocations,
+      masterOrganizers,
+      masterCategories,
+      masterEmployees,
+      cachedActivities: activities,
+      currentLookups,
+      refreshActivities: loadActivities
+    });
   } else {
     contentContainer.innerHTML = `
       <div class="panel">
@@ -158,210 +151,6 @@ async function router() {
   }
 }
 
-function renderEditWorkflow(container: HTMLElement) {
-  if (!currentFormState) return;
-
-  const validation = validateActivityForm(currentFormState);
-  container.innerHTML = renderActivityEditPage(
-    currentFormState,
-    validation,
-    masterLocations,
-    masterOrganizers,
-    masterCategories,
-    masterEmployees
-  );
-
-  bindFormInputListeners();
-}
-
-function bindFormInputListeners() {
-  if (!currentFormState) return;
-
-  const updateStateFromInputs = () => {
-    if (!currentFormState) return;
-
-    const titleInput = document.getElementById('inputTitle') as HTMLInputElement | null;
-    const catSelect = document.getElementById('selectCategory') as HTMLSelectElement | null;
-    const statusSelect = document.getElementById('selectStatus') as HTMLSelectElement | null;
-    const startDateInput = document.getElementById('inputStartDate') as HTMLInputElement | null;
-    const endDateInput = document.getElementById('inputEndDate') as HTMLInputElement | null;
-    const startTimeInput = document.getElementById('inputStartTime') as HTMLInputElement | null;
-    const endTimeInput = document.getElementById('inputEndTime') as HTMLInputElement | null;
-    const openEndedCheck = document.getElementById('checkOpenEnded') as HTMLInputElement | null;
-    const locSelect = document.getElementById('selectLocation') as HTMLSelectElement | null;
-    const orgSelect = document.getElementById('selectOrganizer') as HTMLSelectElement | null;
-    const publicNotesInput = document.getElementById('inputPublicNotes') as HTMLTextAreaElement | null;
-    const privateNotesInput = document.getElementById('inputPrivateNotes') as HTMLTextAreaElement | null;
-    const privateUrlInput = document.getElementById('inputPrivateMeetingUrl') as HTMLInputElement | null;
-    const cancelReasonInput = document.getElementById('inputCancelReason') as HTMLInputElement | null;
-    const publicNoticeInput = document.getElementById('inputPublicCancelNotice') as HTMLInputElement | null;
-    const guestInput = document.getElementById('inputGuestAttendees') as HTMLInputElement | null;
-
-    if (titleInput) currentFormState.title = titleInput.value;
-    if (catSelect) currentFormState.categoryId = catSelect.value;
-    if (statusSelect) currentFormState.status = statusSelect.value as any;
-    if (startDateInput) currentFormState.startDate = startDateInput.value;
-    if (endDateInput) currentFormState.endDate = endDateInput.value;
-    if (startTimeInput) currentFormState.startTime = startTimeInput.value;
-    if (endTimeInput) currentFormState.endTime = openEndedCheck?.checked ? null : (endTimeInput.value || null);
-    if (openEndedCheck) currentFormState.openEnded = openEndedCheck.checked;
-    if (locSelect) currentFormState.locationId = locSelect.value;
-    if (orgSelect) currentFormState.organizerId = orgSelect.value;
-    if (publicNotesInput) currentFormState.publicNotes = publicNotesInput.value;
-    if (privateNotesInput) currentFormState.privateNotes = privateNotesInput.value;
-    if (privateUrlInput) currentFormState.privateMeetingUrl = privateUrlInput.value || null;
-    if (cancelReasonInput) currentFormState.cancelReason = cancelReasonInput.value;
-    if (publicNoticeInput) currentFormState.publicCancellationNotice = publicNoticeInput.value;
-
-    if (guestInput) {
-      currentFormState.guestAttendees = guestInput.value
-        .split(',')
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
-    }
-
-    // Attendees checkboxes
-    const checkedBoxes = document.querySelectorAll<HTMLInputElement>('input[name="empAttendee"]:checked');
-    currentFormState.attendeeIds = Array.from(checkedBoxes).map(cb => cb.value);
-
-    // Update live preview card
-    const previewContainer = document.getElementById('livePreviewContainer');
-    if (previewContainer) {
-      const previewDto = generateLivePreviewDto(
-        currentFormState,
-        masterLocations,
-        masterOrganizers,
-        masterCategories,
-        masterEmployees
-      );
-      previewContainer.innerHTML = renderPublicPreviewCard(previewDto);
-    }
-  };
-
-  // Bind real-time input listeners
-  const formPanel = document.querySelector('.edit-activity-page');
-  if (formPanel) {
-    formPanel.addEventListener('input', updateStateFromInputs);
-    formPanel.addEventListener('change', updateStateFromInputs);
-  }
-
-  // Open-ended toggle logic
-  const openEndedCheck = document.getElementById('checkOpenEnded') as HTMLInputElement | null;
-  const endTimeInput = document.getElementById('inputEndTime') as HTMLInputElement | null;
-  if (openEndedCheck && endTimeInput) {
-    openEndedCheck.addEventListener('change', () => {
-      endTimeInput.disabled = openEndedCheck.checked;
-      if (openEndedCheck.checked) {
-        endTimeInput.value = '';
-      }
-    });
-  }
-
-  // Save button action
-  const saveBtn = document.getElementById('btnSaveActivity');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', handleSaveActivity);
-  }
-}
-
-async function handleSaveActivity() {
-  if (!currentFormState) return;
-
-  const validation = validateActivityForm(currentFormState);
-  if (!validation.valid) {
-    alert(`Formulir belum valid:\n\n${validation.errors.concat(validation.privacyViolations).join('\n')}`);
-    return;
-  }
-
-  // Check conflicts
-  const conflicts = evaluateActivityConflicts(currentFormState, cachedActivities, masterLocations);
-  if (conflicts.length > 0 && !currentFormState.conflictOverrideReason) {
-    // Show conflict modal
-    showConflictModal(conflicts);
-    return;
-  }
-
-  try {
-    const actDoc: ActivityDocument = {
-      ...currentFormState,
-      createdAt: new Date().toISOString(),
-      createdBy: 'admin_session',
-      updatedAt: new Date().toISOString(),
-      updatedBy: 'admin_session'
-    };
-
-    const isNew = currentFormState.version === 0;
-    const saveOptions = {
-      expectedVersion: isNew ? undefined : currentFormState.version,
-      actorLabel: 'UNVERIFIED',
-      conflictOverrideReason: currentFormState.conflictOverrideReason,
-      employeesMasterList: masterEmployees,
-      isAttendeeEdited: true
-    };
-
-    const result = await saveActivity(db, actDoc, currentLookups, saveOptions);
-    alert(`Kegiatan berhasil disimpan dan dipublikasikan!\nID: ${actDoc.id}\nVersi: ${result.newVersion}`);
-    window.location.hash = 'activities';
-  } catch (err: any) {
-    if (err.message && err.message.includes('VERSION_CONFLICT')) {
-      showVersionConflictDialog(currentFormState.version + 1, currentFormState.version);
-    } else {
-      alert(`Gagal menyimpan kegiatan: ${err.message || err}`);
-    }
-  }
-}
-
-function showConflictModal(conflicts: any[]) {
-  const modalContainer = document.createElement('div');
-  modalContainer.innerHTML = renderConflictWarningModal(conflicts);
-  document.body.appendChild(modalContainer);
-
-  const closeBtn = document.getElementById('conflictModalClose');
-  const cancelBtn = document.getElementById('conflictCancelBtn');
-  const confirmBtn = document.getElementById('conflictConfirmBtn');
-  const reasonInput = document.getElementById('conflictOverrideInput') as HTMLTextAreaElement | null;
-
-  const cleanup = () => modalContainer.remove();
-
-  if (closeBtn) closeBtn.onclick = cleanup;
-  if (cancelBtn) cancelBtn.onclick = cleanup;
-
-  if (confirmBtn) {
-    confirmBtn.onclick = () => {
-      const reason = reasonInput?.value.trim();
-      if (!reason) {
-        alert('Harap masukkan alasan override bentrok sebelum melanjutkan!');
-        return;
-      }
-      if (currentFormState) {
-        currentFormState.conflictOverrideReason = reason;
-      }
-      cleanup();
-      handleSaveActivity();
-    };
-  }
-}
-
-function showVersionConflictDialog(storedVersion: number, currentVersion: number) {
-  const modalContainer = document.createElement('div');
-  modalContainer.innerHTML = renderVersionConflictDialog(storedVersion, currentVersion);
-  document.body.appendChild(modalContainer);
-
-  const cleanup = () => modalContainer.remove();
-  const closeBtn = document.getElementById('versionConflictClose');
-  const reviewBtn = document.getElementById('versionConflictReviewBtn');
-  const reloadBtn = document.getElementById('versionConflictReloadBtn');
-
-  if (closeBtn) closeBtn.onclick = cleanup;
-  if (reviewBtn) reviewBtn.onclick = cleanup;
-  if (reloadBtn) {
-    reloadBtn.onclick = () => {
-      cleanup();
-      window.location.reload();
-    };
-  }
-}
-
 function bindActivitiesListEvents() {
   document.querySelectorAll<HTMLButtonElement>('button[data-delete-id]').forEach(btn => {
     btn.onclick = async () => {
@@ -369,6 +158,10 @@ function bindActivitiesListEvents() {
       if (!id) return;
       if (confirm(`Yakin ingin menghapus kegiatan ID ${id}?`)) {
         try {
+          const [{ deleteActivity }, { db }] = await Promise.all([
+            import('@department-agenda/shared'),
+            import('./firebase')
+          ]);
           await deleteActivity(db, id, 'UNVERIFIED');
           alert('Kegiatan berhasil dihapus.');
           router();

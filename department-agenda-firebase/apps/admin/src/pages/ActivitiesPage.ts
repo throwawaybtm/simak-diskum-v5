@@ -25,6 +25,7 @@ export function renderActivitiesPage(activities: ActivityDocument[]): string {
             <td>v${act.version}</td>
             <td class="action-cell">
               <a href="#activities/edit/${act.id}" class="btn-sm btn-edit">Edit</a>
+              <a href="#activities/duplicate/${act.id}" class="btn-sm btn-duplicate" data-duplicate-id="${act.id}">Duplikat</a>
               <button type="button" class="btn-sm btn-delete" data-delete-id="${act.id}">Hapus</button>
             </td>
           </tr>

@@ -82,13 +82,14 @@ export function renderActivityEditPage(
         </div>
         <div class="header-actions">
           <a href="#activities" class="btn btn-secondary">Kembali</a>
+          ${!isNew ? `<a href="#activities/duplicate/${form.id}" class="btn btn-secondary btn-duplicate-header">Duplikat</a>` : ''}
           <button type="button" class="btn btn-primary" id="btnSaveActivity">Simpan & Publikasikan</button>
         </div>
       </div>
 
-      ${errorMessagesHtml}
-      ${privacyWarningHtml}
-      ${advisoryWarningsHtml}
+      <div id="errorMessagesContainer">${errorMessagesHtml}</div>
+      <div id="privacyWarningContainer">${privacyWarningHtml}</div>
+      <div id="advisoryWarningsContainer">${advisoryWarningsHtml}</div>
 
       <div class="form-and-preview-grid">
         <!-- FORM COLUMN -->
@@ -118,18 +119,16 @@ export function renderActivityEditPage(
               </div>
             </div>
 
-            ${form.status === 'CANCELLED' ? `
-              <div class="cancellation-fields alert alert-danger">
-                <div class="form-group">
-                  <label for="inputCancelReason"><strong>Alasan Pembatalan Internal (Wajib, hanya untuk arsip):</strong></label>
-                  <input type="text" id="inputCancelReason" value="${form.cancelReason || ''}" placeholder="Alasan internal pembatalan...">
-                </div>
-                <div class="form-group">
-                  <label for="inputPublicCancelNotice"><strong>Pemberitahuan Pembatalan Resmi (Publik):</strong></label>
-                  <input type="text" id="inputPublicCancelNotice" value="${form.publicCancellationNotice || ''}" placeholder="Pemberitahuan yang akan ditampilkan ke masyarakat...">
-                </div>
+            <div class="cancellation-fields alert alert-danger" id="cancellationFieldsContainer" style="${form.status === 'CANCELLED' ? '' : 'display: none;'}">
+              <div class="form-group">
+                <label for="inputCancelReason"><strong>Alasan Pembatalan Internal (Wajib, hanya untuk arsip):</strong></label>
+                <input type="text" id="inputCancelReason" value="${form.cancelReason || ''}" placeholder="Alasan internal pembatalan...">
               </div>
-            ` : ''}
+              <div class="form-group">
+                <label for="inputPublicCancelNotice"><strong>Pemberitahuan Pembatalan Resmi (Publik):</strong></label>
+                <input type="text" id="inputPublicCancelNotice" value="${form.publicCancellationNotice || ''}" placeholder="Pemberitahuan yang akan ditampilkan ke masyarakat...">
+              </div>
+            </div>
           </div>
 
           <!-- 2. WAKTU & JADWAL (WIB) -->
