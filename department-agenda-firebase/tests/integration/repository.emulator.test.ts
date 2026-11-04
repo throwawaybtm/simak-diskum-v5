@@ -266,4 +266,152 @@ describe('Repository Integration Tests (Firestore Emulator)', () => {
       'Disetujui langsung oleh Kepala Dinas karena agenda darurat.'
     );
   });
+
+  describe('Feature F01: Administrative Workflow & Stage Progression Integration', () => {
+    const actId = 'act_workflow_integ_01';
+    const baseActivity: ActivityDocument = {
+      id: actId,
+      title: 'Workshop Penguatan Kelembagaan Koperasi Batam',
+      startDate: '2026-11-15',
+      startTime: '09:00',
+      endDate: '2026-11-15',
+      endTime: '12:00',
+      openEnded: false,
+      locationId: 'loc_01',
+      organizerId: 'org_01',
+      categoryId: 'cat_01',
+      attendeeIds: [],
+      attendeeSnapshots: [],
+      guestAttendees: [],
+      status: 'SCHEDULED',
+      publicNotes: '',
+      privateNotes: '',
+      privateMeetingUrl: null,
+      version: 0,
+      createdAt: '2026-11-04T00:00:00.000Z',
+      createdBy: 'operator_01',
+      updatedAt: '2026-11-04T00:00:00.000Z',
+      updatedBy: 'operator_01'
+    };
+
+    it('defaults administrativeStage to INITIAL_ENTRY when omitted on creation', async () => {
+      const db = testEnv.unauthenticatedContext().firestore();
+      const res = await saveActivity(db, baseActivity, lookups, {
+        actorLabel: 'Operator 01'
+      });
+
+      expect(res.newVersion).toBe(1);
+
+      const actSnap = await getDoc(doc(db, 'activities', actId));
+      expect(actSnap.data()?.administrativeStage).toBe('INITIAL_ENTRY');
+
+      const auditSnap = await getDoc(doc(db, 'auditLogs', res.auditId));
+      expect(auditSnap.data()?.afterSummary?.administrativeStage).toBe('INITIAL_ENTRY');
+    });
+
+    it('progresses safely through stages and records stage backward reason in audit log', async () => {
+      const db = testEnv.unauthenticatedContext().firestore();
+
+      // 0. Initial creation at INITIAL_ENTRY
+      const step0 = await saveActivity(db, baseActivity, lookups, { actorLabel: 'Operator 01' });
+      expect(step0.newVersion).toBe(1);
+
+      // 1. Advance to OFFLINE_PROCESS
+      const step1 = await saveActivity(
+        db,
+        { ...baseActivity, administrativeStage: 'OFFLINE_PROCESS', version: 1 },
+        lookups,
+        { expectedVersion: 1, actorLabel: 'Operator 01' }
+      );
+      expect(step1.newVersion).toBe(2);
+
+      // 2. Advance to DETAILS_COMPLETED with attendees
+      const step2 = await saveActivity(
+        db,
+        {
+          ...baseActivity,
+          administrativeStage: 'DETAILS_COMPLETED',
+          attendeeIds: ['emp_01'],
+          publicNotes: 'Pakaian: Batik',
+          version: 2
+        },
+        lookups,
+        {
+          expectedVersion: 2,
+          actorLabel: 'Operator 02',
+          employeesMasterList: mockEmployees,
+          isAttendeeEdited: true
+        }
+      );
+      expect(step2.newVersion).toBe(3);
+
+      // 3. Advance to ADMIN_COMPLETE with invitation letter metadata
+      const step3 = await saveActivity(
+        db,
+        {
+          ...baseActivity,
+          administrativeStage: 'ADMIN_COMPLETE',
+          attendeeIds: ['emp_01'],
+          publicNotes: 'Pakaian: Batik',
+          invitationLetter: {
+            agendaNumber: '045/DKUM/XI/2026',
+            letterDate: '2026-11-02',
+            letterTopic: 'Undangan Workshop Kelembagaan',
+            driveUrl: 'https://drive.google.com/file/d/abc123xyz/view'
+          },
+          version: 3
+        },
+        lookups,
+        { expectedVersion: 3, actorLabel: 'Operator 03' }
+      );
+      expect(step3.newVersion).toBe(4);
+
+      // Verify letter metadata is stored privately in activities
+      const actSnap = await getDoc(doc(db, 'activities', actId));
+      expect(actSnap.data()?.administrativeStage).toBe('ADMIN_COMPLETE');
+      expect(actSnap.data()?.invitationLetter?.agendaNumber).toBe('045/DKUM/XI/2026');
+
+      // Verify public projection does NOT contain invitationLetter or administrativeStage
+      const pubSnap = await getDoc(doc(db, 'publicActivities', actId));
+      expect(pubSnap.data()?.version).toBe(4);
+      expect(pubSnap.data()?.invitationLetter).toBeUndefined();
+      expect(pubSnap.data()?.administrativeStage).toBeUndefined();
+
+      // 4. Regress backward to DETAILS_COMPLETED with an amendment reason
+      const step4 = await saveActivity(
+        db,
+        {
+          ...baseActivity,
+          administrativeStage: 'DETAILS_COMPLETED',
+          attendeeIds: ['emp_01'],
+          publicNotes: 'Pakaian: Batik',
+          invitationLetter: {
+            agendaNumber: '045/DKUM/XI/2026',
+            letterDate: '2026-11-02',
+            letterTopic: 'Undangan Workshop Kelembagaan',
+            driveUrl: 'https://drive.google.com/file/d/abc123xyz/view'
+          },
+          version: 4
+        },
+        lookups,
+        {
+          expectedVersion: 4,
+          actorLabel: 'Operator 01',
+          stageChangeReason: 'Koreksi penugasan pejabat dinas sesuai disposisi susulan'
+        }
+      );
+      expect(step4.newVersion).toBe(5);
+
+      const regressedSnap = await getDoc(doc(db, 'activities', actId));
+      expect(regressedSnap.data()?.administrativeStage).toBe('DETAILS_COMPLETED');
+      expect(regressedSnap.data()?.version).toBe(5);
+
+      // Verify audit trail captured the regression reason
+      const regressionAudit = await getDoc(doc(db, 'auditLogs', step4.auditId));
+      expect(regressionAudit.data()?.afterSummary?.administrativeStage).toBe('DETAILS_COMPLETED');
+      expect(regressionAudit.data()?.afterSummary?.stageChangeReason).toBe(
+        'Koreksi penugasan pejabat dinas sesuai disposisi susulan'
+      );
+    });
+  });
 });

@@ -24,6 +24,7 @@ export interface SaveActivityOptions {
   identitySource?: 'UNVERIFIED' | 'AUTH_UID';
   requestId?: string;
   conflictOverrideReason?: string;
+  stageChangeReason?: string;
   isAttendeeEdited?: boolean;
   employeesMasterList?: Employee[];
 }
@@ -81,7 +82,8 @@ export async function saveActivity(
         endDate: existingRecord.endDate,
         startTime: existingRecord.startTime,
         endTime: existingRecord.endTime,
-        version: existingRecord.version
+        version: existingRecord.version,
+        administrativeStage: existingRecord.administrativeStage || 'INITIAL_ENTRY'
       };
     }
 
@@ -98,6 +100,7 @@ export async function saveActivity(
     const now = new Date().toISOString();
     const updatedRecord: ActivityDocument = {
       ...activity,
+      administrativeStage: activity.administrativeStage || (existingRecord ? existingRecord.administrativeStage : 'INITIAL_ENTRY') || 'INITIAL_ENTRY',
       attendeeSnapshots: resolvedSnapshots,
       version: newVersion,
       updatedAt: now,
@@ -128,7 +131,9 @@ export async function saveActivity(
         endDate: updatedRecord.endDate,
         startTime: updatedRecord.startTime,
         endTime: updatedRecord.endTime,
-        conflictOverrideReason: options.conflictOverrideReason || null
+        administrativeStage: updatedRecord.administrativeStage,
+        conflictOverrideReason: options.conflictOverrideReason || null,
+        stageChangeReason: options.stageChangeReason || null
       }
     };
 
