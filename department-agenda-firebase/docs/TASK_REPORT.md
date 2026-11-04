@@ -5,7 +5,7 @@
 **Date:** 2026-11-04  
 **Status:** Completed & Formally Verified (100% Pass Rate across Unit, Integration, Rules & Browser Verification)  
 **Author:** Senior Software Architect & Firebase Full-Stack Engineer  
-**Git Commit:** *To be recorded upon commit*  
+**Git Commit:** `b86a2d4` (feat(security): complete Gate 5A getAfter regression and version lockstep hardening)  
 
 ---
 
