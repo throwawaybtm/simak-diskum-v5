@@ -97,28 +97,40 @@ This guarantees that any reviewer or visitor is immediately aware that data is s
 
 ---
 
-## 5. Incomplete Step: Owner Firebase Authentication Setup
+## 5. Administrator Provisioning Verification (Completed)
 
-The Firebase project and Hosting applications are completely operational. To complete Phase 4 (Admin Authentication), the project owner must perform a one-time activation in the official Firebase Console:
+The project owner completed the Firebase Authentication console activation and confirmed the preferred staging administrator email (`riyanbwirawanto@gmail.com`).
 
-### Action Required by Project Owner:
-1. Open the Firebase Console for the staging project:  
-   👉 **[https://console.firebase.google.com/project/simakdiskum-staging/authentication](https://console.firebase.google.com/project/simakdiskum-staging/authentication)**
-2. Click **Get started** to initialize Identity Platform.
-3. Under the **Sign-in method** tab:
-   - Click on **Email/Password**.
-   - Toggle **Enable** to **ON** (leave "Email link" OFF).
-   - Click **Save**.
-4. Under the **Settings** tab > **User actions**:
-   - **Uncheck** "Enable create (sign-up)" (this prevents public self-registration via the Firebase API).
-   - Confirm **Email enumeration protection** is enabled.
-5. Provide your preferred administrative email address to the engineering team.
-
-Once the owner supplies the authorized email address, the engineering team will execute:
+The account was provisioned via `scripts/manageRoles.mjs` using Application Default Credentials (ADC):
 ```powershell
-node scripts/manageRoles.mjs provision <ownerEmail> "Administrator Staging" admin --target=staging
+node scripts/manageRoles.mjs provision riyanbwirawanto@gmail.com "Administrator Staging" admin --target=staging --suppress-link
 ```
-This will provision the single staging Administrator account, attach the verified `{ role: "admin" }` custom claim, and generate an out-of-band password setup link directly to the owner.
+
+### Verified User Record:
+- **Project Target:** `simakdiskum-staging` (Live Google Cloud)
+- **UID:** `31Bin8ErtBaAy3YODaf1SKKymYb2`
+- **Email:** `riyanbwirawanto@gmail.com`
+- **Display Name:** `Administrator Staging`
+- **Disabled:** `false`
+- **Email Verified:** `true`
+- **Custom Claims:**
+  ```json
+  {
+    "role": "admin",
+    "department": "Dinas Koperasi dan Usaha Mikro Kota Batam",
+    "updatedAt": "2026-11-05T14:19:27.693Z"
+  }
+  ```
+- **Zero Credential Exposure:** Auto-generated secure high-entropy password; setup token and links were strictly suppressed from stdout, task logs, and Git.
+
+### Action Required by Project Owner to Set Password & Log In:
+1. Open the Staging Password Recovery page:  
+   👉 **[https://simakdiskum-staging-admin.web.app/#recover](https://simakdiskum-staging-admin.web.app/#recover)**
+2. Enter your email: **`riyanbwirawanto@gmail.com`** and click **Kirim Tautan Pemulihan**.
+3. Check your Gmail inbox for the official password reset email from Google Identity / Firebase (`noreply@simakdiskum-staging.firebaseapp.com`).
+4. Click the link in your email to choose your personal secret password.
+5. Return to the Staging Admin Portal to log in:  
+   👉 **[https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app)**
 
 ---
 

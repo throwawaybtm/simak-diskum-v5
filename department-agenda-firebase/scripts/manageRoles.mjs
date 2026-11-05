@@ -323,11 +323,17 @@ Commands:
       }
       await provisionUser(auth, email, password, displayName, role);
       if (!password) {
+        const suppressLink = args.includes('--suppress-link') || args.includes('--no-link') || process.env.SUPPRESS_SETUP_LINK === 'true';
         console.log(`[manageRoles Security] Account provisioned with auto-generated secure entropy.`);
-        console.log(`[manageRoles Delivery Guidance] Recommended: Operator should receive or request a password reset via native email (150/day Spark quota).`);
-        console.log(`[manageRoles Terminal Notice] Generating one-time administrative setup link below for immediate interactive handoff.`);
-        console.log(`[manageRoles Disclosure Safeguard] DO NOT redirect this output to shared logs, shell history, or unapproved communication channels.`);
-        await generatePasswordResetLink(auth, email);
+        if (suppressLink) {
+          console.log(`[manageRoles Disclosure Safeguard] One-time setup link suppressed from terminal output to prevent exposure in logs.`);
+          console.log(`[manageRoles Delivery Guidance] Operator should use the web portal password recovery interface (sendPasswordResetEmail) for direct confidential delivery.`);
+        } else {
+          console.log(`[manageRoles Delivery Guidance] Recommended: Operator should receive or request a password reset via native email (150/day Spark quota).`);
+          console.log(`[manageRoles Terminal Notice] Generating one-time administrative setup link below for immediate interactive handoff.`);
+          console.log(`[manageRoles Disclosure Safeguard] DO NOT redirect this output to shared logs, shell history, or unapproved communication channels.`);
+          await generatePasswordResetLink(auth, email);
+        }
       }
     } else if (command === 'set-role') {
       const [, identifier, role] = args;
