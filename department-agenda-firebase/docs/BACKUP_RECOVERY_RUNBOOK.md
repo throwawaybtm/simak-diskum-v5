@@ -1,7 +1,7 @@
 # SIMAK DISKUM v5.0 — Backup, Disaster Recovery & Seeding Runbook (Hardened)
 
 **Dinas Koperasi dan Usaha Mikro Kota Batam**  
-**Document Version:** 3.0 (Milestone P01-B Operational Safety Verified)  
+**Document Version:** 3.1 (Milestone P02-A Controlled Production Activation Planning)  
 **Effective Date:** November 2026  
 **Infrastructure Target:** Firebase Spark (No-Cost) Plan  
 **Primary Tool:** `scripts/backupRestore.mjs`
@@ -93,7 +93,13 @@ Before any restore begins, `validateBackupIntegrity()` recalculates all file has
 ### 4.1 Dry-Run Diff Mode
 To inspect what a restore will do without writing or deleting anything:
 ```bash
-node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --dry-run
+cd department-agenda-firebase
+
+# Production dry-run:
+node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --dry-run --target=prod
+
+# Local emulator dry-run:
+node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --dry-run --target=emulator
 ```
 
 #### Output:
@@ -115,13 +121,15 @@ Total orphaned live documents: 2 (act_201_new, act_202_new)
 ```
 
 ### 4.2 Mandatory Confirmation Gate (`--force` & `--dry-run-reviewed`)
-Controlled full restoration (`--mode=full`) overwrites all live documents ({ merge: false }). Therefore, it **strictly requires prior dry-run review and explicit confirmation (`--force`) even when orphan count is zero**:
+Controlled full restoration (`--mode=full`) overwrites all live documents (`{ merge: false }`). Therefore, it **strictly requires prior dry-run review and explicit confirmation (`--force`) even when orphan count is zero**:
 ```bash
+cd department-agenda-firebase
+
 # Throws error if run without confirmation:
-node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full
+node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --target=prod
 
 # Executes controlled full restoration after reviewing diff:
-node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --force --dry-run-reviewed
+node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --force --dry-run-reviewed --target=prod
 ```
 
 ---
@@ -131,6 +139,7 @@ node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --force 
 ### 5.1 Audit Logs Are Protected Records
 - In `--mode=full`, **orphaned audit logs are NEVER deleted**. Any audit records created after the backup timestamp remain strictly preserved.
 - **Never Overwrite Existing Historical Audit Records:** If a document in `auditLogs.json` matches the ID of an existing live audit record with different content, `backupRestore.mjs` **does not overwrite the live record**. Instead, it saves the backup copy under a collision-safe ID (`${id}_backup_restored_${Date.now()}`) with metadata `isCollidingRestoredRecord: true` and logs an administrative warning.
+- **Deep Verification Handling:** `verifyRestoration()` accounts for collision-safe records when validating `auditLogs`, verifying that the backup data exists under its collision ID so deep equality passes honestly.
 
 ### 5.2 Independent Privileged Maintenance Logging
 Every execution of `restore` or `seed` automatically writes an audit record directly into `auditLogs` with distinct metadata:
@@ -184,15 +193,20 @@ The utility tracks restoration progress in a structured ledger bound to the oper
 }
 ```
 
-### 6.2 Resuming or Restarting
+### 6.2 Checking Progress, Resuming, or Restarting
+- **To inspect checkpoint status:**
+  ```bash
+  cd department-agenda-firebase
+  node scripts/backupRestore.mjs status ./backups/2026-11-05 --target=prod
+  ```
 - **To safely resume an interrupted restore from where it stopped:**
   ```bash
-  node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --resume --force
+  node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --resume --force --dry-run-reviewed --target=prod
   ```
   The script validates that the checkpoint's `targetProjectId`, `manifestHash`, and `mode` match. It skips all previously completed batches and continues with remaining batches.
 - **To discard the checkpoint and restart fresh from scratch:**
   ```bash
-  node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --restart --force
+  node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --restart --force --dry-run-reviewed --target=prod
   ```
 
 ---
@@ -202,28 +216,26 @@ The utility tracks restoration progress in a structured ledger bound to the oper
 To prevent race conditions or data inconsistency while a destructive restore is taking place:
 
 ### Maintenance Lockdown Procedure:
-1. **Deploy Maintenance Security Rules:**
-   Temporarily deploy lockdown rules that block all client writes while allowing reads (or displaying a maintenance banner):
-   ```javascript
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /{document=**} {
-         allow read: if true;
-         allow write: if false; // Maintenance mode: block all client mutations
-       }
-     }
-   }
+1. **Deploy Maintenance Security Rules (`firebase/firestore.maintenance.rules`):**
+   Temporarily deploy lockdown rules that block all client writes while allowing public reads (ensuring zero visitor crashes):
+   ```bash
+   cd department-agenda-firebase
+   firebase deploy --project simakdiskum --only firestore:rules
    ```
-2. **Execute Controlled Full Restoration:**
-   Run `backupRestore.mjs restore ... --mode=full --force --dry-run-reviewed`.
+   *(Verified by `tests/rules/maintenanceRules.test.ts` with 6/6 tests passing).*
+2. **Execute Controlled Full Restoration via Admin SDK:**
+   Admin SDK scripts connect via Google Cloud credentials and bypass security rules:
+   ```bash
+   node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --force --dry-run-reviewed --target=prod
+   ```
 3. **Run Deep Verification:**
    Ensure `verifyRestoration()` completes with 100% matched documents.
 4. **Restore Production Security Rules:**
    Deploy `firebase/firestore.rules` back to the live project:
    ```bash
-   firebase deploy --only firestore:rules --project simakdiskum
+   firebase deploy --project simakdiskum --only firestore:rules
    ```
+   *Note: In the event of an operator network interruption during maintenance, rules can also be reverted in 1-click from Firebase Console under Firestore > Rules > Rules history > Restore version.*
 
 ---
 
@@ -244,13 +256,18 @@ After all batches commit, `backupRestore.mjs` executes an automated deep structu
 ## 9. Production Master Data Seeding Safety
 
 ### 9.1 Separation of Dev Fixtures vs Production Templates
-- **Development Fixtures (`seed:dev` or `--env=dev`):** Synthetic placeholder data clearly labeled `[DEMO]` for local testing in the Firestore emulator.
+- **Development Fixtures (`seed:dev` or `--env=dev`):** Synthetic placeholder data clearly labeled `[DEMO]` for local testing in the Firestore emulator:
+  ```bash
+  cd department-agenda-firebase
+  node scripts/backupRestore.mjs seed:dev --target=emulator
+  ```
 - **Production Seeding (`seed` / `--env=prod`):** Strictly blocked from inserting unverified civil servant names or NIPs.
 
 ### 9.2 Production Import Approval Step
 The default command:
 ```bash
-node scripts/backupRestore.mjs seed
+cd department-agenda-firebase
+node scripts/backupRestore.mjs seed --target=prod
 ```
 will **REJECT** execution with:
 ```text
@@ -264,7 +281,8 @@ To seed production:
 3. Set `"clientApproved": true` and provide `"approvalReference": "SK/DISKUM/..."`.
 4. Execute:
    ```bash
-   node scripts/backupRestore.mjs seed --template=templates/productionMasterDataTemplate.json
+   cd department-agenda-firebase
+   node scripts/backupRestore.mjs seed --env=prod --template=templates/productionMasterDataTemplate.json --target=prod
    ```
 
 ---

@@ -30,14 +30,16 @@
 | **Makeover V01-C** | Final Responsive, Accessibility, Performance & Functional QA | **Completed** | 2026-11-05 | `041e780` (code) / `c91665a` (docs) | Admin table reachability & scroll hints (880px / 210px action wrap), mobile month calendar touch scroll & hint, WCAG 2.1 AA focus rings (:focus-visible) & modal focus traps, 200% zoom reflow (0px overflow), deep public privacy emulator audit (3/3), full 12-step lifecycle walkthrough (100%), independent OpenXML XLSX parsing, bundle profiling. 170 Vitest tests + 27 V01-C browser assertions verified with 100% pass rate. Authored `docs/V01_C_RELEASE_READINESS.md`. *(V01-C Approved)* |
 | **Milestone P01** | Pre-Production Readiness, Config Audit & Deployment Rehearsal | **Completed** | 2026-11-05 | `374bc6f` | Spark-only feasibility verified; release docs corrected (no mandatory Blaze, 200% zoom clarified, local baseline noted); config audit verified (`simakdiskum` targets, `apps/*/dist` output, indexes, secret isolation); auth activation plan & CLI implemented (`manageRoles.mjs`, 7 tests); Spark-compatible backup/restore/seed engine implemented (`backupRestore.mjs`, 3 tests); deployment & rollback runbook authored (`DEPLOYMENT_RUNBOOK.md`); disaster recovery runbook authored (`BACKUP_RECOVERY_RUNBOOK.md`); 11-scenario UAT plan authored (`USER_ACCEPTANCE_TEST_PLAN.md`); executive report authored (`P01_PREPRODUCTION_READINESS.md`). 182 Vitest tests + 79 browser scenarios verified (100% pass rate). |
 | **Milestone P01-A** | Operational Safety Correction Pass | **Completed** | 2026-11-05 | Completed | Hardened backup/restore engine with explicit non-destructive import (`--mode=merge`) vs controlled full restore (`--mode=full`), dry-run diff analysis (`--dry-run`), confirmation gate (`--force`), lossless type serialization (Timestamp seconds/nanoseconds, DocumentReference, null), SHA-256 manifest integrity, scalar equality checks, protected `auditLogs` (zero silent deletions, `MAINTENANCE_RESTORE` audit log entry), and failure progress ledger (`restore-progress.json`). Production master data seeding safely gated with client approval flag (`templates/productionMasterDataTemplate.json`) and placeholder rejection. Role management constrained strictly to `admin`/`editor` for `simakdiskum` project with ADC support and documented 1-hour token expiration. Deployment runbook corrected for non-atomic separate endpoint deployments and non-instant rollback. UAT marked pending department execution. 189 Vitest tests + 79 browser scenarios verified with 100% pass rate. |
-| **Milestone P01-B** | Final Operational Safety Verification | **Completed** | 2026-11-05 | Pending Commit | Hardened backup/restore script with resumable checkpoints bound to manifest checksum, target project, mode, and op ID; deep Firestore equality verification across nested objects, arrays, timestamps, and references; audit log zero deletion and ID collision preservation; target project environment guards rejecting non-simakdiskum production IDs; zero credential logging; real Auth emulator verification of roles, token revocation, account disabling, and password reset. 202 Vitest tests (56 on real emulators) + 79 browser scenarios verified with 100% pass rate. |
+| **Milestone P01-B** | Final Operational Safety Verification | **Completed** | 2026-11-05 | f029d24 |
+| **Milestone P02-A** | Controlled Production Activation Planning | **Completed** | 2026-11-05 | Pending Commit | Authored P02_ACTIVATION_PLAN.md with 10-phase sequence and stop/go gates; authored P02_GO_NO_GO_CHECKLIST.md with 5-category matrix; designed and verified reversible maintenance rules (firestore.maintenance.rules, 6 tests); corrected all runbook CLI commands with --target=prod/emulator; added backup progress status inspector; clean production build. 209 Vitest tests (62 on real emulator) + 79 browser scenarios passing (100%). Stopped at P02-A Review Checkpoint. |
+ Hardened backup/restore script with resumable checkpoints bound to manifest checksum, target project, mode, and op ID; deep Firestore equality verification across nested objects, arrays, timestamps, and references; audit log zero deletion and ID collision preservation; target project environment guards rejecting non-simakdiskum production IDs; zero credential logging; real Auth emulator verification of roles, token revocation, account disabling, and password reset. 202 Vitest tests (56 on real emulators) + 79 browser scenarios verified with 100% pass rate. |
 
 ---
 
-## 2. Test Totals at Latest Checkpoint (Milestone P01-B Final Operational Safety Pass Verified)
+## 2. Test Totals at Latest Checkpoint (Milestone P02-A Controlled Activation Planning Verified)
 
-- **Vitest Unit & Integration Suites:** 23 passed (23 total)
-- **Vitest Automated Tests:** **202 passed** (202 total, 100% pass rate)
+- **Vitest Unit & Integration Suites:** 24 passed (24 total)
+- **Vitest Automated Tests:** **209 passed** (209 total, 100% pass rate)
 - **Playwright Real-Browser Verification Suites:**
   - V01-C Release Readiness Suite (`v01cReleaseReadinessVerification.mjs`): **27 / 27 passed** (Table reachability across 5 viewports, mobile calendar scroll & hint, 12-step lifecycle, focus rings, modal traps, 200% zoom reflow, cold load performance, OpenXML XLSX parsing)
   - V01-B Final Correction Pass Suite (`v01bFinalCorrectionVerification.mjs`): **23 / 23 passed** (Geometry at 4 viewports, attendee privacy, admin buttons, master tabs, announcements)
@@ -45,18 +47,19 @@
   - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed** (100%)
   - Master Data Suite (`masterDataVerification.mjs`): **8 / 8 passed** (100%)
 - **Total Real-Browser Scenarios:** **79 verified browser executions** across current primary suites (100% pass rate)
-- **Total Automated Test Assertions:** **281 passed** (202 Vitest + 79 Browser, 100% pass rate)
+- **Total Automated Test Assertions:** **288 passed** (209 Vitest + 79 Browser, 100% pass rate)
 - **Visual Artifacts:** 99 verified browser screenshots in `tests/e2e/screenshots/`
 - **Real Emulator vs In-Memory Mock Attribution:**
-  - **56 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
+  - **62 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
     - **10 tests** in `tests/integration/p01bSafetyVerification.test.ts` (10 mandatory safety scenarios)
     - **32 tests** in `tests/rules/firestore.rules.test.ts` (Live security rules enforcement)
+    - **6 tests** in `tests/rules/maintenanceRules.test.ts` (Reversible maintenance lockdown rules)
     - **6 tests** in `tests/emulator/repository.emulator.test.ts` (Atomic transactions & versions)
     - **4 tests** in `tests/emulator/masterRepository.emulator.test.ts` (Master CRUD & integrity)
     - **1 test** in `tests/emulator/queryBenchmark.emulator.test.ts` (520-doc multi-month range query benchmark)
     - **3 tests** in `tests/integration/publicPrivacyAudit.emulator.test.ts` (Zero private leak audit)
-  - **146 tests executed against fast in-memory mocks:**
-    - Domain logic, schemas, WIB time math, activity validator, privacy scanner, attendee snapshot, conflict detector, public projector, UI controllers, Excel parser, staging guards.
+  - **147 tests executed against fast in-memory mocks:**
+    - Domain logic, schemas, WIB time math, activity validator, privacy scanner, attendee snapshot, conflict detector, public projector, UI controllers, Excel parser, staging guards, backup diff & progress inspection.
 - **Bundle Metrics:**
   - Public Shell: `index.html` 1.14 kB (gzip: 0.57 kB), `index.css` 24.77 kB (gzip: 5.05 kB)
   - Public Initial App Code: `index.js` **49.16 kB** (gzip: **13.67 kB**) *(Initial critical path well below 150 kB budget)*
@@ -66,8 +69,9 @@
 - **Test Categories Breakdown:**
   - P01-B Final Operational Safety Verification (Real Emulators): **10 tests** (`p01bSafetyVerification.test.ts`)
   - Live Firestore Security Rules (Emulator): **32 tests** (`firestore.rules.test.ts`)
+  - Reversible Maintenance Lockdown Rules (Emulator): **6 tests** (`maintenanceRules.test.ts`)
   - Operator Role Management & Custom Claims: **9 tests** (`authRoleManagement.test.ts`)
-  - Spark-Compatible Logical Backup & Restore: **9 tests** (`backupRestore.test.ts`)
+  - Spark-Compatible Logical Backup & Restore: **10 tests** (`backupRestore.test.ts`)
   - Staging Readiness & Firebase Config Separation: **9 tests** (`stagingReadiness.test.ts`)
   - Public Privacy & DTO Audit (Emulator): **3 tests** (`publicPrivacyAudit.emulator.test.ts`)
   - Monorepo Configuration & Rules: 7 tests (`monorepo_config.test.ts`)
@@ -108,7 +112,9 @@
 | **V01-B Final Correction Pass**| Calendar Geometry, Attendee Privacy & Usability Hardening | **Approved** | Corrected P0-P2 defects: Fixed month calendar grid misalignment using `repeat(7, minmax(0, 1fr))` with 0.00px drift across 375px, 768px, 1024px, 1440px; confirmed Nov 1 Sunday placement; prevented event overflow (0.00px offset); resolved employee deduplication and sanitized fallbacks (0 raw IDs in public DOM); prevented admin action button collision (flexbox + min 32px height / 44px touch targets); restored high-contrast active tab token (`#2563eb` with `#ffffff` text); translated all status and location enums to Indonesian. 167/167 Vitest tests + 114 browser scenarios verified with 100% pass rate. Commits `7785825` and `7d01568`. |
 | **V01-C Final Review Checkpoint**| Final Responsive, Accessibility, Performance & Functional QA | **Approved** | Admin table action reachability across 5 viewports (min-width 880px, action cell 210px wrap, scroll hint), mobile calendar touch scroll with Indonesian hint, high-contrast `:focus-visible` rings (2px outline), modal focus traps with Escape & restore, 200% zoom reflow (0px overflow), 12-step functional lifecycle walkthrough, 8-column reports, OpenXML XLSX compliance, Core Web Vitals (FCP 24–40ms, Data-ready 561ms). 170 Vitest tests + 27 V01-C browser assertions passed (100%). Authored `docs/V01_C_RELEASE_READINESS.md`. Commits `041e780` and `c91665a`. *(V01-C Approved)* |
 | **Milestone P01 Review Checkpoint**| Pre-Production Readiness, Configuration Audit & Rehearsal | **APPROVED** |
-| **Milestone P01-B Final Safety Review Checkpoint**| Final Operational Safety Verification | **COMPLETED & VERIFIED** | Hardened backup/restore script with resumable checkpoints, deep equality checking, protected audit history against overwrites/deletions, target project guards, real Auth emulator verification of roles, token revocation, disabling, and password reset links. 202 Vitest tests (56 real emulator) + 79 browser scenarios passed (100%). Stopped at checkpoint awaiting user authorization. |
+| **Milestone P01-B Final Safety Review Checkpoint**| Final Operational Safety Verification | **APPROVED** |
+| **Milestone P02-A Activation Planning Review Checkpoint**| Controlled Production Activation Planning & Preflight | **COMPLETED & VERIFIED** | Authored P02_ACTIVATION_PLAN.md with 10-phase sequence and stop/go gates; authored P02_GO_NO_GO_CHECKLIST.md with 5-category matrix; verified reversible maintenance rules (6 tests); corrected all runbook CLI commands with --target; clean production build. 209 Vitest tests (62 on real emulator) + 79 browser scenarios passed (100%). Stopped at checkpoint awaiting stakeholder authorization. |
+ Hardened backup/restore script with resumable checkpoints, deep equality checking, protected audit history against overwrites/deletions, target project guards, real Auth emulator verification of roles, token revocation, disabling, and password reset links. 202 Vitest tests (56 real emulator) + 79 browser scenarios passed (100%). Stopped at checkpoint awaiting user authorization. |
  Spark-only architecture validated (no Blaze needed; 50k reads/20k writes modeled); config audited (`simakdiskum` targets, `apps/*/dist` output, compound indexes, zero leaked secrets); operator role management CLI (`scripts/manageRoles.mjs`, 7 tests passed); Spark-compatible logical backup/restore/seed engine (`scripts/backupRestore.mjs`, 3 tests passed); `DEPLOYMENT_RUNBOOK.md`, `BACKUP_RECOVERY_RUNBOOK.md`, `USER_ACCEPTANCE_TEST_PLAN.md`, and `P01_PREPRODUCTION_READINESS.md` authored. 182 Vitest tests + 79 browser scenarios passing (100% pass rate). Stopped at checkpoint awaiting user authorization. |
 
 ---
@@ -168,3 +174,5 @@
       - **15:00 WIB (3:00 PM)** during Pacific Standard Time (PST, UTC-8, winter months).
       - **14:00 WIB (2:00 PM)** during Pacific Daylight Time (PDT, UTC-7, summer months).
       Operational monitoring and daily usage resets must align with these afternoon timestamps rather than midnight WIB.
+26. **Reversible Maintenance Lockdown Procedure & Auto-Reversion Defense:**
+    - *Status:* **IMPLEMENTED & VERIFIED**. Designed `firebase/firestore.maintenance.rules` which freezes all client-side write mutations (`allow write: if false;`) during destructive restorations or migrations, while preserving public read-only access to `publicActivities` (`allow read: if true;`) so citizen portals experience zero crashes. Administrative scripts (`scripts/backupRestore.mjs`) connect via the Firebase Admin SDK and bypass security rules entirely. Verified by automated test suite (`tests/rules/maintenanceRules.test.ts`, 6/6 tests passed). Reversibility is guaranteed: redeploying `firebase/firestore.rules` or restoring rules in 1-click from the Firebase Console history immediately restores normal write permissions.

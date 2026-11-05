@@ -873,3 +873,97 @@ All 10 scenarios in `tests/integration/p01bSafetyVerification.test.ts` were exec
   - Zero production Firestore rules or database documents modified.
   - Zero Blaze billing upgrades activated ($0.00/month Spark target preserved).
   - System paused and awaiting review.
+
+---
+
+# Milestone P02-A: Controlled Production Activation Planning & Preflight Report
+
+**Date:** 2026-11-05  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (209/209 Vitest Tests, 38 Rules Tests, 10 Emulator Safety Tests, 79 Browser Scenarios, 100% Pass Rate)  
+**Authority:** P02-A Controlled Activation Planning Directives, `docs/P02_ACTIVATION_PLAN.md`, `docs/P02_GO_NO_GO_CHECKLIST.md`, and `docs/DEPLOYMENT_RUNBOOK.md` (v3.1)  
+
+---
+
+## 1. Executive Summary
+
+Milestone P02-A delivers the complete operational preflight and controlled activation plan for SIMAK DISKUM v5.0 on Google Cloud / Firebase project `simakdiskum`. This milestone is strictly **PLANNING-ONLY**; zero live deployments were executed, zero production accounts were created, and zero live cloud resources were modified:
+
+1. **Step-by-Step Production Activation Sequence (`docs/P02_ACTIVATION_PLAN.md`):**
+   - Structured the release into **10 sequential phases** with explicit, recorded **Stop/Go Decision Gates**:
+     - *Gate 0:* Pre-Activation Administrative Verification & Spark Plan Audit ($0.00/mo free tier).
+     - *Gate 1:* Firebase Console Authentication Setup & End-User Sign-Up Permanent Disabling.
+     - *Gate 2:* Initial Operator Provisioning via Admin SDK CLI (`scripts/manageRoles.mjs`).
+     - *Gate 3:* Client-Approved Master Data Seeding & Signatory Decree Verification.
+     - *Gate 4:* Reversible Maintenance Lockdown Activation (`firebase/firestore.maintenance.rules`).
+     - *Gate 5:* Firestore Security Rules & Compound Indexes Staged Deployment (monitoring `Enabled` status).
+     - *Gate 6:* Multi-Site Hosting Deployment (`public` to `simakdiskum`, `admin` to `simakdiskum-admin`).
+     - *Gate 7:* Live Smoke Testing & RBAC Least-Privilege Policy Audit.
+     - *Gate 8:* Department User Acceptance Testing (11 formal business scenarios).
+     - *Gate 9:* Production Handover & Ongoing Daily Backup Schedule.
+
+2. **Runbook Command Corrections & Safeguard Enforcement:**
+   - Reviewed all CLI command examples in `docs/DEPLOYMENT_RUNBOOK.md` (v3.1) and `docs/BACKUP_RECOVERY_RUNBOOK.md` (v3.1).
+   - Enforced explicit `--target=prod` and `--target=emulator` flags on all commands.
+   - Verified that wrong-project guards strictly enforce `REQUIRED_PROJECT_ID = 'simakdiskum'`.
+   - Added `status` command support to `scripts/backupRestore.mjs` allowing operators to inspect the checkpoint ledger (`restore-progress.json`).
+   - Verified that zero credentials, temporary passwords, or API keys are printed to stdout or written to logs.
+
+3. **Reversible Maintenance Lockdown Procedure (`firebase/firestore.maintenance.rules`):**
+   - Authored and verified reversible maintenance security rules:
+     - Public read access to `publicActivities` remains active (`allow read: if true;`), ensuring citizens experience zero application crashes.
+     - All client-side write mutations are frozen (`allow write: if false;`).
+     - Admin SDK scripts connect via administrative credentials and bypass rules entirely.
+     - Reversibility tested locally: restoring `firebase/firestore.rules` re-enables authorized writes immediately.
+     - Verified by dedicated test suite `tests/rules/maintenanceRules.test.ts` (6/6 tests passed).
+
+4. **Authentication Activation Prerequisites:**
+   - Documented the exact Firebase Console procedure for unchecking "Enable create (sign-up)" in Authentication > Settings > User actions.
+   - Outlined operator account provisioning via Admin SDK with custom claims (`{ role: 'admin' }` and `{ role: 'editor' }`).
+   - Documented 1-hour JWT token expiration and out-of-band password delivery limitation on Spark plan.
+
+5. **Client-Approved Master Data & Signatory Requirements:**
+   - Defined strict prerequisites for production master data: official civil service decree (SK) for Signatory, verified PNS/PPPK employee directory, room locations, and organizers.
+   - Verified that synthetic fixtures (`[DEMO]`) are quarantined to local emulator seeding.
+
+6. **Final Release Testing & Go/No-Go Checklist (`docs/P02_GO_NO_GO_CHECKLIST.md`):**
+   - Evaluated 5 operational categories:
+     - *Verified Locally:* 209 Vitest tests, 38 rules tests, 10 safety scenarios, 79 browser scenarios, clean build (**GO**).
+     - *Requires Department Approval:* Signatory SK decree, employee directory, authorized operator email list (**HOLD / PENDING DATA**).
+     - *Requires Live Activation:* Console toggles, production rules deploy, hosting deploy (**STANDBY**).
+     - *Requires Real-World Testing:* Municipal network latency, mobile cellular scrolling, Google Drive link access (**STANDBY**).
+     - *Outstanding Operational Risks:* Spark 50k read limits, lack of automated SMTP, multi-batch atomicity (**LOW / MITIGATED**).
+
+---
+
+## 2. Updated Test Suite Summary & Attribution
+
+- **Vitest Automated Test Suites:** **24 passed** (24 total, 100% pass rate).
+- **Vitest Automated Tests:** **209 passed** (209 total, 100% pass rate).
+- **Execution Harness Attribution:**
+  - **62 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
+    - 10 in `tests/integration/p01bSafetyVerification.test.ts`
+    - 32 in `tests/rules/firestore.rules.test.ts`
+    - 6 in `tests/rules/maintenanceRules.test.ts`
+    - 6 in `tests/emulator/repository.emulator.test.ts`
+    - 4 in `tests/emulator/masterRepository.emulator.test.ts`
+    - 1 in `tests/emulator/queryBenchmark.emulator.test.ts`
+    - 3 in `tests/integration/publicPrivacyAudit.emulator.test.ts`
+  - **147 tests executed against fast in-memory mocks:**
+    - Schemas, time math, validation, privacy scanner, conflict detector, UI controllers, Excel parser, staging guards, backup diff & progress status.
+- **Playwright Real-Browser Verification:** **79 / 79 browser scenarios passed** (100% pass rate).
+- **Total Automated Test Assertions:** **288 passed** (209 Vitest + 79 Browser, 100% pass rate).
+- **Monorepo Production Build:** Clean exit code 0 (`@department-agenda/shared`, `public`, `admin`).
+
+---
+
+## 3. Milestone P02-A Review Checkpoint Status
+
+- **Checkpoint:** **Milestone P02-A Activation Planning Review Checkpoint**
+- **Status:** **COMPLETED & VERIFIED (AWAITING STAKEHOLDER SIGN-OFF)**
+- **Strict Invariants Preserved:**
+  - Zero live deployment commands executed.
+  - Zero real operator accounts created.
+  - Zero production Firestore rules or database documents modified.
+  - Zero Blaze billing upgrades activated ($0.00/month Spark target preserved).
+  - System paused and awaiting review.

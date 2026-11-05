@@ -1,7 +1,7 @@
 # SIMAK DISKUM v5.0 — Production Deployment & Rollback Runbook (Hardened)
 
 **Dinas Koperasi dan Usaha Mikro Kota Batam**  
-**Document Version:** 3.0 (Milestone P01-B Operational Safety Verified)  
+**Document Version:** 3.1 (Milestone P02-A Controlled Production Activation Planning)  
 **Effective Date:** November 2026  
 **Infrastructure Target:** Firebase Multi-Site Hosting & Cloud Firestore Standard Edition on Firebase Spark (No-Cost) Plan  
 **Target Project:** `simakdiskum`  
@@ -42,10 +42,11 @@ Before deploying to production, the Release Manager and Lead Engineer must verif
 - [ ] **Dual-Operator Authorization:** Written sign-off from Department Head and IT Administrator.
 - [ ] **Target Project Safeguard:** Active Firebase CLI project is strictly confirmed as `simakdiskum` (`firebase use simakdiskum`).
 - [ ] **Release Tag Checked Out:** Repository is on approved Git release tag (e.g. `v5.0.0-rc1`).
-- [ ] **Automated Test Suite 100% Pass:** `npx vitest run` passes all **202 automated tests across 23 test files** with 0 failures.
+- [ ] **Automated Test Suite 100% Pass:** `npx vitest run` passes all **208 automated tests across 24 test files** with 0 failures.
 - [ ] **Firestore Security Rules Suite:** `npx vitest run tests/rules/firestore.rules.test.ts` passes **32 / 32 tests**.
+- [ ] **Reversible Maintenance Rules Suite:** `npx vitest run tests/rules/maintenanceRules.test.ts` passes **6 / 6 tests**.
 - [ ] **Browser E2E Verification Suites:** Playwright suites pass all **79 / 79 scenarios** (100% pass rate).
-- [ ] **Pre-Deployment Database Backup:** Run `node scripts/backupRestore.mjs export ./backups/pre_deploy_$(Get-Date -Format 'yyyyMMdd_HHmm')`.
+- [ ] **Pre-Deployment Database Backup:** Run `cd department-agenda-firebase; node scripts/backupRestore.mjs export ./backups/pre_deploy_$(Get-Date -Format 'yyyyMMdd_HHmm') --target=prod`.
 - [ ] **Production Build Clean:** `npm run build` generates `apps/public/dist` and `apps/admin/dist` with 0 warnings/errors.
 
 ---
@@ -56,7 +57,8 @@ To avoid inconsistent intermediate states, deployments must occur in the followi
 
 ```mermaid
 flowchart TD
-    G1[Gate 1: Preflight & Backup] --> D1[Step 1: Deploy Firestore Security Rules]
+    G1[Gate 1: Preflight & Backup] --> M0[Step 0: Optional Maintenance Lockdown]
+    M0 --> D1[Step 1: Deploy Firestore Security Rules]
     D1 --> V1{Verify Rules via Smoke Test?}
     V1 -- Failed --> R1[Rollback Rules Immediately]
     V1 -- Passed --> D2[Step 2: Deploy Firestore Indexes]
@@ -69,9 +71,20 @@ flowchart TD
 
 ---
 
+### Step 0: Maintenance Lockdown (Optional for Major Migrations)
+If executing destructive restorations or complex database restructuring:
+```bash
+cd department-agenda-firebase
+firebase deploy --project simakdiskum --only firestore:rules
+```
+*(Deploying `firebase/firestore.maintenance.rules` freezes client writes while preserving public read-only access).*
+
+---
+
 ### Step 1: Deploy Firestore Security Rules
 Always deploy and verify security rules first so data is protected before frontend code arrives:
 ```bash
+cd department-agenda-firebase
 firebase deploy --project simakdiskum --only firestore:rules
 ```
 *Verification:*
@@ -85,6 +98,7 @@ firebase deploy --project simakdiskum --only firestore:rules
 
 ### Step 2: Deploy Firestore Indexes
 ```bash
+cd department-agenda-firebase
 firebase deploy --project simakdiskum --only firestore:indexes
 ```
 *Verification:*
@@ -96,6 +110,7 @@ firebase deploy --project simakdiskum --only firestore:indexes
 ### Step 3: Deploy Hosting Portals
 Once database security and indexing are operational, deploy the web application shells:
 ```bash
+cd department-agenda-firebase
 firebase deploy --project simakdiskum --only hosting:public,hosting:admin
 ```
 *Verification:*
@@ -128,6 +143,7 @@ If newly published rules inadvertently block legitimate operations:
 3. Select previous working version and click **Restore version** -> **Publish**.
 4. Or via CLI:
    ```bash
+   cd department-agenda-firebase
    git checkout tags/v5.0.0-rc1 -- firebase/firestore.rules
    firebase deploy --project simakdiskum --only firestore:rules
    ```
@@ -135,13 +151,18 @@ If newly published rules inadvertently block legitimate operations:
 ### 5.3 Procedure C: Database State Rollback
 If bad data was committed during deployment rehearsal:
 1. Locate the pre-deployment backup directory under `backups/`.
-2. Execute dry-run diff check:
+2. Check restore progress ledger status:
    ```bash
-   node scripts/backupRestore.mjs restore ./backups/pre_deploy_xxx --mode=full --dry-run
+   cd department-agenda-firebase
+   node scripts/backupRestore.mjs status ./backups/pre_deploy_xxx --target=prod
    ```
-3. Once diff is verified, execute controlled full restoration with explicit confirmation:
+3. Execute dry-run diff check:
    ```bash
-   node scripts/backupRestore.mjs restore ./backups/pre_deploy_xxx --mode=full --dry-run-reviewed --force
+   node scripts/backupRestore.mjs restore ./backups/pre_deploy_xxx --mode=full --dry-run --target=prod
+   ```
+4. Once diff is verified, execute controlled full restoration with explicit confirmation:
+   ```bash
+   node scripts/backupRestore.mjs restore ./backups/pre_deploy_xxx --mode=full --dry-run-reviewed --force --target=prod
    ```
 
 ---

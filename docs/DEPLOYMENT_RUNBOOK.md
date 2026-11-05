@@ -1,7 +1,7 @@
 # SIMAK DISKUM v5.0 — Production Deployment & Rollback Runbook (Hardened)
 
 **Dinas Koperasi dan Usaha Mikro Kota Batam**  
-**Document Version:** 3.0 (Milestone P01-B Operational Safety Verified)  
+**Document Version:** 3.1 (Milestone P02-A Controlled Production Activation Planning)  
 **Effective Date:** November 2026  
 **Infrastructure Target:** Firebase Multi-Site Hosting & Cloud Firestore Standard Edition on Firebase Spark (No-Cost) Plan  
 **Target Project:** `simakdiskum`  
@@ -45,7 +45,7 @@ Before deploying to production, the Release Manager and Lead Engineer must verif
 - [ ] **Automated Test Suite 100% Pass:** `npx vitest run` passes all **202 automated tests across 23 test files** with 0 failures.
 - [ ] **Firestore Security Rules Suite:** `npx vitest run tests/rules/firestore.rules.test.ts` passes **32 / 32 tests**.
 - [ ] **Browser E2E Verification Suites:** Playwright suites pass all **79 / 79 scenarios** (100% pass rate).
-- [ ] **Pre-Deployment Database Backup:** Run `node scripts/backupRestore.mjs export ./backups/pre_deploy_$(Get-Date -Format 'yyyyMMdd_HHmm')`.
+- [ ] **Pre-Deployment Database Backup:** Run `cd department-agenda-firebase; node scripts/backupRestore.mjs export ./backups/pre_deploy_$(Get-Date -Format 'yyyyMMdd_HHmm') --target=prod`.
 - [ ] **Production Build Clean:** `npm run build` generates `apps/public/dist` and `apps/admin/dist` with 0 warnings/errors.
 
 ---
@@ -135,13 +135,18 @@ If newly published rules inadvertently block legitimate operations:
 ### 5.3 Procedure C: Database State Rollback
 If bad data was committed during deployment rehearsal:
 1. Locate the pre-deployment backup directory under `backups/`.
-2. Execute dry-run diff check:
+2. Check restore progress ledger status:
    ```bash
-   node scripts/backupRestore.mjs restore ./backups/pre_deploy_xxx --mode=full --dry-run
+   cd department-agenda-firebase
+   node scripts/backupRestore.mjs status ./backups/pre_deploy_xxx --target=prod
    ```
-3. Once diff is verified, execute controlled full restoration with explicit confirmation:
+3. Execute dry-run diff check:
    ```bash
-   node scripts/backupRestore.mjs restore ./backups/pre_deploy_xxx --mode=full --dry-run-reviewed --force
+   node scripts/backupRestore.mjs restore ./backups/pre_deploy_xxx --mode=full --dry-run --target=prod
+   ```
+4. Once diff is verified, execute controlled full restoration with explicit confirmation:
+   ```bash
+   node scripts/backupRestore.mjs restore ./backups/pre_deploy_xxx --mode=full --dry-run-reviewed --force --target=prod
    ```
 
 ---
