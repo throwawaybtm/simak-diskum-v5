@@ -1189,7 +1189,7 @@ Following the initial planning submission for Milestone P02-A, this correction p
 
 ### C. Privacy & Data Isolation (Part C)
 1. **Confidential Credential Quarantining:**
-   - Automated privacy scanner isolated 16 sensitive records containing Zoom meeting passwords (`pwd=...`), plaintext passcodes (`ppdn146`, `173783`, `kemenkop`, `BINAPEMDES`, `765651`), and personal contact numbers.
+   - Automated privacy scanner isolated 16 sensitive records containing Zoom meeting passwords (`pwd=[REDACTED]`), plaintext passcodes (`ppdn***`, `173***`, `kem***`, `BIN***`, `765***`), and personal contact numbers (`0812-****-****`).
    - Stored sensitive credentials strictly in internal `privateNotes` and `privateMeetingUrl`.
    - Neutralized public notes (`[TAUTAN VIRTUAL DIAMANKAN]`, `[KREDENSIAL DIKANTOR]`, `[KONTAK RESMI DIARSIP]`).
 2. **Automated Document Projection Audit:**
@@ -1201,9 +1201,9 @@ Following the initial planning submission for Milestone P02-A, this correction p
    - Ingested locations, organizers, categories, and provisional signatory settings.
 2. **Double-Run Idempotency Verification:**
    - Ingestion script (`scripts/executeT01Import.mjs`) was executed twice consecutively.
-   - Resulting collection counts remained perfectly static: 8 departments, 70 employees, 10 locations, 8 organizers, 5 categories, 152 activities, 152 public projections. Zero accidental duplicate documents created.
+   - Resulting collection counts remained perfectly static: 8 departments, 70 employees, 10 locations, 8 organizers, 5 categories, 152 activities, 152 public projections. Zero accidental duplicate documents created. Append-only compliance audit trail logged 2 records in `auditLogs`.
 3. **Single Admin Local Configuration:**
-   - Provisioned exactly one local test Admin account (`admin.t01@batam.go.id`) via Auth emulator with `{ role: "admin" }` claim. Zero Editor accounts.
+   - Provisioned exactly one local demonstration Admin account (`admin.demo@diskum.local`) via Auth emulator with `{ role: "admin" }` claim and dynamic password generation. Zero Editor accounts.
    - Verified login, authenticated private reads, anonymous access rejection, and clean session clearing on logout.
 
 ### E. Multi-Viewport Browser Verification (Part E)

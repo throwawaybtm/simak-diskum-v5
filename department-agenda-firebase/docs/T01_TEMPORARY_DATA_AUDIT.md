@@ -137,24 +137,24 @@ The automated privacy scanner screened all cells across all 31 worksheets for se
 
 **Total Privacy Leaks Detected in Source:** **16 incidents** across 16 rows.
 
-| # | Tab | Row | Activity Title | Leak Type | Exposed Value | Isolation Action |
+| # | Tab | Row | Activity Title | Leak Type | Exposed Value (Masked) | Isolation Action |
 |---|---|---|---|---|---|---|
-| 1 | `011026` | 7 | Pitching Misi Dagang Jabar-Kepri | Zoom URL & Passcode | `Meeting ID: 850 000 5418`, `Passcode: ppdn146`, `pwd=KobKrNRKzadXbSNj69` | Quarantined to `privateMeetingUrl` & `privateNotes` |
-| 2 | `031026` | 6 | Pembukaan Festival Halal | Phone Number | `081269106335`, `0895401869545` | Quarantined to `privateNotes` |
-| 3 | `051026` | 7 | Sosialisasi KOMCAD ASN | Zoom URL & Passcode | `https://zoom.us/launch/jc/94480068357`, `PASSCODE : 173783` | Quarantined to `privateMeetingUrl` & `privateNotes` |
-| 4 | `061026` | 8 | Sosialisasi Pengendalian BPO | Phone Number | `081261027619` | Quarantined to `privateNotes` |
-| 5 | `071026` | 10 | Klarifikasi Dealer Motor OJK | Phone Number | `08113812289` | Quarantined to `privateNotes` |
-| 6 | `091026` | 12 | Rakor Percepatan KDKMP | Passcode | `Passcode: kemenkop` | Quarantined to `privateNotes` |
-| 7 | `131026` | 9 | Meeting KKMP Binapemdes | Passcode | `Passcode BINAPEMDES` | Quarantined to `privateNotes` |
-| 8 | `151026` | 6 | Pelayanan Kesehatan Kerja | Phone Number | `08116667876` | Quarantined to `privateNotes` |
-| 9 | `151026` | 9 | Wawancara Iklim Usaha | Phone Number | `081213719490` | Quarantined to `privateNotes` |
-| 10 | `191026` | 7 | Rakor Koperasi Merah Putih | Passcode | `Passcode 765651` | Quarantined to `privateNotes` |
-| 11 | `191026` | 8 | Sosialisasi KOMCAD ASN | Passcode | `Passcode : 173783` | Quarantined to `privateNotes` |
-| 12 | `191026` | 9 | Persiapan KOMCAD ASN Batam | Zoom URL & Sandi | `https://zoom.us/j/94480068357?pwd=...`, `Sandi: 173783` | Quarantined to `privateMeetingUrl` & `privateNotes` |
-| 13 | `191026` | 10 | Rakor Koperasi Merah Putih | Passcode | `Passcode 765651` | Quarantined to `privateNotes` |
-| 14 | `221026` | 8 | Pelatihan Anti Korupsi ASN | Zoom URL & Pwd | `https://zoom.us/j/98165550205?pwd=...` | Quarantined to `privateMeetingUrl` & `privateNotes` |
-| 15 | `261026` | 6 | Peresmian Budidaya Rumput Laut | Phone Number | `0881023230348` | Quarantined to `privateNotes` |
-| 16 | `291026` | 9 | Sosialisasi Perlindungan Konsumen | Phone Number | `081275183202` | Quarantined to `privateNotes` |
+| 1 | `011026` | 7 | Pitching Misi Dagang Jabar-Kepri | Zoom URL & Passcode | `Meeting ID: 850 000 5418`, `Passcode: [REDACTED]`, `pwd=[REDACTED]` | Quarantined to `privateMeetingUrl` & `privateNotes` |
+| 2 | `031026` | 6 | Pembukaan Festival Halal | Phone Number | `0812-****-6335`, `0895-****-9545` | Quarantined to `privateNotes` |
+| 3 | `051026` | 7 | Sosialisasi KOMCAD ASN | Zoom URL & Passcode | `https://zoom.us/launch/jc/94480068357`, `PASSCODE : [REDACTED]` | Quarantined to `privateMeetingUrl` & `privateNotes` |
+| 4 | `061026` | 8 | Sosialisasi Pengendalian BPO | Phone Number | `0812-****-7619` | Quarantined to `privateNotes` |
+| 5 | `071026` | 10 | Klarifikasi Dealer Motor OJK | Phone Number | `0811-****-2289` | Quarantined to `privateNotes` |
+| 6 | `091026` | 12 | Rakor Percepatan KDKMP | Passcode | `Passcode: [REDACTED]` | Quarantined to `privateNotes` |
+| 7 | `131026` | 9 | Meeting KKMP Binapemdes | Passcode | `Passcode [REDACTED]` | Quarantined to `privateNotes` |
+| 8 | `151026` | 6 | Pelayanan Kesehatan Kerja | Phone Number | `0811-****-7876` | Quarantined to `privateNotes` |
+| 9 | `151026` | 9 | Wawancara Iklim Usaha | Phone Number | `0812-****-9490` | Quarantined to `privateNotes` |
+| 10 | `191026` | 7 | Rakor Koperasi Merah Putih | Passcode | `Passcode [REDACTED]` | Quarantined to `privateNotes` |
+| 11 | `191026` | 8 | Sosialisasi KOMCAD ASN | Passcode | `Passcode : [REDACTED]` | Quarantined to `privateNotes` |
+| 12 | `191026` | 9 | Persiapan KOMCAD ASN Batam | Zoom URL & Sandi | `https://zoom.us/j/94480068357?pwd=[REDACTED]`, `Sandi: [REDACTED]` | Quarantined to `privateMeetingUrl` & `privateNotes` |
+| 13 | `191026` | 10 | Rakor Koperasi Merah Putih | Passcode | `Passcode [REDACTED]` | Quarantined to `privateNotes` |
+| 14 | `221026` | 8 | Pelatihan Anti Korupsi ASN | Zoom URL & Pwd | `https://zoom.us/j/98165550205?pwd=[REDACTED]` | Quarantined to `privateMeetingUrl` & `privateNotes` |
+| 15 | `261026` | 6 | Peresmian Budidaya Rumput Laut | Phone Number | `0881-****-0348` | Quarantined to `privateNotes` |
+| 16 | `291026` | 9 | Sosialisasi Perlindungan Konsumen | Phone Number | `0812-****-3202` | Quarantined to `privateNotes` |
 
 > [!CAUTION]
 > **Data Privacy Enforcement:** In the public portal, all fields containing Zoom passwords, Meeting IDs, and personal phone numbers must be stripped completely from `publicNotes`. Only authorized authenticated administrators may view `privateNotes` and `privateMeetingUrl`.
