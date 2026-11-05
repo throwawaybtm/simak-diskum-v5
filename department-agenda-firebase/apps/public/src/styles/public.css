@@ -53,6 +53,34 @@
 
 }
 
+/* Staging Environment Indicator Banner */
+.staging-indicator-banner {
+  background: #fef3c7;
+  border-bottom: 1.5px solid #f59e0b;
+  color: #92400e;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.45rem 1rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  letter-spacing: 0.04em;
+  width: 100%;
+  box-sizing: border-box;
+}
+.staging-indicator-banner .staging-badge {
+  background: #d97706;
+  color: #ffffff;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 * {
   box-sizing: border-box;
 }

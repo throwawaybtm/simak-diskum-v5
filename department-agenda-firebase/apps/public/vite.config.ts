@@ -23,8 +23,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@department-agenda/shared': path.resolve(__dirname, '../../shared/src')
-    }
+      '@department-agenda/shared': path.resolve(__dirname, '../../shared/src'),
+      'firebase': path.resolve(__dirname, '../../node_modules/firebase')
+    },
+    dedupe: ['firebase', 'firebase/app', 'firebase/firestore', 'firebase/auth']
   },
   server: {
     port: 3000

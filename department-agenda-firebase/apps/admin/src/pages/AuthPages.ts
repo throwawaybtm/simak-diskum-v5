@@ -10,9 +10,22 @@
 
 import type { CurrentUserProfile } from '../auth/authService';
 
+const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
+
+function renderStagingBanner(): string {
+  if (!isStaging) return '';
+  return `
+    <div class="staging-indicator-banner" role="status" aria-label="Informasi Lingkungan Staging" style="position: absolute; top: 0; left: 0; width: 100%;">
+      <span class="staging-badge">UJI COBA</span>
+      <span class="staging-text">LINGKUNGAN UJI COBA / STAGING — DATA SIMULASI</span>
+    </div>
+  `;
+}
+
 export function renderLoginPage(error?: string, isSubmitting = false, initialEmail = ''): string {
   return `
     <div class="auth-page-wrapper">
+      ${renderStagingBanner()}
       <div class="auth-card" role="region" aria-label="Form Masuk Operator SIMAK DISKUM">
         <div class="auth-brand-header">
           <img src="/batam-emblem.png" alt="Lambang Kota Batam" class="auth-brand-crest" width="48" height="58">
@@ -115,6 +128,7 @@ export function renderPasswordRecoveryPage(
 ): string {
   return `
     <div class="auth-page-wrapper">
+      ${renderStagingBanner()}
       <div class="auth-card" role="region" aria-label="Form Pemulihan Kata Sandi Operator SIMAK DISKUM">
         <div class="auth-brand-header">
           <img src="/batam-emblem.png" alt="Lambang Kota Batam" class="auth-brand-crest" width="48" height="58">
@@ -185,6 +199,7 @@ export function renderAccessDeniedPage(profile: CurrentUserProfile | null, custo
 
   return `
     <div class="auth-page-wrapper">
+      ${renderStagingBanner()}
       <div class="auth-card access-denied-card" role="region" aria-label="Akses Ditolak SIMAK DISKUM">
         <div class="auth-brand-header">
           <div class="access-denied-icon-wrap" aria-hidden="true">

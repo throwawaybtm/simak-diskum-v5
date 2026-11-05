@@ -8,8 +8,15 @@ export function renderHeader(activeRoute: string): string {
   const isCalendar = activeRoute.startsWith('calendar');
   const isAgenda = activeRoute.startsWith('agenda');
   const isAnnouncements = activeRoute.startsWith('announcements');
+  const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
 
   return `
+    ${isStaging ? `
+      <div class="staging-indicator-banner" role="status" aria-label="Informasi Lingkungan Staging">
+        <span class="staging-badge">UJI COBA</span>
+        <span class="staging-text">LINGKUNGAN UJI COBA / STAGING — DATA SIMULASI</span>
+      </div>
+    ` : ''}
     <header class="app-header">
       <div class="header-container">
         <!-- Brand / Identity -->

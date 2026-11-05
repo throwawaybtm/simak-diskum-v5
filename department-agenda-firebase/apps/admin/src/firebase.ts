@@ -10,16 +10,18 @@ import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence, 
 const isStagingMode = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
 
 const firebaseConfig = {
-  apiKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_API_KEY) || 'demo-api-key',
+  apiKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_API_KEY) ||
+    (isStagingMode ? 'AIzaSyCXO4ewDqWJSZkgwSMGwv-2b_vyoLFW_c4' : 'demo-api-key'),
   authDomain: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN) ||
     (isStagingMode ? 'simakdiskum-staging.firebaseapp.com' : 'simakdiskum.firebaseapp.com'),
   projectId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_PROJECT_ID) ||
     (isStagingMode ? 'simakdiskum-staging' : 'simakdiskum'),
   storageBucket: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET) ||
-    (isStagingMode ? 'simakdiskum-staging.appspot.com' : 'simakdiskum.appspot.com'),
-  messagingSenderId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID) || '123456789',
+    (isStagingMode ? 'simakdiskum-staging.firebasestorage.app' : 'simakdiskum.appspot.com'),
+  messagingSenderId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID) ||
+    (isStagingMode ? '711753361493' : '123456789'),
   appId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_APP_ID) ||
-    (isStagingMode ? '1:123456789:web:simakdiskum-staging-admin' : '1:123456789:web:simakdiskum-admin')
+    (isStagingMode ? '1:711753361493:web:75b26825535590fd83ccdc' : '1:123456789:web:simakdiskum-admin')
 };
 
 export const app: FirebaseApp = initializeApp(firebaseConfig);
@@ -36,7 +38,7 @@ if (typeof window !== 'undefined') {
 // Connect to local Firestore & Auth emulators strictly during local development.
 // Invariant: Staging and production builds (MODE=staging / MODE=production) NEVER connect to emulator endpoints.
 const isLocalDev = typeof import.meta !== 'undefined' && Boolean(import.meta.env?.DEV);
-const isStagingOrProd = typeof import.meta !== 'undefined' && (import.meta.env?.MODE === 'staging' || import.meta.env?.MODE === 'production');
+const isStagingOrProd = typeof import.meta !== 'undefined' && (import.meta.env?.MODE === 'staging' || import.meta.env?.MODE === 'production' || import.meta.env?.PROD);
 const isEmulatorDisabled = typeof import.meta !== 'undefined' && import.meta.env?.VITE_USE_EMULATOR === 'false';
 
 const shouldConnectEmulator = !isStagingOrProd && !isEmulatorDisabled && (

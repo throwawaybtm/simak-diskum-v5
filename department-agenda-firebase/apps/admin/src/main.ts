@@ -207,7 +207,14 @@ async function loadActivities(): Promise<ActivityDocument[]> {
  * Returns Admin Portal shell layout when authenticated
  */
 function renderAdminShell(): string {
+  const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
   return `
+    ${isStaging ? `
+      <div class="staging-indicator-banner" role="status" aria-label="Informasi Lingkungan Staging">
+        <span class="staging-badge">UJI COBA</span>
+        <span class="staging-text">LINGKUNGAN UJI COBA / STAGING — DATA SIMULASI</span>
+      </div>
+    ` : ''}
     <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true"></div>
     <aside class="admin-sidebar" id="adminSidebar" aria-label="Navigasi Utama Admin" aria-hidden="false">
       <!-- Injected by renderSidebar -->
