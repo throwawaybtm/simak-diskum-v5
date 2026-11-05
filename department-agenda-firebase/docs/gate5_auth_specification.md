@@ -109,53 +109,32 @@ For the **2–5 designated operators** of Dinas Koperasi dan Usaha Mikro Kota Ba
    - All private collections (`activities`, `employees`, `departments`, `locations`, `organizers`, `categories`, `settings`, `auditLogs`) strictly require `hasRole('admin')` or `hasRole('editor')`.
    - Therefore, a self-registered user receives `PERMISSION_DENIED` on every administrative read and write operation.
 
-### B. Secure Operator Provisioning CLI (`scripts/provisionOperator.mjs`)
-Operator accounts and custom claims are provisioned using a secure administrative script running on an authorized administrator workstation using the Firebase Admin SDK:
+### B. Secure Operator Provisioning & Role Management CLI (`scripts/manageRoles.mjs`)
+Operator accounts and custom claims are provisioned using the dedicated administrative script in `scripts/manageRoles.mjs` using the Firebase Admin SDK:
 
-```javascript
-// scripts/provisionOperator.mjs
-import admin from 'firebase-admin';
+```bash
+# 1. Local rehearsal with Firebase Auth Emulator:
+export FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099"
+node scripts/manageRoles.mjs provision operator@batam.go.id "P@ssword1234!" "Operator Agenda" editor
 
-// Initialize Firebase Admin with project credentials
-admin.initializeApp({
-  projectId: 'simakdiskum'
-});
-
-const auth = admin.auth();
-
-async function provisionOperator(email, displayName, role) {
-  if (!['admin', 'editor'].includes(role)) {
-    throw new Error(`Invalid role: ${role}. Must be 'admin' or 'editor'.`);
-  }
-
-  console.log(`[Provisioning] Creating account for ${displayName} <${email}> with role: ${role}...`);
-  
-  // 1. Create User Account
-  const userRecord = await auth.createUser({
-    email,
-    displayName,
-    emailVerified: true,
-    disabled: false
-  });
-
-  // 2. Set Custom Role Claim
-  await auth.setCustomUserClaims(userRecord.uid, { role });
-
-  // 3. Generate Out-of-Band Password Reset Link
-  const resetLink = await auth.generatePasswordResetLink(email);
-
-  console.log(`✓ Account created successfully! UID: ${userRecord.uid}`);
-  console.log(`✓ Custom claim set: { role: "${role}" }`);
-  console.log(`✓ Deliver this secure one-time password setup link to the operator:`);
-  console.log(`  ${resetLink}`);
-}
+# 2. Production execution with securely downloaded service account key:
+export GOOGLE_APPLICATION_CREDENTIALS="/secure/credentials/simakdiskum-admin-key.json"
+node scripts/manageRoles.mjs provision operator@batam.go.id "TemporaryP@ssword!" "Operator Agenda" editor
+node scripts/manageRoles.mjs set-role operator@batam.go.id admin
+node scripts/manageRoles.mjs inspect operator@batam.go.id
+node scripts/manageRoles.mjs disable operator@batam.go.id
+node scripts/manageRoles.mjs reset-password operator@batam.go.id
 ```
+
+#### Service Account Protection Protocol:
+1. **Never commit service-account credentials to source control:** `.gitignore` strictly excludes `*.serviceAccountKey.json`, `*service-account*.json`, and `.env*`.
+2. **Download from Google Cloud / Firebase Console only on authorized admin workstations:** In Firebase Console -> **Project Settings** -> **Service accounts**, click **"Generate new private key"**. Store this key in a secure root-protected directory (e.g. `~/.credentials/` or Windows secure credential folder), NEVER inside the project repository.
+3. **Least Privilege:** The service account is only used for command-line administrative onboarding and backup tasks. It is never embedded into client bundles.
 
 ### C. Operator Offboarding & Revocation Procedure
 When an operator leaves the department or is reassigned:
-1. Run `auth.updateUser(uid, { disabled: true })`.
-2. Run `auth.setCustomUserClaims(uid, { role: null })`.
-3. Run `auth.revokeRefreshTokens(uid)`.
+1. Run `node scripts/manageRoles.mjs disable <email|uid>`.
+2. This invokes `auth.updateUser(uid, { disabled: true })` and `auth.revokeRefreshTokens(uid)`.
 
 > [!IMPORTANT]
 > **Token Revocation Lifetime Limitation:**
@@ -491,44 +470,30 @@ service cloud.firestore {
 
     // MATCH RULES
     match /publicActivities/{id} {
-      // Public read access for citizen calendar, agenda, and 8-column reports
       allow read: if true;
-
-      // Creation: Authenticated Admin and Editor only. Enforces version 1 and coordinated write with private canonical activity.
       allow create: if isEditorOrAdmin() &&
                     isValidPublicActivity(request.resource.data, id) &&
                     request.resource.data.version == 1 &&
                     hasMatchingPrivateActivity(id, request.resource.data);
-
-      // Update: Authenticated Admin and Editor only. Enforces version increment (+1), immutability, and coordinated write with private canonical activity.
       allow update: if isEditorOrAdmin() &&
                     isValidPublicActivity(request.resource.data, id) &&
                     request.resource.data.version == resource.data.version + 1 &&
                     areImmutableFieldsUnchanged(['id']) &&
                     hasMatchingPrivateActivity(id, request.resource.data);
-
-      // Deletion: Admin only, or Editor if private activity is also deleted in same batch
       allow delete: if isAdmin() || (isEditor() && !existsAfter(/databases/$(database)/documents/activities/$(id)));
     }
 
     match /activities/{activityId} {
-      // Read access strictly limited to authenticated Admin and Editor. Never public.
       allow read: if isEditorOrAdmin();
-
-      // Creation: Authenticated Admin and Editor. Enforces schema, version == 1, and coordinated public projection.
       allow create: if isEditorOrAdmin() &&
                     isValidActivity(request.resource.data, activityId) &&
                     request.resource.data.version == 1 &&
                     hasMatchingPublicProjection(activityId, request.resource.data);
-
-      // Update: Authenticated Admin and Editor. Enforces optimistic lock (+1), schema, immutability, and coordinated public projection.
       allow update: if isEditorOrAdmin() &&
                     isValidActivity(request.resource.data, activityId) &&
                     request.resource.data.version == resource.data.version + 1 &&
                     areImmutableFieldsUnchanged(['id', 'createdAt', 'createdBy']) &&
                     hasMatchingPublicProjection(activityId, request.resource.data);
-
-      // Deletion: Admin only (prevents accidental or unauthorized deletion by operators).
       allow delete: if isAdmin();
     }
 

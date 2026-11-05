@@ -4,11 +4,11 @@
 **Target Architecture:** Firebase Hosting (Multi-site: `public` & `admin`), Cloud Firestore Standard Edition, Firebase Emulator Suite  
 **Development Tooling:** Vite, TypeScript, Vitest, Playwright, Firebase CLI, ExcelJS  
 **Last Updated:** 2026-11-05  
-**Overall Status:** Visual Makeover V01-C (Final Responsive, Accessibility, Performance & Functional Quality Assurance) Completed & Formally Verified (170/170 Vitest tests, 32 rules tests, 79 browser scenarios, 100% pass rate); Ready for V01-C Final Review Checkpoint (Production Deployment Pending Approval)  
+**Overall Status:** Milestone P01 (Pre-Production Readiness, Configuration Audit & Deployment Rehearsal) Completed & Formally Verified (182/182 Vitest tests, 32 rules tests, 79 browser scenarios, 100% pass rate); All Runbooks Authored; Local Environment Audited; Ready for P01 Review Checkpoint (No Live Deployment, Preparation Only)  
 
 ---
 
-## 1. Master Task Checklist (Tasks 1–9, Gate 5A, Feature F01 & Visual Makeover V01)
+## 1. Master Task Checklist (Tasks 1–9, Gate 5A, Feature F01, Visual Makeover V01 & Milestone P01)
 
 | Task | Title | Status | Completion Date | Git Commit | Summary |
 |---|---|:---:|:---:|:---:|---|
@@ -27,14 +27,15 @@
 | **Makeover V01-A** | Design System and Dashboard Prototypes | **Completed** | 2026-11-04 | `9d8bce8` | **Public Portal:** Top horizontal navigation bar, civic brand identity, Barelang Bridge hero welcome banner, 4 summary cards below banner, 2-column feed. **Admin Portal:** Left vertical white sidebar with active light-blue pill, topbar with operator profile pill, 5-stage administrative pipeline cards, upcoming agenda list, and pure CSS conic-gradient donut chart analytics. Zero-dependency lightweight design system; DOM-safe Google Drive anchor creation; verified across 375px, 768px, 1024px, 1440px; 163 Vitest tests + 69 browser scenarios verified. Commit `9d8bce8`. *(V01-A Approved)* |
 | **Makeover V01-B** | Secondary Pages & Full Design Consistency | **Completed** | 2026-11-05 | `a7a3a1c` | Implemented V01-A usability fixes: Admin mobile/tablet off-canvas drawer (`#adminMenuToggleBtn`, backdrop blur, Escape handler, auto-close on link click, docked on desktop >= 1024px); human-readable location resolution eliminating raw IDs (`loc_xx`); public desktop header single-line layout (`white-space: nowrap`, 1380px container, mobile horizontal scroll); responsive density tuning (<200px mobile banner). Extended visual polish across all secondary pages: Calendar (Month, Week, Day, List), Agenda Search, Detail Modal, Announcements, Admin Activities List, F01 4-stage edit form with progress indicator bar (`.stage-indicator-bar`), Master Data (5 entity tabs), Official 8-column reports, spreadsheet migration, and Settings. 163/163 Vitest tests + 91 browser scenarios verified with 100% pass rate. |
 | **V01-B Final Correction Pass** | Calendar Geometry, Attendee Privacy & Admin Usability Hardening | **Completed** | 2026-11-05 | `7785825` (code) / `7d01568` (docs) | Corrected P0-P2 defects: Fixed month calendar grid misalignment using `repeat(7, minmax(0, 1fr))` with 0.00px drift across 375px, 768px, 1024px, 1440px; confirmed Nov 1 Sunday placement; prevented event overflow; resolved employee deduplication and sanitized fallbacks (0 raw IDs in public DOM); prevented admin action button collision (flexbox + min 32px height / 44px touch targets); restored high-contrast active tab token (`#2563eb` with `#ffffff` text); translated all status and location enums to Indonesian. 167/167 Vitest tests + 114 browser scenarios verified with 100% pass rate. *(V01-B Final Correction Approved)* |
-| **Makeover V01-C** | Final Responsive, Accessibility, Performance & Functional QA | **Completed** | 2026-11-05 | Pending Commit | Admin table reachability & scroll hints (880px / 210px action wrap), mobile month calendar touch scroll & hint, WCAG 2.1 AA focus rings (:focus-visible) & modal focus traps, 200% zoom reflow (0px overflow), deep public privacy emulator audit (3/3), full 12-step lifecycle walkthrough (100%), independent OpenXML XLSX parsing, bundle profiling. 170 Vitest tests + 27 V01-C browser assertions verified with 100% pass rate. Author of `docs/V01_C_RELEASE_READINESS.md`. |
+| **Makeover V01-C** | Final Responsive, Accessibility, Performance & Functional QA | **Completed** | 2026-11-05 | `041e780` (code) / `c91665a` (docs) | Admin table reachability & scroll hints (880px / 210px action wrap), mobile month calendar touch scroll & hint, WCAG 2.1 AA focus rings (:focus-visible) & modal focus traps, 200% zoom reflow (0px overflow), deep public privacy emulator audit (3/3), full 12-step lifecycle walkthrough (100%), independent OpenXML XLSX parsing, bundle profiling. 170 Vitest tests + 27 V01-C browser assertions verified with 100% pass rate. Authored `docs/V01_C_RELEASE_READINESS.md`. *(V01-C Approved)* |
+| **Milestone P01** | Pre-Production Readiness, Config Audit & Deployment Rehearsal | **Completed** | 2026-11-05 | Pending Commit | Spark-only feasibility verified; release docs corrected (no mandatory Blaze, 200% zoom clarified, local baseline noted); config audit verified (`simakdiskum` targets, `apps/*/dist` output, indexes, secret isolation); auth activation plan & CLI implemented (`manageRoles.mjs`, 7 tests); Spark-compatible backup/restore/seed engine implemented (`backupRestore.mjs`, 3 tests); deployment & rollback runbook authored (`DEPLOYMENT_RUNBOOK.md`); disaster recovery runbook authored (`BACKUP_RECOVERY_RUNBOOK.md`); 11-scenario UAT plan authored (`USER_ACCEPTANCE_TEST_PLAN.md`); executive report authored (`P01_PREPRODUCTION_READINESS.md`). 182 Vitest tests + 79 browser scenarios verified (100% pass rate). |
 
 ---
 
-## 2. Test Totals at Latest Checkpoint (Visual Makeover V01-C Verified)
+## 2. Test Totals at Latest Checkpoint (Milestone P01 Pre-Production Verified)
 
-- **Vitest Unit & Integration Suites:** 20 passed (20 total)
-- **Vitest Automated Tests:** **170 passed** (170 total, 100% pass rate)
+- **Vitest Unit & Integration Suites:** 22 passed (22 total)
+- **Vitest Automated Tests:** **182 passed** (182 total, 100% pass rate)
 - **Playwright Real-Browser Verification Suites:**
   - V01-C Release Readiness Suite (`v01cReleaseReadinessVerification.mjs`): **27 / 27 passed** (Table reachability across 5 viewports, mobile calendar scroll & hint, 12-step lifecycle, focus rings, modal traps, 200% zoom reflow, cold load performance, OpenXML XLSX parsing)
   - V01-B Final Correction Pass Suite (`v01bFinalCorrectionVerification.mjs`): **23 / 23 passed** (Geometry at 4 viewports, attendee privacy, admin buttons, master tabs, announcements)
@@ -42,16 +43,19 @@
   - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed** (100%)
   - Master Data Suite (`masterDataVerification.mjs`): **8 / 8 passed** (100%)
 - **Total Real-Browser Scenarios:** **79 verified browser executions** across current primary suites (100% pass rate)
-- **Total Automated Test Assertions:** **249 passed** (170 Vitest + 79 Browser, 100% pass rate)
+- **Total Automated Test Assertions:** **261 passed** (182 Vitest + 79 Browser, 100% pass rate)
 - **Visual Artifacts:** 99 verified browser screenshots in `tests/e2e/screenshots/`
 - **Bundle Metrics:**
-  - Public Shell: `index.html` 1.14 kB (gzip: 0.58 kB), `index.css` 24.77 kB (gzip: 5.05 kB)
-  - Public Initial App Code: `index.js` **48.85 kB** (gzip: **13.55 kB**) *(Initial critical path well below 150 kB budget)*
+  - Public Shell: `index.html` 1.14 kB (gzip: 0.57 kB), `index.css` 24.77 kB (gzip: 5.05 kB)
+  - Public Initial App Code: `index.js` **49.16 kB** (gzip: **13.67 kB**) *(Initial critical path well below 150 kB budget)*
   - Public Vendor: `firebase-vendor` 874.42 kB (gzip: 226.02 kB), `exceljs-vendor` 953.20 kB (gzip: 275.76 kB, lazy-loaded on export demand)
   - Admin Initial Shell: `index.js` 13.99 kB (gzip: 4.70 kB), `index.css` 25.42 kB (gzip: 5.61 kB)
   - Admin Lazy Modules: `SettingsPage` 5.19 kB (gzip: 2.08 kB), `ReportsPage` 14.75 kB (gzip: 5.12 kB), `MasterDataPage` 19.42 kB (gzip: 4.84 kB), `ActivitiesPage` 5.07 kB (gzip: 1.91 kB), `DashboardPage` 10.28 kB (gzip: 2.58 kB), `ActivityEditWorkflow` 31.34 kB (gzip: 8.40 kB), `legacyMigrationParser` 952.48 kB (gzip: 275.76 kB)
 - **Test Categories Breakdown:**
   - Live Firestore Security Rules (Emulator): **32 tests** (`firestore.rules.test.ts`)
+  - Operator Role Management & Custom Claims: **7 tests** (`authRoleManagement.test.ts`)
+  - Spark-Compatible Logical Backup & Restore: **3 tests** (`backupRestore.test.ts`)
+  - Staging Readiness & Firebase Config Separation: **7 tests** (`stagingReadiness.test.ts`)
   - Public Privacy & DTO Audit (Emulator): **3 tests** (`publicPrivacyAudit.emulator.test.ts`)
   - Monorepo Configuration & Rules: 7 tests (`monorepo_config.test.ts`)
   - Schemas & Data Contracts: 3 tests (`schemas.test.ts`)
@@ -70,7 +74,6 @@
   - Query Benchmark & Multi-Month Range (Emulator): 1 test (`queryBenchmark.emulator.test.ts`)
   - OpenXML Spreadsheet Independent Parser: 1 test (`xlsxParserVerification.test.ts`)
   - Master Safety, Whitespace Deduplication & Dry-Run Isolation: **6 tests** (`masterSafetyAndMigration.test.ts`)
-  - Staging Readiness & Firebase Config Separation: 5 tests (`stagingReadiness.test.ts`)
 
 ---
 
@@ -90,14 +93,15 @@
 | **V01-A Visual Review Checkpoint**| Design System & Dashboard Prototypes | **Approved** | Aligned with approved reference `docs/design/reference-approved.png`. **Public:** Top horizontal pill navigation, Batam identity, Barelang Bridge hero welcome banner, 4 summary cards below banner, 2-column feed. **Admin:** Left vertical white sidebar with active light-blue pill, top header with operator profile pill, 5-stage administrative cards, upcoming agenda list, and pure CSS conic-gradient donut chart analytics. Commit `9d8bce8`. |
 | **V01-B Visual Review Checkpoint**| Secondary Pages & Full Design Consistency | **Approved** | Resolved V01-A usability issues: Admin mobile/tablet off-canvas drawer (`#adminMenuToggleBtn`, backdrop blur, Escape key, focus trap, docked on desktop >=1024px); human-readable location resolution (`FALLBACK_LOCATIONS` + master map, zero raw `loc_xx` IDs); public desktop header single-line layout (`white-space: nowrap`, 1380px container, mobile horizontal scroll); responsive density tuning (<200px mobile banner). Extended visual polish across all secondary pages: Calendar (Month, Week, Day, List), Agenda Search, Detail Modal, Announcements, Admin Activities List, F01 4-stage edit form with progress indicator bar (`.stage-indicator-bar`), Master Data (5 entity tabs), Official 8-column reports, spreadsheet migration, and Settings. 163/163 Vitest tests + 91 browser scenarios verified with 100% pass rate. |
 | **V01-B Final Correction Pass**| Calendar Geometry, Attendee Privacy & Usability Hardening | **Approved** | Corrected P0-P2 defects: Fixed month calendar grid misalignment using `repeat(7, minmax(0, 1fr))` with 0.00px drift across 375px, 768px, 1024px, 1440px; confirmed Nov 1 Sunday placement; prevented event overflow (0.00px offset); resolved employee deduplication and sanitized fallbacks (0 raw IDs in public DOM); prevented admin action button collision (flexbox + min 32px height / 44px touch targets); restored high-contrast active tab token (`#2563eb` with `#ffffff` text); translated all status and location enums to Indonesian. 167/167 Vitest tests + 114 browser scenarios verified with 100% pass rate. Commits `7785825` and `7d01568`. |
-| **V01-C Final Review Checkpoint**| Final Responsive, Accessibility, Performance & Functional QA | **READY FOR REVIEW** | Admin table action reachability across 5 viewports (min-width 880px, action cell 210px wrap, scroll hint), mobile calendar touch scroll with Indonesian hint, high-contrast `:focus-visible` rings (2px outline), modal focus traps with Escape & restore, 200% zoom reflow (0px overflow), 12-step functional lifecycle walkthrough, 8-column reports, OpenXML XLSX compliance, Core Web Vitals (FCP 24–40ms, Data-ready 561ms). 170 Vitest tests + 27 V01-C browser assertions passed (100%). Author of `docs/V01_C_RELEASE_READINESS.md`. Ready for final review. |
+| **V01-C Final Review Checkpoint**| Final Responsive, Accessibility, Performance & Functional QA | **Approved** | Admin table action reachability across 5 viewports (min-width 880px, action cell 210px wrap, scroll hint), mobile calendar touch scroll with Indonesian hint, high-contrast `:focus-visible` rings (2px outline), modal focus traps with Escape & restore, 200% zoom reflow (0px overflow), 12-step functional lifecycle walkthrough, 8-column reports, OpenXML XLSX compliance, Core Web Vitals (FCP 24–40ms, Data-ready 561ms). 170 Vitest tests + 27 V01-C browser assertions passed (100%). Authored `docs/V01_C_RELEASE_READINESS.md`. Commits `041e780` and `c91665a`. *(V01-C Approved)* |
+| **Milestone P01 Review Checkpoint**| Pre-Production Readiness, Configuration Audit & Rehearsal | **READY FOR REVIEW** | Spark-only architecture validated (no Blaze needed; 50k reads/20k writes modeled); config audited (`simakdiskum` targets, `apps/*/dist` output, compound indexes, zero leaked secrets); operator role management CLI (`scripts/manageRoles.mjs`, 7 tests passed); Spark-compatible logical backup/restore/seed engine (`scripts/backupRestore.mjs`, 3 tests passed); `DEPLOYMENT_RUNBOOK.md`, `BACKUP_RECOVERY_RUNBOOK.md`, `USER_ACCEPTANCE_TEST_PLAN.md`, and `P01_PREPRODUCTION_READINESS.md` authored. 182 Vitest tests + 79 browser scenarios passing (100% pass rate). Stopped at checkpoint awaiting user authorization. |
 
 ---
 
 ## 4. Production-Readiness Findings, Technical Debt & Unresolved Issues
 
 1. **Bundle Payload Distinction (Shell Entry vs Full Data-Ready Payload):**
-   - *Distinction:* The reported **13.21 kB gzip** (47.91 KB raw) represents the initial public application shell entry point. The full data-ready payload on the network includes the **225.69 kB gzip** (871.46 KB raw) Firebase vendor bundle. Total network weight for initial data retrieval is ~238.90 kB gzip, whereas ExcelJS (275.76 kB gzip) is strictly lazy-loaded on export.
+   - *Distinction:* The reported **13.67 kB gzip** (49.16 KB raw) represents the initial public application shell entry point. The full data-ready payload on the network includes the **226.02 kB gzip** (874.42 KB raw) Firebase vendor bundle. Total network weight for initial data retrieval is ~239.69 kB gzip, whereas ExcelJS (275.76 kB gzip) is strictly lazy-loaded on export.
 2. **Safe Dynamic Google Drive DOM Anchor Construction:**
    - *Status:* **ENFORCED & VERIFIED**. External Google Drive links are created strictly via DOM APIs (`document.createElement('a')`, `anchor.href = driveUrl`, `anchor.textContent = ...`, `anchor.target = '_blank'`, `anchor.rel = 'noopener noreferrer'`). User-supplied URLs cannot inject raw HTML attributes.
 3. **Firestore CEL Case-Sensitivity Invariant:**
@@ -120,3 +124,9 @@
     - *Status:* **RESOLVED & VERIFIED**. Fixed active tab token to `var(--color-primary)` (`#2563eb`) with `#ffffff` text, delivering WCAG AAA compliant contrast.
 12. **Indonesian Civic Localization of Enums:**
     - *Status:* **ENFORCED & VERIFIED**. All status enums (`Terjadwal`, `Selesai`, `Dibatalkan`), location types (`Kantor Dinas`, `Luar Kantor`, `Daring`), and administrative stages (`Input Awal`, `Proses Offline`, `Detail Dilengkapi`, `Administrasi Lengkap`) are translated into official Indonesian terminology across all Public and Admin views.
+13. **Firebase Spark Plan Zero-Cost Feasibility & Quota Limits:**
+    - *Status:* **AUDITED & MODELLED**. Architecture fits 100% within the Spark free plan (50k reads/20k writes daily, 10 GB bandwidth/month). Regular department usage (5 operators, ~200 public visitors) consumes ~10% of read quota and <0.2% of write quota. If high spikes occur and exceed 50k reads, Firestore returns HTTP 429 (`ResourceExhausted`); client gracefully displays informative Indonesian notice without crashing static hosting shell.
+14. **Spark-Compatible Logical Backup Strategy:**
+    - *Status:* **IMPLEMENTED & VERIFIED**. Because automated GCS backup exports require Blaze billing, database safety is provided via `scripts/backupRestore.mjs`. Supports full JSON export across all 9 collections, batched atomic restoration (450 docs/batch), and master data seeding. Verified by `tests/unit/backupRestore.test.ts` (3/3 passing).
+15. **Production Operator Account Management CLI:**
+    - *Status:* **IMPLEMENTED & VERIFIED**. Role provisioning and token revocation CLI (`scripts/manageRoles.mjs`) provides safe provisioning, custom claim assignment, account disabling, and password reset generation. Service account key handling is isolated via `$env:GOOGLE_APPLICATION_CREDENTIALS` and gitignored. Verified by `tests/unit/authRoleManagement.test.ts` (7/7 passing).

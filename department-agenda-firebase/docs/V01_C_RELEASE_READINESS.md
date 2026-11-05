@@ -23,10 +23,10 @@ In accordance with strict operational guardrails, **NO live production deploymen
 | **Data Privacy Shield** | Zero leakage of internal notes, Drive URLs, or employee database IDs | Raw Firestore documents & Public DTO audits prove zero leakage of `attendeeIds`, `attendeeSnapshots`, `invitationLetter`, `driveUrl`, `privateNotes`, `cancelReason`. | **PASSED (100%)** |
 | **Table Action Reachability** | Complete visibility of `Edit`, `Duplikat`, `Hapus` actions at 375px–1440px | Contained horizontal scroll hint (`min-width: 880px`), dedicated action cell wrapper (`min-width: 210px`), zero clipping, confirmation safeguards intact. | **PASSED (100%)** |
 | **Mobile Month Calendar** | Full 7-column usability with contained horizontal scroll & hint | Mobile hint displayed (`👉 Geser untuk melihat hari lainnya`), Sunday column accessible, cells & events clickable, 0px doc horizontal overflow. | **PASSED (100%)** |
-| **Accessibility (WCAG 2.1 AA)** | Keyboard navigation, visible focus ring, modal focus traps, 200% zoom | High-contrast `:focus-visible` (2px outline), modal initial focus, Tab loop trap, Escape dismissal with focus restoration, 0px overflow at 200% zoom. | **PASSED (100%)** |
+| **Accessibility (Targeted Criteria)** | Keyboard navigation, visible focus ring, modal focus traps, responsive density | High-contrast `:focus-visible` (2px outline), modal initial focus, Tab loop trap, Escape dismissal with focus restoration, touch target compliance (>=32px desktop, >=44px mobile), and responsive header collapse at <=1350px. *(Note: Targeted accessibility criteria verified; not a blanket WCAG 2.1 AA audit certification).* | **PASSED (Targeted)** |
 | **Official 8-Column Reports** | Exact 8 columns, Kop Surat, multi-day single rows, XLSX & A4 print | Official 8-column layout verified, genuine OpenXML XLSX verified by independent ExcelJS parser, formula injection neutralized, A4 landscape print CSS intact. | **PASSED (100%)** |
 | **Functional Lifecycle** | 12-step full lifecycle from `INITIAL_ENTRY` to `ADMIN_COMPLETE` | Complete 12-step lifecycle verified end-to-end including version concurrency, stage progression, cancellation notices, and conflict dialogs. | **PASSED (100%)** |
-| **Core Web Vitals** | Cold load data-ready < 3000ms, FCP < 1000ms, CLS < 0.1 | Cold data-ready: **561ms**, FCP: **24–40ms**, DOM Complete: **217ms**. Public application code: **13.55 kB gzip**. | **PASSED (100%)** |
+| **Core Web Vitals (Local Baseline)** | Cold load data-ready < 3000ms, FCP < 1000ms, CLS < 0.1 | Local emulator baseline: Cold data-ready: **561ms**, FCP: **24–40ms**, DOM Complete: **217ms**. Public application code: **13.55 kB gzip**. *(Note: Local localhost measurements; internet latency, mobile 3G/4G radio delays, and CDN roundtrips are unmeasured until staging).* | **PASSED (Local Baseline)** |
 
 ---
 
@@ -96,26 +96,41 @@ Admin Portal Build (@department-agenda/admin):
   dist/assets/firebase-vendor-DICTZwha.js  1,071.18 kB │ gzip: 273.95 kB (Vendor)
 ```
 
-### 5.2 Real Browser Telemetry
-- **First Contentful Paint (FCP):** 24ms – 40ms (Budget: < 1000ms)
+### 5.2 Local Browser Telemetry & High-DPI Density Notes
+- **First Contentful Paint (FCP):** 24ms – 40ms (Local emulator baseline; budget: < 1000ms)
 - **DOM Complete:** 217ms – 235ms
-- **Firestore Data-Ready Latency:** 561ms – 676ms (Budget: < 3000ms)
-- **200% Zoom Document Horizontal Overflow:** 0px (scrollWidth = 1280px, innerWidth = 1280px)
+- **Firestore Data-Ready Latency:** 561ms – 676ms (Local emulator baseline; budget: < 3000ms)
+- **High-DPI / Retina Density (`deviceScaleFactor: 2`):** 0px document horizontal overflow (scrollWidth = 1280px, innerWidth = 1280px).
+- *Methodological Clarification:* Setting `deviceScaleFactor: 2` tests high pixel density rasterization. True browser 200% zoom simulates a 640px viewport width on a 1280px display, which triggers responsive reflow. Layout tests at 375px and 768px confirm reflow behavior down to single-column viewports.
 
 ---
 
-## 6. Pre-Production Deployment Checklist & Blocker Status
+## 6. Pre-Production Deployment Checklist & Target Service Plan
 
-The following checklist specifies requirements for transitioning from V01-C to production deployment:
+The target production infrastructure operates on the **Firebase Spark (No-Cost) Plan**. Our architecture uses two Firebase Hosting sites, Cloud Firestore Standard Edition, Firebase Authentication Email/Password, and Google Drive external document links. We utilize **NO Cloud Functions, NO Firebase Cloud Storage, and NO paid GCP infrastructure**. The Blaze billing plan is NOT mandatory and is NOT recommended unless an approved future requirement strictly necessitates it.
 
-| Item | Requirement Description | Current Environment Status | Production Prerequisite |
+### 6.1 Firebase Spark Quotas & Operational Limits
+
+| Resource | Spark Free Tier Allocation | Operational Consequences of Exceeding Quota |
+| :--- | :--- | :--- |
+| **Cloud Firestore Document Reads** | **50,000 reads / day** | Firestore returns HTTP 429 (`ResourceExhausted`). App displays retry notice. Quota resets at 00:00 Pacific Time (14:00/15:00 WIB). |
+| **Cloud Firestore Document Writes** | **20,000 writes / day** | Admin operations blocked until quota resets. Public cached data remains readable if read quota allows. |
+| **Cloud Firestore Document Deletes** | **20,000 deletes / day** | Admin activity/master deletions blocked until quota resets. |
+| **Cloud Firestore Stored Data** | **1 GiB total storage** | Writes rejected if database size exceeds 1 GiB. (Current database footprint with 520 records is < 2 MB). |
+| **Firebase Hosting Data Transfer** | **10 GB / month** | Hosting sites suspended with bandwidth exceeded notice until billing linked or 1st of next month. |
+| **Firebase Hosting Storage** | **360 MB / day** | Deployments rejected if total site assets exceed 360 MB (Current build: ~2 MB total). |
+| **Firebase Authentication** | **50,000 Monthly Active Users** | Sign-ins fail if monthly active user limit reached (Department has < 50 staff). |
+
+### 6.2 Pre-Production Readiness Checklist
+
+| Item | Requirement Description | Current Environment Status | Staging & Production Requirement |
 | :---: | :--- | :--- | :--- |
-| **1** | **Google Cloud Billing Plan** | Local Emulator (no billing) | Upgrade project to Firebase Blaze (Pay-as-you-go) for cloud functions and live hosting quotas. |
-| **2** | **Firebase Hosting Deployment** | Uncommitted to live hosting | Run `firebase deploy --only hosting` to target production sites after domain verification. |
-| **3** | **Firebase Authentication Provider** | Mock auth in local emulator | Provision Email/Password and SSO in Firebase Console with official `@batam.go.id` domain restrictions. |
-| **4** | **Custom Domain & DNS Mapping** | Localhost (ports 3000, 3001) | Configure DNS A/CNAME records for `agenda.batam.go.id` and `admin-agenda.batam.go.id` with SSL. |
-| **5** | **Production Signatory Certificates** | Default demo signatory in settings | Register official Kepala Dinas NIP, rank, and official electronic signature stamp in master settings. |
-| **6** | **Cloud Security Rules Deployment** | Evaluated on local emulator (32/32 tests) | Execute `firebase deploy --only firestore:rules` to lock live Cloud Firestore database. |
+| **1** | **Target Service Plan** | Local Emulator (no billing) | **Firebase Spark Plan (No-Cost).** Blaze plan is NOT required. |
+| **2** | **Firebase Hosting Deployment** | Uncommitted to live hosting | Deploy production builds to default sites `simakdiskum.web.app` (public) and `simakdiskum-admin.web.app` (admin). |
+| **3** | **Firebase Authentication Provider** | Mock auth in local emulator | Enable Email/Password provider in Firebase Console. *(Google Workspace SSO is an optional future enhancement).* |
+| **4** | **Custom Domain & DNS Mapping** | Localhost (ports 3000, 3001) | Primary deployment targets default `.web.app` domains. *(Custom domain `agenda.batam.go.id` is an optional future enhancement).* |
+| **5** | **Official Signatory Configuration** | Verified in Firestore settings | Configure official Kepala Dinas name, NIP, rank, and title via Admin Settings page. *(Electronic PKI certificates are out of scope).* |
+| **6** | **Cloud Security Rules Deployment** | Evaluated on local emulator (32/32 tests) | Execute `firebase deploy --project simakdiskum --only firestore:rules,firestore:indexes` to lock production database. |
 
 ---
 

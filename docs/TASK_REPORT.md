@@ -483,14 +483,116 @@ Visual Makeover V01-C represents the final comprehensive quality assurance pass 
 
 ---
 
-## 8. Review Checkpoint Status
+## 8. Review Checkpoint Status (V01-C)
 
 - **Checkpoint:** **V01-C Final Review Checkpoint**
-- **Status:** **COMPLETED & VERIFIED (AWAITING APPROVAL)**
-- **Strict Invariants Maintained:**
-  - Running exclusively in local emulator development environment.
-  - No live Firebase Hosting deploy executed.
-  - No live Firebase Authentication activated.
-  - No Google Cloud Blaze billing upgrade performed.
-  - No real administrative accounts created.
-  - Work stopped and awaiting user review and progression approval.
+- **Status:** **APPROVED & FORMALLY ACCEPTED**
+- **Implementation Commit:** `041e780`
+- **Documentation Commit:** `c91665a`
+
+---
+
+## 9. Detailed Task Report: Milestone P01 (Pre-Production Readiness, Configuration Audit & Deployment Rehearsal)
+
+**Milestone:** P01  
+**Title:** Pre-Production Readiness, Configuration Audit & Deployment Rehearsal  
+**Date:** 2026-11-05  
+**Target Infrastructure:** Firebase Spark (No-Cost Plan)  
+**Target Project:** `simakdiskum`  
+**Status:** Completed & Formally Verified (182/182 Vitest Tests, 32 Rules Tests, 79 Browser Scenarios, 100% Pass Rate)  
+**Strict Invariant Enforced:** PREPARATION ONLY. Zero live deployments, zero real operator creation, zero cloud rules modification, zero Blaze billing activation.
+
+### A. Summary of Implementation & Audits
+
+1. **Correction of Release Documentation:**
+   - Corrected `docs/V01_C_RELEASE_READINESS.md`:
+     - Asserted **Firebase Spark (No-Cost Plan)** as the production plan; retracted incorrect claim that Blaze billing is mandatory.
+     - Documented Spark quotas (50k reads/day, 20k writes/day, 10 GB/mo bandwidth) and HTTP 429 `ResourceExhausted` consequences.
+     - Clarified that `deviceScaleFactor=2` tests high-density Retina rendering, whereas genuine 200% zoom reflow requires effective viewport scaling (640px width).
+     - Scoped accessibility assertions to verified items (`:focus-visible` outline rings, modal focus trapping, Escape dismissal) rather than blanket WCAG 2.1 AA claims.
+     - Explicitly differentiated local emulator baseline latency from live internet latency.
+     - Clarified that SSO, custom domains, and digital PKI e-signatures are future optional enhancements.
+
+2. **Firebase Configuration & Secret Leak Audit:**
+   - Audited `.firebaserc` (targets `simakdiskum` and `simakdiskum-admin`).
+   - Audited `firebase.json` and `firebase.emulator.json` (strict separation of hosted rules vs permissive emulator rules).
+   - Audited `firebase/firestore.indexes.json` (compound indexes for `startDate ASC, endDate ASC`, `isPublic ASC, startDate ASC`).
+   - Updated `apps/public/src/firebase.ts` and `apps/admin/src/firebase.ts` to consume `import.meta.env?.VITE_FIREBASE_*` with safe public fallbacks and strictly restrict emulator connections to `location.hostname === 'localhost' || location.hostname === '127.0.0.1'`.
+   - Updated `.gitignore` to explicitly ignore `*.serviceAccountKey.json`, `*service-account*.json`, `.env`, and `.env.*.local`.
+   - Added automated tests to `tests/unit/stagingReadiness.test.ts` (7/7 passed).
+
+3. **Authentication Activation Plan & Rehearsal:**
+   - Implemented operator role provisioning utility: `scripts/manageRoles.mjs`.
+   - Supported commands: `provision`, `set-role`, `inspect`, `disable`, `reset-password`.
+   - Enforces lowercase role claims (`role: 'admin'`, `role: 'editor'`).
+   - Automatically calls `auth.revokeRefreshTokens(uid)` on role change or account disabling to invalidate stale tokens immediately.
+   - Comprehensive test suite authored: `tests/unit/authRoleManagement.test.ts` (7/7 passed).
+   - Authored service account credential handling and security protocol in `docs/gate5_auth_specification.md`.
+
+4. **Spark-Compatible Backup, Disaster Recovery & Seeding Strategy:**
+   - Addressed Spark limitation: automated `gcloud firestore export` requires a GCS bucket (Blaze plan).
+   - Implemented logical backup utility: `scripts/backupRestore.mjs`.
+   - Supports:
+     - `export <dir>`: Exports all 9 core collections to JSON with SHA-256 integrity manifest.
+     - `restore <dir>`: Chunks documents into 450-doc atomic batches (under Firestore's 500-op limit).
+     - `seed`: Idempotently seeds official master data (employees, locations, organizers, categories, signatory).
+   - Automated test suite authored: `tests/unit/backupRestore.test.ts` (3/3 passed).
+   - Authored `docs/BACKUP_RECOVERY_RUNBOOK.md`.
+
+5. **Deployment & Safe Rollback Runbook:**
+   - Authored `docs/DEPLOYMENT_RUNBOOK.md`:
+     - 8-point mandatory preflight checklist.
+     - Explicit production deployment commands (`firebase deploy --project simakdiskum --only ...`).
+     - Partial deployment syntax for isolated hosting vs rules deployments.
+     - Safe 1-click Hosting rollback procedure via Firebase Console Release History.
+     - Firestore Security Rules rollback via Console Rules History or Git.
+     - Clear distinction between static asset rollback and database restoration.
+
+6. **Comprehensive User Acceptance Test (UAT) Plan:**
+   - Authored `docs/USER_ACCEPTANCE_TEST_PLAN.md`:
+     - 11 step-by-step acceptance scenarios for department leadership and operators:
+       1. Initial agenda creation (`INITIAL_ENTRY`).
+       2. Offline administrative stage progression (`OFFLINE_PROCESS`).
+       3. Completing attendees and remarks (`DETAILS_COMPLETED`).
+       4. Administrative filing with No. Agenda, letter date, and Drive URL (`ADMIN_COMPLETE`).
+       5. Editing and cancelling agendas with citizen notices.
+       6. Room and attendee conflict detection and override.
+       7. Official 8-column government reports generation (A4 landscape print).
+       8. XLSX spreadsheet export and desktop Microsoft Excel validation.
+       9. Public Portal responsive experience across desktop (1440px) and mobile (375px).
+       10. Multi-operator concurrent modification handling.
+       11. Error recovery and network drop handling.
+     - Physical A4 print check instructions (margins, kop surat, header repetition, signature).
+     - True 200% zoom reflow test procedure (640px viewport).
+
+7. **Executive Pre-Production Readiness Report:**
+   - Authored `docs/P01_PREPRODUCTION_READINESS.md` synthesizing all findings, mathematical quota models (10% normal usage vs peak mitigation), and remaining one-time Console prerequisites.
+
+### B. Verification Evidence
+
+- **Vitest Unit & Integration Suites:** 22 files, **182 / 182 passed** (100% pass rate).
+- **Firestore Security Rules Tests:** **32 / 32 passed** (`firestore.rules.test.ts`).
+- **Auth Role Management Tests:** **7 / 7 passed** (`authRoleManagement.test.ts`).
+- **Backup & Restoration Tests:** **3 / 3 passed** (`backupRestore.test.ts`).
+- **Staging & Config Audit Tests:** **7 / 7 passed** (`stagingReadiness.test.ts`).
+- **Public Privacy & DTO Audit Tests:** **3 / 3 passed** (`publicPrivacyAudit.emulator.test.ts`).
+- **Playwright Browser Scenarios:** **79 / 79 passed** across all active suites:
+  - `v01cReleaseReadinessVerification.mjs`: 27 / 27 passed
+  - `v01bFinalCorrectionVerification.mjs`: 23 / 23 passed
+  - `f01WorkflowVerification.mjs`: 13 / 13 passed
+  - `masterDataVerification.mjs`: 8 / 8 passed
+  - `reportsVerification.mjs`: 8 / 8 passed
+- **Production Monorepo Build:** Clean exit code 0 (`@department-agenda/shared`, `@department-agenda/public`, `@department-agenda/admin`).
+
+---
+
+## 10. Milestone P01 Review Checkpoint Status
+
+- **Checkpoint:** **Milestone P01 Review Checkpoint**
+- **Status:** **COMPLETED & VERIFIED (AWAITING USER AUTHORIZATION)**
+- **Strict Invariants Preserved:**
+  - Zero live deployment commands executed.
+  - Zero real user accounts created.
+  - Zero production database rules or collections modified.
+  - Zero Blaze billing upgrades activated.
+  - System paused and awaiting review.
