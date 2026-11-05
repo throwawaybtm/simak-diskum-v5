@@ -169,7 +169,21 @@ function syncStateFromInputs(context: WorkflowContext) {
   const missingReasonInput = document.getElementById('inputMissingDocReason') as HTMLInputElement | null;
   const stageChangeReasonInput = document.getElementById('inputStageChangeReason') as HTMLInputElement | null;
 
-  if (stageSelect) currentFormState.administrativeStage = stageSelect.value as AdministrativeStage;
+  if (stageSelect) {
+    currentFormState.administrativeStage = stageSelect.value as AdministrativeStage;
+    const stageSteps = document.querySelectorAll('#stageIndicatorBar .stage-step');
+    if (stageSteps.length === 4) {
+      const selected = stageSelect.value;
+      const stages = ['INITIAL_ENTRY', 'OFFLINE_PROCESS', 'DETAILS_COMPLETED', 'ADMIN_COMPLETE'];
+      stageSteps.forEach((step, idx) => {
+        if (stages[idx] === selected) {
+          step.classList.add('active');
+        } else {
+          step.classList.remove('active');
+        }
+      });
+    }
+  }
 
   currentFormState.invitationLetter = {
     agendaNumber: agendaInput ? agendaInput.value : (currentFormState.invitationLetter?.agendaNumber || ''),

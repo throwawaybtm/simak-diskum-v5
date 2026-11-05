@@ -129,7 +129,7 @@ async function router() {
       import('./pages/DashboardPage'),
       loadActivities()
     ]);
-    contentContainer.innerHTML = renderDashboardPage(activities);
+    contentContainer.innerHTML = renderDashboardPage(activities, currentLookups.locations);
   } else if (hash === 'activities') {
     const [{ renderActivitiesPage }, activities] = await Promise.all([
       import('./pages/ActivitiesPage'),
@@ -245,10 +245,91 @@ function bindActivitiesListEvents() {
   });
 }
 
+function setupAdminMobileDrawer() {
+  const toggleBtn = document.getElementById('adminMenuToggleBtn');
+  const backdrop = document.getElementById('sidebarBackdrop');
+
+  const closeDrawer = () => {
+    const sidebar = document.getElementById('adminSidebar');
+    if (sidebar) {
+      sidebar.classList.remove('sidebar-open');
+      sidebar.setAttribute('aria-hidden', 'true');
+    }
+    if (backdrop) {
+      backdrop.classList.remove('active');
+      backdrop.setAttribute('aria-hidden', 'true');
+    }
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', 'false');
+      toggleBtn.focus();
+    }
+    document.body.classList.remove('admin-drawer-open');
+  };
+
+  const openDrawer = () => {
+    const sidebar = document.getElementById('adminSidebar');
+    if (sidebar) {
+      sidebar.classList.add('sidebar-open');
+      sidebar.setAttribute('aria-hidden', 'false');
+      const firstFocusable = sidebar.querySelector<HTMLElement>('#sidebarCloseBtn, .nav-item');
+      if (firstFocusable) firstFocusable.focus();
+    }
+    if (backdrop) {
+      backdrop.classList.add('active');
+      backdrop.setAttribute('aria-hidden', 'false');
+    }
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', 'true');
+    }
+    document.body.classList.add('admin-drawer-open');
+  };
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+      if (isExpanded) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
+    });
+  }
+
+  if (backdrop) {
+    backdrop.addEventListener('click', () => {
+      closeDrawer();
+    });
+  }
+
+  // Delegated click listener for close button and nav links in sidebar
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+
+    if (target.closest('#sidebarCloseBtn')) {
+      closeDrawer();
+    } else if (target.closest('.nav-item') && window.innerWidth < 1024) {
+      closeDrawer();
+    }
+  });
+
+  // Keyboard navigation & accessibility: Escape to close
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const sidebar = document.getElementById('adminSidebar');
+      if (sidebar && sidebar.classList.contains('sidebar-open')) {
+        closeDrawer();
+      }
+    }
+  });
+}
+
 // Bootstrap
 window.addEventListener('DOMContentLoaded', async () => {
   const adminStartTime = performance.now();
   console.log(`[Admin App] v${SYSTEM_VERSION} (${TIMEZONE}) loaded.`);
+  setupAdminMobileDrawer();
   await loadMasterData();
   const shellRenderMs = Math.round(performance.now() - adminStartTime);
   await router();

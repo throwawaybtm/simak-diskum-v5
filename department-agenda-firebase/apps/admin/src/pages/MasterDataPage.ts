@@ -67,11 +67,33 @@ async function loadAllMasterData(context: MasterDataContext) {
       fetchMasterRecords<Category>(context.db, 'categories')
     ]);
 
-    state.employees = emp;
-    state.departments = dept;
-    state.locations = loc;
-    state.organizers = org;
-    state.categories = cat;
+    state.employees = emp.length > 0 ? emp : [
+      { id: 'emp_01', name: 'Drs. Hendri Arifin, M.Si', position: 'Kepala Dinas', departmentId: 'dept_01', active: true },
+      { id: 'emp_02', name: 'Rini Marlina, S.Sos', position: 'Sekretaris Dinas', departmentId: 'dept_01', active: true },
+      { id: 'emp_03', name: 'Ahmad Fauzi, SE', position: 'Kabid Koperasi', departmentId: 'dept_02', active: true },
+      { id: 'emp_04', name: 'Dewi Sartika, S.Si', position: 'Kabid Pengawasan UMKM', departmentId: 'dept_03', active: true }
+    ];
+    state.departments = dept.length > 0 ? dept : [
+      { id: 'dept_01', name: 'Sekretariat', active: true },
+      { id: 'dept_02', name: 'Bidang Pemberdayaan Koperasi', active: true },
+      { id: 'dept_03', name: 'Bidang Pengembangan Usaha Mikro', active: true }
+    ];
+    state.locations = loc.length > 0 ? loc : [
+      { id: 'loc_01', name: 'Ruang Rapat Kadis (Lt. 2)', type: 'OFFICE', isBookableRoom: true, active: true },
+      { id: 'loc_02', name: 'Aula PLUT Batam', type: 'OFFICE', isBookableRoom: true, active: true },
+      { id: 'loc_03', name: 'Zoom Cloud Meeting Dinas', type: 'ONLINE', isBookableRoom: false, active: true },
+      { id: 'loc_04', name: 'Hotel Planet Holiday Batam', type: 'EXTERNAL', isBookableRoom: false, active: true }
+    ];
+    state.organizers = org.length > 0 ? org : [
+      { id: 'org_01', name: 'Sekretariat Dinas', active: true },
+      { id: 'org_02', name: 'Bidang Pemberdayaan Koperasi', active: true },
+      { id: 'org_03', name: 'Bidang Pengembangan Usaha Mikro', active: true }
+    ];
+    state.categories = cat.length > 0 ? cat : [
+      { id: 'cat_01', name: 'Rapat Koordinasi', colorHex: '#0284c7', active: true },
+      { id: 'cat_02', name: 'Pelatihan / Bimtek', colorHex: '#16a34a', active: true },
+      { id: 'cat_03', name: 'Pameran & Ekspo', colorHex: '#ea580c', active: true }
+    ];
   } catch (err) {
     console.error('[Master Data] Failed to load data from Firestore:', err);
   }

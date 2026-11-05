@@ -138,6 +138,12 @@ export function renderActivityEditPage(
 
             <div class="form-group stage-selector-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color, #e2e8f0);">
               <label for="selectAdministrativeStage"><strong>Tahap Administrasi Kegiatan:</strong></label>
+              <div class="stage-indicator-bar" id="stageIndicatorBar">
+                <div class="stage-step ${form.administrativeStage === 'INITIAL_ENTRY' || !form.administrativeStage ? 'active' : ''}">1. Input Awal</div>
+                <div class="stage-step ${form.administrativeStage === 'OFFLINE_PROCESS' ? 'active' : ''}">2. Proses Offline</div>
+                <div class="stage-step ${form.administrativeStage === 'DETAILS_COMPLETED' ? 'active' : ''}">3. Detail Dilengkapi</div>
+                <div class="stage-step ${form.administrativeStage === 'ADMIN_COMPLETE' ? 'active' : ''}">4. Administrasi Lengkap</div>
+              </div>
               <select id="selectAdministrativeStage">
                 <option value="INITIAL_ENTRY" ${form.administrativeStage === 'INITIAL_ENTRY' ? 'selected' : ''}>1. Input Awal (INITIAL_ENTRY) — Rujukan awal masuk</option>
                 <option value="OFFLINE_PROCESS" ${form.administrativeStage === 'OFFLINE_PROCESS' ? 'selected' : ''}>2. Proses Offline (OFFLINE_PROCESS) — Disposisi & koordinasi internal</option>

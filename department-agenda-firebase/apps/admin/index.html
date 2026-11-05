@@ -8,14 +8,24 @@
 </head>
 <body>
   <div id="admin-app" class="admin-layout">
-    <aside class="admin-sidebar" id="adminSidebar">
+    <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+    <aside class="admin-sidebar" id="adminSidebar" aria-label="Navigasi Utama Admin" aria-hidden="false">
       <!-- Injected by renderSidebar -->
     </aside>
     <div class="admin-body">
       <header class="topbar">
         <div class="topbar-left">
-          <h1 class="topbar-portal-title">Admin Portal</h1>
-          <p class="topbar-portal-sub">Sistem Informasi Manajemen Agenda Kedinasan</p>
+          <button type="button" id="adminMenuToggleBtn" class="btn-menu-toggle mobile-only" aria-label="Buka menu navigasi" aria-expanded="false" aria-controls="adminSidebar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="topbar-title-wrap">
+            <h1 class="topbar-portal-title">Admin Portal</h1>
+            <p class="topbar-portal-sub">Sistem Informasi Manajemen Agenda Kedinasan</p>
+          </div>
         </div>
         <div class="topbar-right">
           <button type="button" class="btn-topbar-icon" title="Notifikasi" aria-label="Notifikasi">

@@ -24,7 +24,46 @@ function formatShortDateBadge(dateStr: string): { day: string; month: string } {
   return { day: '--', month: '---' };
 }
 
-export function renderDashboardPage(activities: ActivityDocument[]): string {
+const FALLBACK_LOCATIONS: Record<string, string> = {
+  loc_01: 'Ruang Rapat Kadis (Lt. 2)',
+  loc_02: 'Aula PLUT Batam',
+  loc_03: 'Zoom Cloud Meeting Dinas',
+  loc_04: 'Hotel Planet Holiday Batam'
+};
+
+export function resolveAdminLocationName(
+  act: ActivityDocument,
+  locationsMap?: Map<string, { name: string }> | { id: string; name: string }[]
+): string {
+  if ((act as any).locationName) return (act as any).locationName;
+  const locId = act.locationId || '';
+  if (!locId) return 'Kantor Diskum Kota Batam';
+
+  if (locationsMap) {
+    if (locationsMap instanceof Map && locationsMap.has(locId)) {
+      return locationsMap.get(locId)!.name;
+    }
+    if (Array.isArray(locationsMap)) {
+      const found = locationsMap.find(l => l.id === locId);
+      if (found) return found.name;
+    }
+  }
+
+  if (FALLBACK_LOCATIONS[locId]) {
+    return FALLBACK_LOCATIONS[locId];
+  }
+
+  if (locId.toLowerCase().startsWith('loc_')) {
+    return 'Kantor Diskum Kota Batam (Ruang Rapat)';
+  }
+
+  return locId;
+}
+
+export function renderDashboardPage(
+  activities: ActivityDocument[],
+  locationsMap?: Map<string, { name: string }> | { id: string; name: string }[]
+): string {
   const total = activities.length;
 
   // Feature F01: Administrative Stage Counts
@@ -57,7 +96,7 @@ export function renderDashboardPage(activities: ActivityDocument[]): string {
             </div>
             <div class="agenda-item-info">
               <h4 class="agenda-item-title">${a.title}</h4>
-              <p class="agenda-item-location">${a.locationId || 'Kantor Diskum Kota Batam'}</p>
+              <p class="agenda-item-location">${resolveAdminLocationName(a, locationsMap)}</p>
             </div>
             <div class="agenda-item-time">
               ${timeStr}
