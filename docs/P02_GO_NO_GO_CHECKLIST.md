@@ -39,7 +39,7 @@ pie title Production Readiness Breakdown (Verification Categories)
 | Item # | Verification Check | Harness / Tool | Result | Evidence / Reference | Status |
 |:---:|---|---|:---:|---|:---:|
 | **1.1** | TypeScript compilation & linting | `tsc --noEmit` | Clean | Clean monorepo compile (`@department-agenda/shared`, `apps/*`) | **GO** |
-| **1.2** | Automated Vitest test suite | `vitest run` | 233 / 233 Passed (100%) | 26 test files passing across all domain, integration & auth logic | **GO** |
+| **1.2** | Automated Vitest test suite | `vitest run` | 237 / 237 Passed (100%) | 27 test files passing across all domain, integration, privacy & auth logic | **GO** |
 | **1.3** | Live Firestore Security Rules | Real Firestore Emulator (`8080`) | 32 / 32 Passed | `tests/rules/firestore.rules.test.ts` (RBAC & lockstep) | **GO** |
 | **1.4** | Reversible Maintenance Lockdown Rules | Real Firestore Emulator (`8080`) | 6 / 6 Passed | `tests/rules/maintenanceRules.test.ts` (write freeze & Admin SDK bypass) | **GO** |
 | **1.5** | Real-Emulator Operational Safety Scenarios | Real Firestore (`8080`) & Auth (`9099`) | 10 / 10 Passed | `tests/integration/p01bSafetyVerification.test.ts` | **GO** |
@@ -55,6 +55,9 @@ pie title Production Readiness Breakdown (Verification Categories)
 | **1.15** | Zero Credential Logging Safeguard | `scripts/manageRoles.mjs` | Verified | Zero passwords or API keys printed to logs/stdout | **GO** |
 | **1.16** | Production Vite Build Bundles | Vite + Rollup | Exit 0 | Public Shell: 13.67 kB gzip; Admin Shell: 10.23 kB gzip | **GO** |
 | **1.17** | Admin Authentication UI & RBAC Verification | Playwright & Real Auth Emulator | 49 / 49 Passed (100%) | `tests/e2e/adminAuthVerification.mjs` (10 verified screenshots, 4-viewport geometry, keyboard nav) | **GO** |
+| **1.18** | T01 Historical Ingestion & Double-Run Idempotency | Real Firestore Emulator (`8080`) | 100% Idempotent | 152 activities, 70 employees, 8 departments, 0 duplicates on repeat run | **GO** |
+| **1.19** | T01 Public Document Privacy Audit | `tests/integration/t01PrivacyProjection.test.ts` | 4 / 4 Passed | 16 source credential leaks quarantined; 0 leaks across 152 public documents | **GO** |
+| **1.20** | T01 Multi-Viewport Browser Verification | Playwright (`320px`, `375px`, `425px`, `1440px`) | 14 / 14 Passed (100%) | `tests/e2e/t01ImportVerification.mjs` (8 screenshots captured; zero overflow) | **GO** |
 
 ---
 

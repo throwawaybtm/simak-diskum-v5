@@ -1150,3 +1150,94 @@ Following the initial planning submission for Milestone P02-A, this correction p
 - **Status:** **COMPLETED & LOCALLY VERIFIED (PRODUCTION ACTIVATION ON HOLD)**
 - **System State:** Clean, paused, zero live changes.
 
+---
+
+# Detailed Task Report: Milestone T01 Final Import Rehearsal & S01 Cloud Staging Preparation
+
+**Task Number:** Milestone T01 & S01 Planning  
+**Title:** Temporary Master Data Preparation, October 2026 Historical Agenda Ingestion Rehearsal & S01 Separate Cloud Staging Preparation  
+**Date:** 2026-11-05  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (100% Pass Rate across 237 Vitest Tests, 32 Security Rules Tests, 45 Admin Auth E2E Scenarios, 14 T01 Multi-Viewport Browser Scenarios)  
+**Deliverable Documents:**
+- `docs/T01_TEMPORARY_DATA_AUDIT.md` (Spreadsheet Inspection & Source Roster Audit)
+- `docs/T01_SOURCE_MAPPING.md` (Complete 153-Row Traceability & Deduplication Matrix)
+- `docs/T01_IMPORT_VALIDATION.md` (Import Rehearsal & Verification Report)
+- `docs/S01_STAGING_PLAN.md` (Separate Firebase Project Architecture & Non-Disruptive Staging Sequence)
+
+---
+
+## 1. Summary of Completed Implementation
+
+### A. Source Data Validation (Part A)
+1. **October 2026 Historical Agenda Spreadsheet:**
+   - Direct read-only HTTP GET access verified via Google Visualization API CSV endpoints (`/gviz/tq?tqx=out:csv&sheet=<tab>`) and full OpenXML workbook export (`temp_october_2026.xlsx`).
+   - Inspected all 31 daily worksheets (`011026`–`311026`), identifying 153 raw activity rows.
+   - Discovered and accounted for the 1-column layout offset on worksheet `211026` via dynamic header scanning in Row 5.
+2. **Temporary Departmental Personnel Roster:**
+   - Parsed and verified all 70 personnel entries across 8 municipal divisions from the source markdown table.
+   - Corrected historical classification assumptions: verified exactly **42 PNS** (traditional NIP), **17 PPPK** (NI PPPK with appointment marker `21`), and **11 Non-ASN** (zero fabricated NIPs).
+   - Generated `templates/temporaryEmployeeMaster.json` marked as provisional development data.
+
+### B. Normalization, Deduplication & Traceability (Part B)
+1. **Dynamic Header & Time Normalization:**
+   - Normalizes 72 unique Indonesian time string variants into standard `HH:mm` format with `openEnded: true` for "s.d. selesai".
+2. **Deterministic Deduplication & Mapping:**
+   - Verified that Sheet `191026` Row 10 is an exact duplicate of Row 7 (same date, time, location, title, and Zoom ID). Merged attendees into a single canonical activity (`act_20261019_02`).
+   - Identified 23 rows belonging to 11 recurring multi-day series (e.g. HCDP workshop, AoC Bimtek, Semarak UMKM) and linked them without destructive merging.
+   - Mapped all 153 raw source rows in `docs/T01_SOURCE_MAPPING.md`: 152 created, 1 merged duplicate, 0 skipped.
+
+### C. Privacy & Data Isolation (Part C)
+1. **Confidential Credential Quarantining:**
+   - Automated privacy scanner isolated 16 sensitive records containing Zoom meeting passwords (`pwd=...`), plaintext passcodes (`ppdn146`, `173783`, `kemenkop`, `BINAPEMDES`, `765651`), and personal contact numbers.
+   - Stored sensitive credentials strictly in internal `privateNotes` and `privateMeetingUrl`.
+   - Neutralized public notes (`[TAUTAN VIRTUAL DIAMANKAN]`, `[KREDENSIAL DIKANTOR]`, `[KONTAK RESMI DIARSIP]`).
+2. **Automated Document Projection Audit:**
+   - Executed `tests/integration/t01PrivacyProjection.test.ts` on real Firestore emulator. Confirmed all 152 public documents contain zero leaked credentials, meeting IDs, phone numbers, raw database IDs, or NIPs.
+
+### D. Disposable Firebase Emulator Ingestion & Idempotency (Part D & F)
+1. **Master Data Ingestion:**
+   - Ingested 8 departments and 70 employees strictly conforming to Gate 5A `firestore.rules` schema (`id`, `name`, `position`, `departmentId`, `active`).
+   - Ingested locations, organizers, categories, and provisional signatory settings.
+2. **Double-Run Idempotency Verification:**
+   - Ingestion script (`scripts/executeT01Import.mjs`) was executed twice consecutively.
+   - Resulting collection counts remained perfectly static: 8 departments, 70 employees, 10 locations, 8 organizers, 5 categories, 152 activities, 152 public projections. Zero accidental duplicate documents created.
+3. **Single Admin Local Configuration:**
+   - Provisioned exactly one local test Admin account (`admin.t01@batam.go.id`) via Auth emulator with `{ role: "admin" }` claim. Zero Editor accounts.
+   - Verified login, authenticated private reads, anonymous access rejection, and clean session clearing on logout.
+
+### E. Multi-Viewport Browser Verification (Part E)
+- Tested both Public and Admin Portals via Playwright (`tests/e2e/t01ImportVerification.mjs`) across 4 viewports: **320px**, **375px**, **425px**, and **1440px**.
+- 0.00px horizontal overflow detected across all viewports.
+- Captured 8 verified screenshots in `tests/e2e/screenshots/` and copied key viewports to conversation artifacts.
+
+### F. S01 Separate Firebase Cloud Staging Plan (Part G)
+- Designed an independent cloud staging environment on Firebase project `simakdiskum-staging`.
+- Preserved the zero-cost Spark tier ($0.00/month) target for both staging and production.
+- Gated configuration separation via `.firebaserc` multi-project targets and explicit CLI `--target=staging` switches.
+- Established strict synthetic test data policy (prohibiting real NIPs, personal phone numbers, and private credentials on public staging).
+- Formulated a 12-step sequential deployment plan; live activation strictly on hold pending review.
+
+---
+
+## 2. Test Execution & Evidence Summary
+
+| Suite / Harness | Scope | Executed | Passed | Pass Rate | Status |
+|---|---|:---:|:---:|:---:|:---:|
+| **Vitest Unit & Integration Suites** | Domain logic, schemas, time utils, privacy, repo, auth | 237 tests (27 files) | 237 | **100%** | **PASS** |
+| **Firestore Security Rules Tests** | RBAC, Gate 5A lockstep, F01 workflow, maintenance | 32 tests | 32 | **100%** | **PASS** |
+| **Admin Authentication E2E Suite** | 6-state auth machine, forms, recovery, multi-viewport | 45 scenarios | 45 | **100%** | **PASS** |
+| **T01 Browser Verification Suite** | Public calendar, search, privacy DOM, single admin | 14 scenarios | 14 | **100%** | **PASS** |
+| **Production Vite Build** | Monorepo compile (`@department-agenda/*`) | 3 workspaces | 3 | **100%** | **PASS** |
+| **Double-Run Import Idempotency** | Firestore Emulator collection counts | 2 runs | 2 | **100%** | **PASS** |
+
+---
+
+## 3. Checkpoint Status
+
+- **Checkpoint:** **T01 Final Import & S01 Staging Plan Review Checkpoint**
+- **Status:** **COMPLETED & VERIFIED (LOCAL REHEARSAL ONLY)**
+- **Live Cloud Changes:** **0 (STRICTLY PROHIBITED)**
+- **Next Authorized Step:** Awaiting explicit stakeholder sign-off prior to S01 staging project creation.
+
+

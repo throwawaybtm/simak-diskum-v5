@@ -34,15 +34,19 @@
 | **Milestone P02-A** | Controlled Production Activation Planning | **Completed** | 2026-11-05 | `8ba9aa5` (code) / `10572eb` (docs) | Authored initial P02_ACTIVATION_PLAN.md with 10-phase sequence and stop/go gates; authored P02_GO_NO_GO_CHECKLIST.md with 5-category matrix; designed and verified reversible maintenance rules (`firestore.maintenance.rules`, 6 tests); corrected all runbook CLI commands with `--target=prod/emulator`; added backup progress status inspector; clean production build. 209 Vitest tests + 79 browser scenarios passing. |
 | **Milestone P02-A (Corrected)** | Final Activation Plan Corrections & Invariant Enforcement | **Completed** | 2026-11-05 | `b933ce2` (code) / `8463203` (docs) | Implemented deterministic maintenance config (`firebase.maintenance.json`) and preflight verifier (`scripts/verifyRulesSource.mjs`, 3 tests); tagged release identities (`SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5` and `SIMAK_DISKUM_MAINTENANCE_LOCKDOWN_RULES_V5`); implemented passwordless provisioning with auto-generated secure random entropy and setup link (`scripts/manageRoles.mjs`, 10 tests); verified confidential Drive URL exclusion from public DTOs (`publicProjector.test.ts`, 5 tests); restructured activation plan into Part 1 (10 sequential gates 0–9) and Part 2 (Disaster Recovery maintenance lockdown); updated runbooks and checklist; documented finite Spark daily quotas (50k reads/day) and HTTP 429 modal behavior; paused at P02-A Review Checkpoint. 214 Vitest tests (62 on real emulator) + 79 browser scenarios passing (100%). |
 | **Milestone P02-A Final Handoff** | Final Preflight Sign-Off & Handoff Guide | **Completed** | 2026-11-05 | `2e74d78` | Clarified password-setup link terminal printing and disclosure safeguards; corrected Spark password reset email quota to 150/day; aligned GO/NO-GO checklist with sequential deployment commands; documented published rules content verification protocol (SHA-256 `444b48ba...` & semantic diff); physically verified absence of client-side Admin login/recovery interface in production build and documented as P02-B blocker; authored `docs/P02_A_FINAL_HANDOFF.md`. |
-| **Milestone A01** | Admin Authentication UI, Protected Application Bootstrap & Local Security Verification | **Completed** | 2026-11-05 | Pending Commit | Implemented deterministic 6-state RBAC machine (`authService.ts`); zero private Firestore reads prior to authentication; Batam civic login interface (`renderLoginPage`), password show/hide toggle, password recovery view (`renderPasswordRecoveryPage`) with anti-enumeration defense, and access denied isolation (`renderAccessDeniedPage`); topbar operator profile pill and dropdown with role badge (`Administrator` vs `Operator Agenda`) and functional logout; clean cache wiping on sign-out; verified across 233 Vitest tests (19 auth service integration tests) and 34 Playwright browser scenarios with 10 visual screenshots across 375px and 1440px viewports; authored `docs/A01_ADMIN_AUTH_IMPLEMENTATION.md`. |
+| **Milestone A01** | Admin Authentication UI, Protected Application Bootstrap & Local Security Verification | **Completed** | 2026-11-05 | `eb49709` (code) / `14f751b` (docs) | Implemented deterministic 6-state RBAC machine (`authService.ts`); zero private Firestore reads prior to authentication; Batam civic login interface (`renderLoginPage`), password show/hide toggle, password recovery view (`renderPasswordRecoveryPage`) with anti-enumeration defense, and access denied isolation (`renderAccessDeniedPage`); topbar operator profile pill and dropdown with role badge (`Administrator` vs `Operator Agenda`) and functional logout; clean cache wiping on sign-out; verified across 233 Vitest tests (19 auth service integration tests) and 34 Playwright browser scenarios with 10 visual screenshots across 375px and 1440px viewports; authored `docs/A01_ADMIN_AUTH_IMPLEMENTATION.md`. |
+| **A01 Final Correction Pass** | Mobile Layout Correction & Auth Lifecycle Hardening | **Completed** | 2026-11-05 | `99f7dc1` (code) / `c0c6935` (docs) | Fixed Defect A (upcoming agenda title wrapping + tooltip) and Defect B (status legend collision with dedicated count column and gap >= 8px) at 375px; implemented `activeSessionEpoch` session counter preventing in-flight async race conditions; unsubscription on sign-out; Enter-key login submission, dynamic `aria-busy`, post-failure focus on password input with `.select()`, profile dropdown keyboard navigation (`ArrowDown`/`Escape`); 233/233 Vitest tests passed, 49/49 A01 Playwright scenarios passed, 13/13 core regression scenarios passed, clean production build. |
+| **Milestone T01** | Temporary Master Data Preparation, Single-Admin Testing & October 2026 Agenda Import Rehearsal | **Completed** | 2026-11-05 | 46f6b5f | Verified 70 personnel roster (42 PNS, 17 PPPK, 11 Non-ASN across 8 departments, 0 fabricated NIPs); inspected 31 worksheets (`011026`–`311026`), 153 raw records; discovered and handled column shift on `211026`; quarantined 16 source leaks (Zoom links with pwd, passcodes, phone numbers); mapped 153 source rows to 152 canonical activities + 1 merged duplicate on `191026` + 23 linked recurring sessions; 100% idempotent double-import verified on Firestore emulator; single Admin account provisioned (`admin.t01@batam.go.id`); 14 Playwright scenarios across 4 viewports (320px, 375px, 425px, 1440px) passed; 237 Vitest tests passed across 27 files; authored `docs/T01_TEMPORARY_DATA_AUDIT.md`, `docs/T01_SOURCE_MAPPING.md`, `docs/T01_IMPORT_VALIDATION.md`. |
+| **Milestone S01 (Planning)** | Separate Firebase Cloud Staging Preparation | **Completed** | 2026-11-05 | 46f6b5f | Authored `docs/S01_STAGING_PLAN.md`; designed independent Firebase project `simakdiskum-staging` ($0.00/mo Spark tier preserved); decoupled from production `simakdiskum`; established multi-project target separation in `.firebaserc`, strict CLI `--target=staging` switches, synthetic test data policy (prohibiting real NIPs/phones on public staging), and 12-step deployment plan; paused at review checkpoint. |
 
 ---
 
-## 2. Test Totals at Latest Checkpoint (Milestone A01 Admin Auth UI Verified)
+## 2. Test Totals at Latest Checkpoint (Milestone T01 & S01 Planning Verified)
 
-- **Vitest Unit & Integration Suites:** 26 passed (26 total)
-- **Vitest Automated Tests:** **233 passed** (233 total, 100% pass rate)
+- **Vitest Unit & Integration Suites:** 27 passed (27 total)
+- **Vitest Automated Tests:** **237 passed** (237 total, 100% pass rate)
 - **Playwright Real-Browser Verification Suites:**
+  - T01 Browser Verification Suite (`t01ImportVerification.mjs`): **14 / 14 passed** (4 viewports, privacy DOM audit, single admin lifecycle)
   - Admin Authentication & RBAC Suite (`adminAuthVerification.mjs`): **49 / 49 passed** (including 4-viewport geometry & keyboard navigation)
   - Core Functional Regression Suite (`runVerification.mjs`): **13 / 13 passed** (with protected admin login)
   - V01-C Release Readiness Suite (`v01cReleaseReadinessVerification.mjs`): **27 / 27 passed**
@@ -50,11 +54,12 @@
   - Feature F01 Administrative Workflow Suite (`f01WorkflowVerification.mjs`): **13 / 13 passed**
   - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed**
   - Master Data Suite (`masterDataVerification.mjs`): **8 / 8 passed**
-- **Total Real-Browser Scenarios:** **141 verified browser executions** across current primary suites (100% pass rate)
-- **Total Automated Test Assertions:** **374+ passed** (233 Vitest + 141 Browser, 100% pass rate)
-- **Visual Artifacts:** 109 verified browser screenshots in `tests/e2e/screenshots/` (including 10 verified A01 screenshots across 375px and 1440px)
+- **Total Real-Browser Scenarios:** **155 verified browser executions** across current primary suites (100% pass rate)
+- **Total Automated Test Assertions:** **392+ passed** (237 Vitest + 155 Browser, 100% pass rate)
+- **Visual Artifacts:** 117 verified browser screenshots in `tests/e2e/screenshots/` (including 8 verified T01 screenshots across 320px, 375px, 425px, and 1440px)
 - **Real Emulator vs In-Memory Mock Attribution:**
-  - **81 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
+  - **85 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
+    - **4 tests** in `tests/integration/t01PrivacyProjection.test.ts` (152-doc leak scan, quarantined credentials, strict RBAC, admin claims)
     - **19 tests** in `tests/integration/adminAuthService.test.ts` (Admin & Editor login, claims, anti-enumeration, disabled accounts)
     - **10 tests** in `tests/integration/p01bSafetyVerification.test.ts` (10 mandatory safety scenarios)
     - **32 tests** in `tests/rules/firestore.rules.test.ts` (Live security rules enforcement)
@@ -63,11 +68,11 @@
     - **4 tests** in `tests/emulator/masterRepository.emulator.test.ts` (Master CRUD & integrity)
     - **3 tests** in `tests/integration/publicPrivacyAudit.emulator.test.ts` (Public privacy isolation)
     - **1 test** in `tests/emulator/queryBenchmark.emulator.test.ts` (520-doc multi-month range query benchmark)
-    - **3 tests** in `tests/integration/publicPrivacyAudit.emulator.test.ts` (Zero private leak audit)
   - **152 tests executed against fast in-memory mocks:**
     - Domain logic, schemas, WIB time math, activity validator, privacy scanner, attendee snapshot, conflict detector, public projector, UI controllers, Excel parser, staging guards, backup diff, checkpoint ledger, rules source verifier, and passwordless role management.
 - **Bundle Metrics:**
-  - Public Shell: `index.html` 1.14 kB (gzip: 0.57 kB), `index.css` 24.77 kB (gzip: 5.05 kB)
+  - Public Shell: `index.html` 1.14 kB (gzip: 0.57 kB), `index.css` 24.77 kB (gzip: 5.05 kB), `index.js` 49.16 kB (gzip: 13.67 kB)
+  - Admin Shell: `index.html` 0.73 kB (gzip: 0.43 kB), `index.css` 35.04 kB (gzip: 7.25 kB), `index.js` 38.22 kB (gzip: 10.55 kB)
   - Public Initial App Code: `index.js` **49.16 kB** (gzip: **13.67 kB**) *(Initial critical path well below 150 kB budget)*
   - Public Vendor: `firebase-vendor` 874.42 kB (gzip: 226.02 kB), `exceljs-vendor` 953.20 kB (gzip: 275.76 kB, lazy-loaded on export demand)
   - Admin Initial Shell: `index.js` 13.99 kB (gzip: 4.70 kB), `index.css` 25.42 kB (gzip: 5.61 kB)
