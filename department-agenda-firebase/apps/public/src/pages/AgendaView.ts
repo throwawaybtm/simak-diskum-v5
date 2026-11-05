@@ -124,6 +124,17 @@ export function renderAgendaView(props: AgendaViewProps): string {
             <label for="inputFilterEndDate">Sampai Tanggal:</label>
             <input type="date" id="inputFilterEndDate" value="${filters.endDate || ''}">
           </div>
+
+          <!-- Sort Option (QA-07: Default Newest-First) -->
+          <div class="form-group col-sort">
+            <label for="selectSortOption">Urutkan Berdasarkan:</label>
+            <select id="selectSortOption">
+              <option value="NEWEST" ${(filters.sort || 'NEWEST') === 'NEWEST' ? 'selected' : ''}>Terbaru ke Terlama</option>
+              <option value="OLDEST" ${filters.sort === 'OLDEST' ? 'selected' : ''}>Terlama ke Terbaru</option>
+              <option value="TITLE_ASC" ${filters.sort === 'TITLE_ASC' ? 'selected' : ''}>Nama Kegiatan: A–Z</option>
+              <option value="TITLE_DESC" ${filters.sort === 'TITLE_DESC' ? 'selected' : ''}>Nama Kegiatan: Z–A</option>
+            </select>
+          </div>
         </div>
 
         <div class="filter-actions-bar">

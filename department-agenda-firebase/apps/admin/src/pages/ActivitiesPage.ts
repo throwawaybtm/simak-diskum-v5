@@ -2,10 +2,10 @@
  * Admin Activities List Page Component
  */
 
-import type { ActivityDocument } from '@department-agenda/shared';
-import { formatIndonesianDateSpan, formatTimeDisplay } from '@department-agenda/shared';
+import type { ActivityDocument, ActivitySortOption } from '@department-agenda/shared';
+import { formatIndonesianDateSpan, formatTimeDisplay, sortActivities } from '@department-agenda/shared';
 
-export function renderActivitiesPage(activities: ActivityDocument[]): string {
+export function renderActivitiesPage(activities: ActivityDocument[], initialSort: ActivitySortOption = 'NEWEST'): string {
   const stageMap: Record<string, { label: string; cls: string }> = {
     INITIAL_ENTRY: { label: 'Input Awal', cls: 'initial' },
     OFFLINE_PROCESS: { label: 'Proses Offline', cls: 'offline' },
@@ -13,8 +13,11 @@ export function renderActivitiesPage(activities: ActivityDocument[]): string {
     ADMIN_COMPLETE: { label: 'Administrasi Lengkap', cls: 'complete' }
   };
 
-  const rowsHtml = activities.length > 0
-    ? activities.map(act => {
+  // Sort deterministically newest-first by default
+  const sortedActivities = sortActivities(activities, initialSort);
+
+  const rowsHtml = sortedActivities.length > 0
+    ? sortedActivities.map(act => {
         const isCancelled = act.status === 'CANCELLED';
         const dateSpan = formatIndonesianDateSpan(act.startDate, act.endDate);
         const timeStr = formatTimeDisplay(act.startTime, act.endTime, act.openEnded);
@@ -25,7 +28,7 @@ export function renderActivitiesPage(activities: ActivityDocument[]): string {
         const statusIndonesian = isCancelled ? 'Dibatalkan' : (act.status === 'COMPLETED' ? 'Selesai' : 'Terjadwal');
 
         return `
-          <tr class="${isCancelled ? 'row-cancelled' : ''}" data-activity-row data-stage="${stage}" data-title="${act.title.toLowerCase()}" data-agenda="${agendaNumber.toLowerCase()}">
+          <tr class="${isCancelled ? 'row-cancelled' : ''}" data-activity-row data-id="${act.id}" data-startdate="${act.startDate}" data-starttime="${act.startTime || ''}" data-status="${act.status}" data-stage="${stage}" data-title="${act.title.toLowerCase()}" data-agenda="${agendaNumber.toLowerCase()}">
             <td><strong>${dateSpan}</strong></td>
             <td>${timeStr}</td>
             <td>
@@ -49,7 +52,7 @@ export function renderActivitiesPage(activities: ActivityDocument[]): string {
           </tr>
         `;
       }).join('')
-    : `<tr><td colspan="7" class="text-center">Belum ada kegiatan tersimpan di database. Silakan klik "Tambah Kegiatan".</td></tr>`;
+    : `<tr><td colspan="7" class="text-center" style="padding: 2.5rem 1rem; color: #64748b;">Belum ada kegiatan tersimpan di database. Silakan klik "Tambah Kegiatan".</td></tr>`;
 
   return `
     <div class="page-container activities-page">
@@ -80,6 +83,16 @@ export function renderActivitiesPage(activities: ActivityDocument[]): string {
               <option value="ADMIN_COMPLETE">4. Administrasi Lengkap (ADMIN_COMPLETE)</option>
             </select>
           </div>
+          <div style="flex: 1; min-width: 200px;">
+            <label for="selectActivitySort" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">Urutkan:</label>
+            <select id="selectActivitySort" class="form-control">
+              <option value="NEWEST" ${initialSort === 'NEWEST' ? 'selected' : ''}>Terbaru ke Terlama</option>
+              <option value="OLDEST" ${initialSort === 'OLDEST' ? 'selected' : ''}>Terlama ke Terbaru</option>
+              <option value="TITLE_ASC" ${initialSort === 'TITLE_ASC' ? 'selected' : ''}>Nama Kegiatan: A–Z</option>
+              <option value="TITLE_DESC" ${initialSort === 'TITLE_DESC' ? 'selected' : ''}>Nama Kegiatan: Z–A</option>
+              <option value="STATUS" ${initialSort === 'STATUS' ? 'selected' : ''}>Status Kegiatan</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -102,6 +115,18 @@ export function renderActivitiesPage(activities: ActivityDocument[]): string {
             </thead>
             <tbody id="activitiesTableBody">
               ${rowsHtml}
+              ${activities.length > 0 ? `
+                <tr id="emptySearchRow" style="display: none;">
+                  <td colspan="7" class="text-center" style="padding: 2.5rem 1rem; background: #fafafa;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.35rem;">🔍</div>
+                    <div style="font-weight: 600; font-size: 1rem; color: #1e293b; margin-bottom: 0.25rem;">Tidak ada kegiatan yang sesuai dengan pencarian atau filter.</div>
+                    <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 1rem;">Coba ubah kata kunci atau atur ulang filter.</div>
+                    <button type="button" id="btnResetActivityFilter" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                      <span>🔄</span> Atur Ulang Filter
+                    </button>
+                  </td>
+                </tr>
+              ` : ''}
             </tbody>
           </table>
         </div>

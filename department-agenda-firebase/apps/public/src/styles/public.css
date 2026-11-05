@@ -1823,4 +1823,108 @@ body {
   .cal-activity-item .item-title {
     display: none; /* Show only time or dot on narrow mobile calendar */
   }
+
+  /* QA-01: Responsive reflow for mobile agenda cards (Cari Agenda & Kalender Daftar) */
+  .agenda-item-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+    padding: 1rem;
+  }
+  .agenda-item-left {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 0.5rem;
+  }
+  .agenda-item-main {
+    width: 100%;
+  }
+  .agenda-item-title {
+    font-size: 1.05rem;
+    line-height: 1.4;
+    word-break: break-word;
+    margin: 0.35rem 0 0.5rem;
+  }
+  .agenda-meta-info {
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+  }
+  .agenda-item-right {
+    width: 100%;
+    padding-top: 0.25rem;
+  }
+  .agenda-item-right .btn {
+    width: 100%;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  /* Kalender Kegiatan -> Daftar (List View) Mobile Reflow */
+  .list-activity-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+    padding: 1rem;
+  }
+  .row-date-badge {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 0.5rem;
+  }
+  .row-content {
+    width: 100%;
+  }
+  .row-content h4 {
+    font-size: 1.05rem;
+    line-height: 1.4;
+    word-break: break-word;
+    margin: 0.35rem 0 0.2rem;
+  }
+  .row-meta {
+    margin-top: 0.35rem;
+    line-height: 1.4;
+    font-size: 0.82rem;
+  }
+  .row-action {
+    width: 100%;
+    padding-top: 0.25rem;
+  }
+  .row-action .btn {
+    width: 100%;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  /* Filter actions bar responsive wrap */
+  .filter-actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .filter-actions-bar .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .filter-actions-bar .btn-group .btn {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }

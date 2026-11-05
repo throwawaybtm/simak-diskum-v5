@@ -62,7 +62,8 @@ let agendaFilters: PublicActivityFilterOptions = {
   category: 'ALL',
   status: 'ALL',
   startDate: '',
-  endDate: ''
+  endDate: '',
+  sort: 'NEWEST'
 };
 
 // Data caches
@@ -414,6 +415,7 @@ function renderAgendaRoute(container: HTMLElement): void {
   const statusSelect = document.getElementById('selectFilterStatus') as HTMLSelectElement | null;
   const startDateInput = document.getElementById('inputFilterStartDate') as HTMLInputElement | null;
   const endDateInput = document.getElementById('inputFilterEndDate') as HTMLInputElement | null;
+  const sortSelect = document.getElementById('selectSortOption') as HTMLSelectElement | null;
   const btnReset = document.getElementById('btnResetFilters');
   const btnApply = document.getElementById('btnApplyFilters');
 
@@ -456,6 +458,13 @@ function renderAgendaRoute(container: HTMLElement): void {
     });
   }
 
+  if (sortSelect) {
+    sortSelect.addEventListener('change', () => {
+      agendaFilters.sort = sortSelect.value as any;
+      renderAgendaResultsOnly();
+    });
+  }
+
   if (btnApply) {
     btnApply.addEventListener('click', () => {
       if (keywordInput) agendaFilters.keyword = keywordInput.value;
@@ -463,6 +472,7 @@ function renderAgendaRoute(container: HTMLElement): void {
       if (statusSelect) agendaFilters.status = statusSelect.value;
       if (startDateInput) agendaFilters.startDate = startDateInput.value;
       if (endDateInput) agendaFilters.endDate = endDateInput.value;
+      if (sortSelect) agendaFilters.sort = sortSelect.value as any;
       renderApp();
     });
   }
@@ -474,7 +484,8 @@ function renderAgendaRoute(container: HTMLElement): void {
         category: 'ALL',
         status: 'ALL',
         startDate: '',
-        endDate: ''
+        endDate: '',
+        sort: 'NEWEST'
       };
       renderApp();
     });

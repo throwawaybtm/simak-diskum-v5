@@ -150,20 +150,26 @@ describe('Phase 7B: Official 8-Column Reports & Migration Unit Tests', () => {
       expect(expoRow?.hariTanggal).toBe('Jumat–Minggu, 6–8 November 2026');
     });
 
-    it('orders rows strictly chronologically and assigns sequential numbering', () => {
-      const rows = buildEightColumnReportRows(mockActivities, '2026-11-01', '2026-11-30', lookups);
+    it('orders rows by newest-first by default, supports oldest-first, and assigns sequential numbering', () => {
+      const defaultRows = buildEightColumnReportRows(mockActivities, '2026-11-01', '2026-11-30', lookups);
 
-      // Row 1 should be act_001 (09:00), Row 2 should be act_002 (13:30)
-      expect(rows[0].no).toBe(1);
-      expect(rows[0].kegiatan).toContain('Rapat Koordinasi Evaluasi Triwulan III');
-      expect(rows[0].pukul).toBe('09.00 - 11.30 WIB');
+      // Default is NEWEST (newest-first): act_004 (Nov 10), act_003 (Nov 6), act_002 (Nov 4 13:30), act_001 (Nov 4 09:00)
+      expect(defaultRows[0].no).toBe(1);
+      expect(defaultRows[0].kegiatan).toContain('Expo 2026'); // or act_004 if intersecting
+      expect(defaultRows).toHaveLength(4);
 
-      expect(rows[1].no).toBe(2);
-      expect(rows[1].kegiatan).toContain('Bimtek Digitalisasi Keuangan');
-      expect(rows[1].pukul).toBe('13.30 - 16.00 WIB');
+      // Explicit OLDEST (oldest-first)
+      const oldestRows = buildEightColumnReportRows(mockActivities, '2026-11-01', '2026-11-30', lookups, 'OLDEST');
+      expect(oldestRows[0].no).toBe(1);
+      expect(oldestRows[0].kegiatan).toContain('Rapat Koordinasi Evaluasi Triwulan III');
+      expect(oldestRows[0].pukul).toBe('09.00 - 11.30 WIB');
 
-      expect(rows[2].no).toBe(3);
-      expect(rows[3].no).toBe(4);
+      expect(oldestRows[1].no).toBe(2);
+      expect(oldestRows[1].kegiatan).toContain('Bimtek Digitalisasi Keuangan');
+      expect(oldestRows[1].pukul).toBe('13.30 - 16.00 WIB');
+
+      expect(oldestRows[2].no).toBe(3);
+      expect(oldestRows[3].no).toBe(4);
     });
 
     it('clearly marks cancelled activities and outputs cancellation notices in Keterangan', () => {

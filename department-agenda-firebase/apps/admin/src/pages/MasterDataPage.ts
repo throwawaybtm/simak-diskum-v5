@@ -12,7 +12,9 @@ import {
   toggleMasterRecordActive,
   checkMasterReferentialUsage,
   type MasterCollectionName,
-  validateMasterRecord
+  validateMasterRecord,
+  sortMasterItems,
+  type MasterSortDirection
 } from '@department-agenda/shared';
 
 export type MasterTab = 'employees' | 'departments' | 'locations' | 'organizers' | 'categories';
@@ -25,6 +27,7 @@ export interface MasterDataContext {
 interface MasterState {
   activeTab: MasterTab;
   searchQuery: string;
+  sortDirection: MasterSortDirection;
   employees: Employee[];
   departments: Department[];
   locations: Location[];
@@ -38,6 +41,7 @@ interface MasterState {
 const state: MasterState = {
   activeTab: 'employees',
   searchQuery: '',
+  sortDirection: 'ASC',
   employees: [],
   departments: [],
   locations: [],
@@ -57,6 +61,46 @@ export async function mountMasterDataPage(container: HTMLElement, context: Maste
   renderPage(container, context);
 }
 
+function populateFallbackMasterData() {
+  if (state.employees.length === 0) {
+    state.employees = [
+      { id: 'emp_01', name: 'Drs. Hendri Arifin, M.Si', position: 'Kepala Dinas', departmentId: 'dept_01', active: true },
+      { id: 'emp_02', name: 'Rini Marlina, S.Sos', position: 'Sekretaris Dinas', departmentId: 'dept_01', active: true },
+      { id: 'emp_03', name: 'Ahmad Fauzi, SE', position: 'Kabid Koperasi', departmentId: 'dept_02', active: true },
+      { id: 'emp_04', name: 'Dewi Sartika, S.Si', position: 'Kabid Pengawasan UMKM', departmentId: 'dept_03', active: true }
+    ];
+  }
+  if (state.departments.length === 0) {
+    state.departments = [
+      { id: 'dept_01', name: 'Sekretariat', active: true },
+      { id: 'dept_02', name: 'Bidang Pemberdayaan Koperasi', active: true },
+      { id: 'dept_03', name: 'Bidang Pengembangan Usaha Mikro', active: true }
+    ];
+  }
+  if (state.locations.length === 0) {
+    state.locations = [
+      { id: 'loc_01', name: 'Ruang Rapat Kadis (Lt. 2)', type: 'OFFICE', isBookableRoom: true, active: true },
+      { id: 'loc_02', name: 'Aula PLUT Batam', type: 'OFFICE', isBookableRoom: true, active: true },
+      { id: 'loc_03', name: 'Zoom Cloud Meeting Dinas', type: 'ONLINE', isBookableRoom: false, active: true },
+      { id: 'loc_04', name: 'Hotel Planet Holiday Batam', type: 'EXTERNAL', isBookableRoom: false, active: true }
+    ];
+  }
+  if (state.organizers.length === 0) {
+    state.organizers = [
+      { id: 'org_01', name: 'Sekretariat Dinas', active: true },
+      { id: 'org_02', name: 'Bidang Pemberdayaan Koperasi', active: true },
+      { id: 'org_03', name: 'Bidang Pengembangan Usaha Mikro', active: true }
+    ];
+  }
+  if (state.categories.length === 0) {
+    state.categories = [
+      { id: 'cat_01', name: 'Rapat Koordinasi', colorHex: '#0284c7', active: true },
+      { id: 'cat_02', name: 'Pelatihan / Bimtek', colorHex: '#16a34a', active: true },
+      { id: 'cat_03', name: 'Pameran & Ekspo', colorHex: '#ea580c', active: true }
+    ];
+  }
+}
+
 async function loadAllMasterData(context: MasterDataContext) {
   try {
     const [emp, dept, loc, org, cat] = await Promise.all([
@@ -67,35 +111,15 @@ async function loadAllMasterData(context: MasterDataContext) {
       fetchMasterRecords<Category>(context.db, 'categories')
     ]);
 
-    state.employees = emp.length > 0 ? emp : [
-      { id: 'emp_01', name: 'Drs. Hendri Arifin, M.Si', position: 'Kepala Dinas', departmentId: 'dept_01', active: true },
-      { id: 'emp_02', name: 'Rini Marlina, S.Sos', position: 'Sekretaris Dinas', departmentId: 'dept_01', active: true },
-      { id: 'emp_03', name: 'Ahmad Fauzi, SE', position: 'Kabid Koperasi', departmentId: 'dept_02', active: true },
-      { id: 'emp_04', name: 'Dewi Sartika, S.Si', position: 'Kabid Pengawasan UMKM', departmentId: 'dept_03', active: true }
-    ];
-    state.departments = dept.length > 0 ? dept : [
-      { id: 'dept_01', name: 'Sekretariat', active: true },
-      { id: 'dept_02', name: 'Bidang Pemberdayaan Koperasi', active: true },
-      { id: 'dept_03', name: 'Bidang Pengembangan Usaha Mikro', active: true }
-    ];
-    state.locations = loc.length > 0 ? loc : [
-      { id: 'loc_01', name: 'Ruang Rapat Kadis (Lt. 2)', type: 'OFFICE', isBookableRoom: true, active: true },
-      { id: 'loc_02', name: 'Aula PLUT Batam', type: 'OFFICE', isBookableRoom: true, active: true },
-      { id: 'loc_03', name: 'Zoom Cloud Meeting Dinas', type: 'ONLINE', isBookableRoom: false, active: true },
-      { id: 'loc_04', name: 'Hotel Planet Holiday Batam', type: 'EXTERNAL', isBookableRoom: false, active: true }
-    ];
-    state.organizers = org.length > 0 ? org : [
-      { id: 'org_01', name: 'Sekretariat Dinas', active: true },
-      { id: 'org_02', name: 'Bidang Pemberdayaan Koperasi', active: true },
-      { id: 'org_03', name: 'Bidang Pengembangan Usaha Mikro', active: true }
-    ];
-    state.categories = cat.length > 0 ? cat : [
-      { id: 'cat_01', name: 'Rapat Koordinasi', colorHex: '#0284c7', active: true },
-      { id: 'cat_02', name: 'Pelatihan / Bimtek', colorHex: '#16a34a', active: true },
-      { id: 'cat_03', name: 'Pameran & Ekspo', colorHex: '#ea580c', active: true }
-    ];
+    if (emp.length > 0) state.employees = emp;
+    if (dept.length > 0) state.departments = dept;
+    if (loc.length > 0) state.locations = loc;
+    if (org.length > 0) state.organizers = org;
+    if (cat.length > 0) state.categories = cat;
+    populateFallbackMasterData();
   } catch (err) {
-    console.error('[Master Data] Failed to load data from Firestore:', err);
+    console.warn('[Master Data] Failed to load data from Firestore, using fallback fixtures:', err);
+    populateFallbackMasterData();
   }
 }
 
@@ -145,10 +169,17 @@ function renderPage(container: HTMLElement, context: MasterDataContext) {
         ${tabsHtml}
       </div>
 
-      <!-- TOOLBAR: SEARCH & STATS -->
-      <div class="master-toolbar">
-        <div class="search-box">
+      <!-- TOOLBAR: SEARCH & SORT -->
+      <div class="master-toolbar" style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+        <div class="search-box" style="flex: 1; min-width: 250px;">
           <input type="text" id="masterSearchInput" placeholder="Cari nama, jabatan, atau rincian..." value="${state.searchQuery}">
+        </div>
+        <div class="sort-box" style="display: flex; align-items: center; gap: 0.5rem;">
+          <label for="masterSortSelect" style="font-size: 0.85rem; font-weight: 600; color: #475569; white-space: nowrap;">Urutkan Nama:</label>
+          <select id="masterSortSelect" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; cursor: pointer;">
+            <option value="ASC" ${state.sortDirection === 'ASC' ? 'selected' : ''}>Nama: A–Z (Menaik)</option>
+            <option value="DESC" ${state.sortDirection === 'DESC' ? 'selected' : ''}>Nama: Z–A (Menurun)</option>
+          </select>
         </div>
       </div>
 
@@ -176,8 +207,9 @@ function renderTableContent(context: MasterDataContext): string {
     const filtered = state.employees.filter(e =>
       !query || e.name.toLowerCase().includes(query) || e.position.toLowerCase().includes(query)
     );
+    const sorted = sortMasterItems(filtered, state.sortDirection, 'name');
 
-    if (filtered.length === 0) return '<div class="empty-state">Tidak ada data pegawai yang ditemukan.</div>';
+    if (sorted.length === 0) return '<div class="empty-state">Tidak ada data pegawai yang ditemukan.</div>';
 
     return `
       <table class="data-table">
@@ -192,7 +224,7 @@ function renderTableContent(context: MasterDataContext): string {
           </tr>
         </thead>
         <tbody>
-          ${filtered.map((emp, i) => `
+          ${sorted.map((emp, i) => `
             <tr class="${emp.active === false ? 'row-inactive' : ''}">
               <td>${i + 1}</td>
               <td><strong>${emp.name}</strong></td>
@@ -220,8 +252,9 @@ function renderTableContent(context: MasterDataContext): string {
     const filtered = state.departments.filter(d =>
       !query || d.name.toLowerCase().includes(query)
     );
+    const sorted = sortMasterItems(filtered, state.sortDirection, 'name');
 
-    if (filtered.length === 0) return '<div class="empty-state">Tidak ada data bidang yang ditemukan.</div>';
+    if (sorted.length === 0) return '<div class="empty-state">Tidak ada data bidang yang ditemukan.</div>';
 
     return `
       <table class="data-table">
@@ -234,7 +267,7 @@ function renderTableContent(context: MasterDataContext): string {
           </tr>
         </thead>
         <tbody>
-          ${filtered.map((d, i) => `
+          ${sorted.map((d, i) => `
             <tr class="${d.active === false ? 'row-inactive' : ''}">
               <td>${i + 1}</td>
               <td><strong>${d.name}</strong></td>
@@ -260,8 +293,9 @@ function renderTableContent(context: MasterDataContext): string {
     const filtered = state.locations.filter(l =>
       !query || l.name.toLowerCase().includes(query) || l.type.toLowerCase().includes(query)
     );
+    const sorted = sortMasterItems(filtered, state.sortDirection, 'name');
 
-    if (filtered.length === 0) return '<div class="empty-state">Tidak ada data lokasi yang ditemukan.</div>';
+    if (sorted.length === 0) return '<div class="empty-state">Tidak ada data lokasi yang ditemukan.</div>';
 
     return `
       <table class="data-table">
@@ -276,7 +310,7 @@ function renderTableContent(context: MasterDataContext): string {
           </tr>
         </thead>
         <tbody>
-          ${filtered.map((loc, i) => `
+          ${sorted.map((loc, i) => `
             <tr class="${loc.active === false ? 'row-inactive' : ''}">
               <td>${i + 1}</td>
               <td><strong>${loc.name}</strong></td>
@@ -304,8 +338,9 @@ function renderTableContent(context: MasterDataContext): string {
     const filtered = state.organizers.filter(o =>
       !query || o.name.toLowerCase().includes(query)
     );
+    const sorted = sortMasterItems(filtered, state.sortDirection, 'name');
 
-    if (filtered.length === 0) return '<div class="empty-state">Tidak ada data penyelenggara yang ditemukan.</div>';
+    if (sorted.length === 0) return '<div class="empty-state">Tidak ada data penyelenggara yang ditemukan.</div>';
 
     return `
       <table class="data-table">
@@ -318,7 +353,7 @@ function renderTableContent(context: MasterDataContext): string {
           </tr>
         </thead>
         <tbody>
-          ${filtered.map((org, i) => `
+          ${sorted.map((org, i) => `
             <tr class="${org.active === false ? 'row-inactive' : ''}">
               <td>${i + 1}</td>
               <td><strong>${org.name}</strong></td>
@@ -344,8 +379,9 @@ function renderTableContent(context: MasterDataContext): string {
     const filtered = state.categories.filter(c =>
       !query || c.name.toLowerCase().includes(query)
     );
+    const sorted = sortMasterItems(filtered, state.sortDirection, 'name');
 
-    if (filtered.length === 0) return '<div class="empty-state">Tidak ada data kategori yang ditemukan.</div>';
+    if (sorted.length === 0) return '<div class="empty-state">Tidak ada data kategori yang ditemukan.</div>';
 
     return `
       <table class="data-table">
@@ -359,27 +395,34 @@ function renderTableContent(context: MasterDataContext): string {
           </tr>
         </thead>
         <tbody>
-          ${filtered.map((cat, i) => `
-            <tr class="${cat.active === false ? 'row-inactive' : ''}">
-              <td>${i + 1}</td>
-              <td><strong>${cat.name}</strong></td>
-              <td>
-                <span class="color-pill" style="display:inline-block; width:16px; height:16px; border-radius:50%; background-color:${cat.colorHex}; margin-right:6px; vertical-align:middle;"></span>
-                <code>${cat.colorHex}</code>
-              </td>
-              <td>
-                <span class="badge ${cat.active !== false ? 'badge-active' : 'badge-inactive'}">
-                  ${cat.active !== false ? 'Aktif' : 'Nonaktif'}
-                </span>
-              </td>
-              <td>
-                <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${cat.id}">Edit</button>
-                <button type="button" class="btn btn-sm ${cat.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${cat.id}" data-active="${cat.active !== false}">
-                  ${cat.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
-                </button>
-              </td>
-            </tr>
-          `).join('')}
+          ${sorted.map((cat, i) => {
+            const rawColor = (cat as any).colorHex || (cat as any).color;
+            const isValidHex = typeof rawColor === 'string' && /^#[0-9a-fA-F]{6}$/i.test(rawColor);
+            const colorHtml = isValidHex
+              ? `<span class="color-pill" style="display:inline-block; width:16px; height:16px; border-radius:50%; background-color:${rawColor}; margin-right:6px; vertical-align:middle; border:1px solid rgba(0,0,0,0.15);"></span><code>${rawColor}</code>`
+              : `<span class="badge badge-neutral" style="background:#f1f5f9; color:#64748b; font-size:0.8rem; padding:0.2rem 0.5rem; border-radius:4px;">Belum diatur</span>`;
+
+            return `
+              <tr class="${cat.active === false ? 'row-inactive' : ''}">
+                <td>${i + 1}</td>
+                <td><strong>${cat.name}</strong></td>
+                <td>
+                  ${colorHtml}
+                </td>
+                <td>
+                  <span class="badge ${cat.active !== false ? 'badge-active' : 'badge-inactive'}">
+                    ${cat.active !== false ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${cat.id}">Edit</button>
+                  <button type="button" class="btn btn-sm ${cat.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${cat.id}" data-active="${cat.active !== false}">
+                    ${cat.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join('')}
         </tbody>
       </table>
     `;
@@ -406,6 +449,19 @@ function attachPageListeners(container: HTMLElement, context: MasterDataContext)
   if (searchInput) {
     searchInput.oninput = () => {
       state.searchQuery = searchInput.value;
+      const tablePanel = container.querySelector('.master-table-panel');
+      if (tablePanel) {
+        tablePanel.innerHTML = renderTableContent(context);
+        bindTableActionButtons(container, context);
+      }
+    };
+  }
+
+  // Sort select (QA-07: Master Data A-Z / Z-A)
+  const sortSelect = container.querySelector<HTMLSelectElement>('#masterSortSelect');
+  if (sortSelect) {
+    sortSelect.onchange = () => {
+      state.sortDirection = sortSelect.value as MasterSortDirection;
       const tablePanel = container.querySelector('.master-table-panel');
       if (tablePanel) {
         tablePanel.innerHTML = renderTableContent(context);
@@ -573,7 +629,7 @@ function renderModal(context: MasterDataContext) {
       </div>
       <div class="form-group">
         <label for="modalInputColor">Warna Label (Hex Kode) <span class="required">*</span></label>
-        <input type="color" id="modalInputColor" value="${rec.colorHex || '#0284c7'}" style="height:40px; cursor:pointer;">
+        <input type="color" id="modalInputColor" value="${rec.colorHex || (rec as any).color || '#0284c7'}" style="height:40px; cursor:pointer;">
       </div>
     `;
   }

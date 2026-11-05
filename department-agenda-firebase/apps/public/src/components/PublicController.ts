@@ -4,6 +4,7 @@
  */
 
 import type { PublicActivityDTO } from '@department-agenda/shared';
+import { sortActivities, type ActivitySortOption } from '@department-agenda/shared';
 
 export interface PublicActivityFilterOptions {
   keyword?: string;
@@ -11,6 +12,7 @@ export interface PublicActivityFilterOptions {
   status?: string;
   startDate?: string; // YYYY-MM-DD
   endDate?: string;   // YYYY-MM-DD
+  sort?: ActivitySortOption;
 }
 
 /**
@@ -24,7 +26,7 @@ export function filterPublicActivities(
   const cat = options.category?.trim().toLowerCase();
   const status = options.status?.trim().toUpperCase();
 
-  return activities.filter(act => {
+  const filtered = activities.filter(act => {
     // 1. Keyword search (title, location, organizer, category, notes, attendees)
     if (kw) {
       const matchTitle = act.title.toLowerCase().includes(kw);
@@ -70,11 +72,14 @@ export function filterPublicActivities(
 
     return true;
   });
+
+  return sortActivities(filtered, options.sort || 'NEWEST');
 }
 
 /**
  * Map activities across intersecting dates in [rangeStart, rangeEnd]
  * Multi-day activities cleanly appear on each date they span without duplicate entries on the same day.
+ * Guaranteed earliest-first (chronological start time) within each day cell.
  */
 export function groupActivitiesByDay(
   activities: PublicActivityDTO[],
@@ -94,6 +99,14 @@ export function groupActivitiesByDay(
     const dateStr = `${yyyy}-${mm}-${dd}`;
 
     const matching = activities.filter(act => act.startDate <= dateStr && act.endDate >= dateStr);
+    // Keep visual calendar day cells strictly earliest-first
+    matching.sort((a, b) => {
+      const timeA = a.startTime || '00:00';
+      const timeB = b.startTime || '00:00';
+      const timeCmp = timeA.localeCompare(timeB);
+      if (timeCmp !== 0) return timeCmp;
+      return a.id.localeCompare(b.id);
+    });
     map.set(dateStr, matching);
 
     curr.setUTCDate(curr.getUTCDate() + 1);

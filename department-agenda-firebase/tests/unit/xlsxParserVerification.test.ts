@@ -150,7 +150,7 @@ describe('Task 8: Independent XLSX Workbook Verification & OpenXML Inspection', 
   };
 
   it('independently loads and validates the generated OpenXML XLSX container', async () => {
-    const rows = buildEightColumnReportRows(testActivities, '2026-11-01', '2026-11-30', lookups);
+    const rows = buildEightColumnReportRows(testActivities, '2026-11-01', '2026-11-30', lookups, 'OLDEST');
     const buffer = await generateEightColumnXlsx({
       departmentName: 'Dinas Koperasi dan Usaha Mikro Kota Batam',
       periodLabel: '1 November 2026 s.d. 30 November 2026',

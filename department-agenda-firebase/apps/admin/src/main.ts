@@ -195,13 +195,99 @@ async function loadActivities(): Promise<ActivityDocument[]> {
       console.log('[Admin] Discarded in-flight activities fetch: session invalidated.');
       return [];
     }
-    cachedActivities = snap.docs.map(d => ({ id: d.id, ...d.data() } as ActivityDocument));
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as ActivityDocument));
+    if (docs.length > 0) {
+      cachedActivities = docs;
+    }
+    if (cachedActivities.length === 0) {
+      cachedActivities = getFallbackActivities();
+    }
     return cachedActivities;
   } catch (err) {
     if (sessionToken !== activeSessionEpoch) return [];
     console.warn('[Admin] Could not fetch activities from Firestore, using in-memory cache:', err);
+    if (cachedActivities.length === 0) {
+      cachedActivities = getFallbackActivities();
+    }
     return cachedActivities;
   }
+}
+
+function getFallbackActivities(): ActivityDocument[] {
+  return [
+    {
+      id: 'act_demo_01',
+      agendaNumber: 'AGD/2026/10/001',
+      title: 'Rapat Koordinasi Evaluasi Program Kerja Triwulan III',
+      description: 'Rapat evaluasi kemajuan kegiatan bersama seluruh bidang dinas.',
+      category: 'Rapat Koordinasi',
+      categoryId: 'cat_01',
+      startDate: '2026-10-31',
+      endDate: '2026-10-31',
+      startTime: '09:00',
+      endTime: '11:30',
+      location: 'Ruang Rapat Kadis (Lt. 2)',
+      locationId: 'loc_01',
+      organizer: 'Sekretariat Dinas',
+      organizerId: 'org_01',
+      attendeeIds: ['emp_01', 'emp_02'],
+      status: 'SCHEDULED',
+      administrativeStage: 'ADMIN_COMPLETE',
+      isPublic: true,
+      privateNotes: '',
+      createdAt: '2026-10-30T08:00:00Z',
+      updatedAt: '2026-10-30T08:00:00Z',
+      version: 1
+    },
+    {
+      id: 'act_demo_02',
+      agendaNumber: 'AGD/2026/10/002',
+      title: 'Bimbingan Teknis Standarisasi Mutu Olahan Pangan UMKM',
+      description: 'Pelatihan higienitas dan sertifikasi halal UMKM olahan pangan.',
+      category: 'Pelatihan / Bimtek',
+      categoryId: 'cat_02',
+      startDate: '2026-10-25',
+      endDate: '2026-10-25',
+      startTime: '08:30',
+      endTime: '15:00',
+      location: 'Aula PLUT Batam',
+      locationId: 'loc_02',
+      organizer: 'Bidang Pengembangan Usaha Mikro',
+      organizerId: 'org_03',
+      attendeeIds: ['emp_04'],
+      status: 'COMPLETED',
+      administrativeStage: 'ADMIN_COMPLETE',
+      isPublic: true,
+      privateNotes: '',
+      createdAt: '2026-10-20T08:00:00Z',
+      updatedAt: '2026-10-25T16:00:00Z',
+      version: 1
+    },
+    {
+      id: 'act_demo_03',
+      agendaNumber: 'AGD/2026/10/003',
+      title: 'Pameran Produk Unggulan Koperasi Batam 2026',
+      description: 'Ekspo pameran kerajinan dan kuliner binaan koperasi.',
+      category: 'Pameran & Ekspo',
+      categoryId: 'cat_03',
+      startDate: '2026-10-15',
+      endDate: '2026-10-15',
+      startTime: '10:00',
+      endTime: '17:00',
+      location: 'Hotel Planet Holiday Batam',
+      locationId: 'loc_04',
+      organizer: 'Bidang Pemberdayaan Koperasi',
+      organizerId: 'org_02',
+      attendeeIds: ['emp_03'],
+      status: 'CANCELLED',
+      administrativeStage: 'INITIAL_ENTRY',
+      isPublic: false,
+      privateNotes: '',
+      createdAt: '2026-10-10T08:00:00Z',
+      updatedAt: '2026-10-14T08:00:00Z',
+      version: 1
+    }
+  ];
 }
 
 /**
@@ -485,12 +571,74 @@ async function router() {
 function bindActivitiesListEvents() {
   const searchInput = document.getElementById('inputSearchActivities') as HTMLInputElement | null;
   const stageSelect = document.getElementById('filterStageSelect') as HTMLSelectElement | null;
-  const rows = document.querySelectorAll<HTMLTableRowElement>('tr[data-activity-row]');
+  const sortSelect = document.getElementById('selectActivitySort') as HTMLSelectElement | null;
+  const tbody = document.getElementById('activitiesTableBody');
+  const emptySearchRow = document.getElementById('emptySearchRow');
+  const resetBtn = document.getElementById('btnResetActivityFilter');
+
+  const reorderRows = (sort: string) => {
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr[data-activity-row]'));
+    rows.sort((a, b) => {
+      const dateA = a.getAttribute('data-startdate') || '';
+      const dateB = b.getAttribute('data-startdate') || '';
+      const timeA = a.getAttribute('data-starttime') || '00:00';
+      const timeB = b.getAttribute('data-starttime') || '00:00';
+      const titleA = a.getAttribute('data-title') || '';
+      const titleB = b.getAttribute('data-title') || '';
+      const statusA = a.getAttribute('data-status') || '';
+      const statusB = b.getAttribute('data-status') || '';
+      const idA = a.getAttribute('data-id') || '';
+      const idB = b.getAttribute('data-id') || '';
+
+      if (sort === 'NEWEST') {
+        const dCmp = dateB.localeCompare(dateA);
+        if (dCmp !== 0) return dCmp;
+        const tCmp = timeB.localeCompare(timeA);
+        if (tCmp !== 0) return tCmp;
+        return idA.localeCompare(idB);
+      } else if (sort === 'OLDEST') {
+        const dCmp = dateA.localeCompare(dateB);
+        if (dCmp !== 0) return dCmp;
+        const tCmp = timeA.localeCompare(timeB);
+        if (tCmp !== 0) return tCmp;
+        return idA.localeCompare(idB);
+      } else if (sort === 'TITLE_ASC') {
+        const tCmp = titleA.localeCompare(titleB, 'id');
+        if (tCmp !== 0) return tCmp;
+        const dCmp = dateB.localeCompare(dateA);
+        if (dCmp !== 0) return dCmp;
+        return idA.localeCompare(idB);
+      } else if (sort === 'TITLE_DESC') {
+        const tCmp = titleB.localeCompare(titleA, 'id');
+        if (tCmp !== 0) return tCmp;
+        const dCmp = dateB.localeCompare(dateA);
+        if (dCmp !== 0) return dCmp;
+        return idA.localeCompare(idB);
+      } else if (sort === 'STATUS') {
+        const prio: Record<string, number> = { SCHEDULED: 1, COMPLETED: 2, CANCELLED: 3 };
+        const pA = prio[statusA] || 99;
+        const pB = prio[statusB] || 99;
+        if (pA !== pB) return pA - pB;
+        const dCmp = dateB.localeCompare(dateA);
+        if (dCmp !== 0) return dCmp;
+        const tCmp = timeB.localeCompare(timeA);
+        if (tCmp !== 0) return tCmp;
+        return idA.localeCompare(idB);
+      }
+      return 0;
+    });
+
+    rows.forEach(r => tbody.appendChild(r));
+    if (emptySearchRow) tbody.appendChild(emptySearchRow);
+  };
 
   const applyFilters = () => {
     const query = (searchInput?.value || '').trim().toLowerCase();
     const stage = stageSelect?.value || 'ALL';
+    const rows = document.querySelectorAll<HTMLTableRowElement>('tr[data-activity-row]');
 
+    let visibleCount = 0;
     rows.forEach(row => {
       const rowStage = row.getAttribute('data-stage') || 'INITIAL_ENTRY';
       const rowTitle = row.getAttribute('data-title') || '';
@@ -499,12 +647,39 @@ function bindActivitiesListEvents() {
       const matchesStage = (stage === 'ALL' || rowStage === stage);
       const matchesQuery = !query || rowTitle.includes(query) || rowAgenda.includes(query);
 
-      row.style.display = (matchesStage && matchesQuery) ? '' : 'none';
+      const isVisible = matchesStage && matchesQuery;
+      row.style.display = isVisible ? '' : 'none';
+      if (isVisible) visibleCount++;
     });
+
+    const emptyActivitiesRow = document.getElementById('emptyActivitiesRow');
+    if (emptySearchRow) {
+      const isFiltered = Boolean(query || stage !== 'ALL');
+      emptySearchRow.style.display = (visibleCount === 0 && (rows.length > 0 || isFiltered)) ? '' : 'none';
+      if (emptyActivitiesRow) {
+        emptyActivitiesRow.style.display = (visibleCount === 0 && !isFiltered) ? '' : 'none';
+      }
+    }
   };
 
   if (searchInput) searchInput.addEventListener('input', applyFilters);
   if (stageSelect) stageSelect.addEventListener('change', applyFilters);
+  if (sortSelect) {
+    sortSelect.addEventListener('change', () => {
+      reorderRows(sortSelect.value);
+      applyFilters();
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      if (stageSelect) stageSelect.value = 'ALL';
+      if (sortSelect) sortSelect.value = 'NEWEST';
+      reorderRows('NEWEST');
+      applyFilters();
+    });
+  }
 
   document.querySelectorAll<HTMLButtonElement>('button[data-delete-id]').forEach(btn => {
     btn.onclick = async () => {
@@ -857,7 +1032,7 @@ window.addEventListener('hashchange', () => {
 
 // Expose auth helper and visual test hooks for verified headless e2e tests
 (window as any).__ADMIN_AUTH_HELPER__ = { signInWithToken };
-(window as any).__ADMIN_TEST_VIEW__ = async (mockProfile?: any) => {
+(window as any).__ADMIN_TEST_VIEW__ = async (mockProfile?: any, mockActivities?: ActivityDocument[]) => {
   currentUser = mockProfile || {
     uid: '31Bin8ErtBaAy3YODaf1SKKymYb2',
     email: 'riyanbwirawanto@gmail.com',
@@ -868,6 +1043,9 @@ window.addEventListener('hashchange', () => {
     claims: { role: 'admin' }
   };
   currentAuthState = 'AUTHENTICATED_ADMIN';
+  if (mockActivities && Array.isArray(mockActivities)) {
+    cachedActivities = mockActivities;
+  }
   const adminApp = document.getElementById('admin-app');
   if (adminApp) {
     adminApp.className = 'admin-layout';

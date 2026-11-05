@@ -11,7 +11,7 @@
  * 5. Strictly filtered by date-range intersection and sorted chronologically.
  */
 
-import type { ActivityDocument } from '../schema/activity';
+import type { ActivityDocument, ActivityStatus } from '../schema/activity';
 import type { Location, Organizer, Category, Employee, SignatorySettings } from '../schema/master';
 import { DEFAULT_SIGNATORY_SETTINGS } from '../schema/master';
 import {
@@ -20,6 +20,7 @@ import {
   intersectsRange,
   formatIndonesianDate
 } from '../scheduling/timeUtils';
+import { sortActivities } from '../scheduling/sortUtils';
 
 export interface EightColumnReportRow {
   no: number;
@@ -31,6 +32,9 @@ export interface EightColumnReportRow {
   dihadiriOleh: string;
   keterangan: string;
   isCancelled: boolean;
+  status?: ActivityStatus;
+  startDate?: string;
+  startTime?: string | null;
   activityId?: string;
   categoryId?: string;
   categoryName?: string;
@@ -51,26 +55,19 @@ export function buildEightColumnReportRows(
   activities: ActivityDocument[],
   startDate: string,
   endDate: string,
-  lookups: ReportLookups
+  lookups: ReportLookups,
+  sortOption: 'NEWEST' | 'OLDEST' = 'NEWEST'
 ): EightColumnReportRow[] {
   // 1. Filter by date-range intersection
   const matching = activities.filter(act =>
     intersectsRange(act.startDate, act.endDate, startDate, endDate)
   );
 
-  // 2. Sort chronologically: startDate -> startTime -> endDate -> endTime -> title
-  matching.sort((a, b) => {
-    if (a.startDate !== b.startDate) return a.startDate.localeCompare(b.startDate);
-    if (a.startTime !== b.startTime) return a.startTime.localeCompare(b.startTime);
-    if (a.endDate !== b.endDate) return a.endDate.localeCompare(b.endDate);
-    const endA = a.endTime || '23:59';
-    const endB = b.endTime || '23:59';
-    if (endA !== endB) return endA.localeCompare(endB);
-    return a.title.localeCompare(b.title);
-  });
+  // 2. Sort according to specified sortOption (default: NEWEST)
+  const sorted = sortActivities(matching, sortOption);
 
   // 3. Map to 8-column rows
-  return matching.map((act, index) => {
+  return sorted.map((act, index) => {
     const isCancelled = act.status === 'CANCELLED';
     const loc = lookups.locations.get(act.locationId);
     const org = lookups.organizers.get(act.organizerId);
@@ -128,6 +125,9 @@ export function buildEightColumnReportRows(
       dihadiriOleh,
       keterangan,
       isCancelled,
+      status: act.status,
+      startDate: act.startDate,
+      startTime: act.startTime,
       activityId: act.id,
       categoryId: act.categoryId,
       categoryName: cat?.name

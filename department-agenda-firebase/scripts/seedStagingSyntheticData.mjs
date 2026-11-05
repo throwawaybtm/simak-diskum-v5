@@ -78,11 +78,11 @@ export const SYNTHETIC_ORGANIZERS = [
 
 // 5 Categories
 export const SYNTHETIC_CATEGORIES = [
-  { id: 'cat_syn_01', name: 'Rapat Koordinasi Internal', color: '#2563eb', active: true },
-  { id: 'cat_syn_02', name: 'Pelatihan & Bimtek UMKM', color: '#0284c7', active: true },
-  { id: 'cat_syn_03', name: 'Pengawasan & Kunjungan Lapangan', color: '#16a34a', active: true },
-  { id: 'cat_syn_04', name: 'Sosialisasi Regulasi & Advokasi', color: '#d97706', active: true },
-  { id: 'cat_syn_05', name: 'Pameran, Ekspo & Kurasi Produk', color: '#9333ea', active: true }
+  { id: 'cat_syn_01', name: 'Rapat Koordinasi Internal', color: '#2563eb', colorHex: '#2563eb', active: true },
+  { id: 'cat_syn_02', name: 'Pelatihan & Bimtek UMKM', color: '#0284c7', colorHex: '#0284c7', active: true },
+  { id: 'cat_syn_03', name: 'Pengawasan & Kunjungan Lapangan', color: '#16a34a', colorHex: '#16a34a', active: true },
+  { id: 'cat_syn_04', name: 'Sosialisasi Regulasi & Advokasi', color: '#d97706', colorHex: '#d97706', active: true },
+  { id: 'cat_syn_05', name: 'Pameran, Ekspo & Kurasi Produk', color: '#9333ea', colorHex: '#9333ea', active: true }
 ];
 
 // Synthetic Signatory Settings

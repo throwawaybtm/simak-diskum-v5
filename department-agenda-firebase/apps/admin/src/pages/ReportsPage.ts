@@ -58,6 +58,7 @@ export async function mountReportsPage(
   let endDate = '2026-11-30';
   let selectedCategory = 'ALL';
   let selectedStatus = 'ALL';
+  let selectedSortOrder: 'NEWEST' | 'OLDEST' = 'NEWEST';
 
   // Migration state
   let migrationResult: LegacyMigrationResult | null = null;
@@ -118,24 +119,32 @@ export async function mountReportsPage(
   ];
 
   function getFilteredRows(): EightColumnReportRow[] {
-    let rows = buildEightColumnReportRows(currentActivities, startDate, endDate, lookups);
+    if (startDate > endDate) {
+      return [];
+    }
+    let rows = buildEightColumnReportRows(currentActivities, startDate, endDate, lookups, selectedSortOrder);
 
     if (selectedCategory !== 'ALL') {
       rows = rows.filter(r => r.categoryId === selectedCategory);
     }
     if (selectedStatus === 'CANCELLED') {
-      rows = rows.filter(r => r.isCancelled);
+      rows = rows.filter(r => r.isCancelled || r.status === 'CANCELLED');
     } else if (selectedStatus === 'SCHEDULED') {
-      rows = rows.filter(r => !r.isCancelled);
+      rows = rows.filter(r => !r.isCancelled && r.status !== 'COMPLETED');
+    } else if (selectedStatus === 'COMPLETED') {
+      rows = rows.filter(r => !r.isCancelled && r.status === 'COMPLETED');
     }
 
-    // Re-index sequential numbers
+    // Re-index sequential numbers according to the displayed/exported order
     return rows.map((r, idx) => ({ ...r, no: idx + 1 }));
   }
 
   function render(): void {
+    const isDateRangeInvalid = startDate > endDate;
     const rows = getFilteredRows();
-    const periodLabel = formatIndonesianDateSpan(startDate, endDate);
+    const periodLabel = isDateRangeInvalid
+      ? 'Rentang Tanggal Tidak Valid'
+      : formatIndonesianDateSpan(startDate, endDate);
 
     const categorySelectOptions = masterCategories
       .map(c => `<option value="${c.id}" ${selectedCategory === c.id ? 'selected' : ''}>${c.name}</option>`)
@@ -206,43 +215,65 @@ export async function mountReportsPage(
                 <select id="selectReportStatus">
                   <option value="ALL" ${selectedStatus === 'ALL' ? 'selected' : ''}>Semua Status</option>
                   <option value="SCHEDULED" ${selectedStatus === 'SCHEDULED' ? 'selected' : ''}>Terjadwal</option>
+                  <option value="COMPLETED" ${selectedStatus === 'COMPLETED' ? 'selected' : ''}>Selesai</option>
                   <option value="CANCELLED" ${selectedStatus === 'CANCELLED' ? 'selected' : ''}>Dibatalkan</option>
                 </select>
               </div>
+              <div class="form-group">
+                <label for="selectReportSort">Urutkan:</label>
+                <select id="selectReportSort">
+                  <option value="NEWEST" ${selectedSortOrder === 'NEWEST' ? 'selected' : ''}>Terbaru ke Terlama</option>
+                  <option value="OLDEST" ${selectedSortOrder === 'OLDEST' ? 'selected' : ''}>Terlama ke Terbaru</option>
+                </select>
+              </div>
             </div>
+
+            ${isDateRangeInvalid ? `
+              <div class="alert alert-danger" id="reportDateErrorBanner" style="margin-top: 1rem; padding: 0.75rem 1rem; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; color: #991b1b; font-size: 0.875rem;" role="alert">
+                ⚠️ <strong>Tanggal mulai tidak boleh lebih besar dari tanggal akhir.</strong>
+              </div>
+            ` : ''}
 
             <div class="filter-actions-row">
               <div class="summary-pill">
                 Periode: <strong>${periodLabel}</strong> | Total: <strong>${rows.length}</strong> kegiatan
               </div>
               <div class="btn-group">
-                <button type="button" class="btn btn-secondary" id="btnRefreshReport">🔄 Muat Ulang</button>
-                <button type="button" class="btn btn-secondary" id="btnPrintReport">🖨️ Cetak (A4 Landscape)</button>
-                <button type="button" class="btn btn-primary" id="btnDownloadXlsx">📊 Unduh Excel (.xlsx)</button>
+                <button type="button" class="btn btn-secondary" id="btnRefreshReport" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🔄 Muat Ulang</button>
+                <button type="button" class="btn btn-secondary" id="btnPrintReport" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖨️ Cetak (A4 Landscape)</button>
+                <button type="button" class="btn btn-primary" id="btnDownloadXlsx" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>📊 Unduh Excel (.xlsx)</button>
               </div>
             </div>
           </div>
 
           <!-- TABLE PREVIEW -->
-          <div class="panel table-responsive-panel">
-            <table class="eight-column-table" id="reportPreviewTable">
-              <thead>
-                <tr>
-                  <th style="width: 4%;">No</th>
-                  <th style="width: 16%;">Hari / Tanggal</th>
-                  <th style="width: 12%;">Pukul</th>
-                  <th style="width: 22%;">Kegiatan</th>
-                  <th style="width: 14%;">Tempat</th>
-                  <th style="width: 12%;">Penyelenggara</th>
-                  <th style="width: 12%;">Dihadiri Oleh</th>
-                  <th style="width: 8%;">Keterangan</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rowsHtml}
-              </tbody>
-            </table>
-          </div>
+          ${isDateRangeInvalid ? `
+            <div class="panel text-center" style="padding: 2.5rem 1rem; background: #fff; border: 1px dashed #fca5a5;">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
+              <h4 style="color: #991b1b; margin-bottom: 0.35rem;">Rentang Tanggal Laporan Tidak Valid</h4>
+              <p style="color: #64748b; font-size: 0.875rem;">Tanggal mulai tidak boleh lebih besar dari tanggal akhir. Silakan sesuaikan pilihan tanggal di atas.</p>
+            </div>
+          ` : `
+            <div class="panel table-responsive-panel">
+              <table class="eight-column-table" id="reportPreviewTable">
+                <thead>
+                  <tr>
+                    <th style="width: 4%;">No</th>
+                    <th style="width: 16%;">Hari / Tanggal</th>
+                    <th style="width: 12%;">Pukul</th>
+                    <th style="width: 22%;">Kegiatan</th>
+                    <th style="width: 14%;">Tempat</th>
+                    <th style="width: 12%;">Penyelenggara</th>
+                    <th style="width: 12%;">Dihadiri Oleh</th>
+                    <th style="width: 8%;">Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+            </div>
+          `}
         </div>
 
         <!-- TAB 2: SPREADSHEET MIGRATION -->
@@ -375,25 +406,33 @@ export async function mountReportsPage(
     const endInput = container.querySelector<HTMLInputElement>('#inputReportEndDate');
     const catSelect = container.querySelector<HTMLSelectElement>('#selectReportCategory');
     const stSelect = container.querySelector<HTMLSelectElement>('#selectReportStatus');
+    const sortSelect = container.querySelector<HTMLSelectElement>('#selectReportSort');
 
     if (startInput) startInput.onchange = (e) => { startDate = (e.target as HTMLInputElement).value; render(); };
     if (endInput) endInput.onchange = (e) => { endDate = (e.target as HTMLInputElement).value; render(); };
     if (catSelect) catSelect.onchange = (e) => { selectedCategory = (e.target as HTMLSelectElement).value; render(); };
     if (stSelect) stSelect.onchange = (e) => { selectedStatus = (e.target as HTMLSelectElement).value; render(); };
+    if (sortSelect) sortSelect.onchange = (e) => { selectedSortOrder = (e.target as HTMLSelectElement).value as any; render(); };
 
     // Refresh button
-    const refreshBtn = container.querySelector('#btnRefreshReport');
+    const refreshBtn = container.querySelector<HTMLButtonElement>('#btnRefreshReport');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', async () => {
+        if (startDate > endDate) {
+          return;
+        }
         currentActivities = await loadActivities();
         render();
       });
     }
 
     // Print button
-    const printBtn = container.querySelector('#btnPrintReport');
+    const printBtn = container.querySelector<HTMLButtonElement>('#btnPrintReport');
     if (printBtn) {
       printBtn.addEventListener('click', () => {
+        if (startDate > endDate) {
+          return;
+        }
         const rows = getFilteredRows();
         const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
         const html = generateEightColumnHtmlReport({
@@ -425,9 +464,12 @@ export async function mountReportsPage(
     }
 
     // Export XLSX button
-    const xlsxBtn = container.querySelector('#btnDownloadXlsx');
+    const xlsxBtn = container.querySelector<HTMLButtonElement>('#btnDownloadXlsx');
     if (xlsxBtn) {
       xlsxBtn.addEventListener('click', async () => {
+        if (startDate > endDate) {
+          return;
+        }
         try {
           const rows = getFilteredRows();
           const periodLabel = formatIndonesianDateSpan(startDate, endDate);

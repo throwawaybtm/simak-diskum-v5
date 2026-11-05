@@ -903,9 +903,9 @@ export async function seedInitialMasterData(db, options = {}) {
   ];
 
   const syntheticCategories = [
-    { id: 'cat_01', name: 'Rapat Koordinasi', color: '#2563eb', active: true },
-    { id: 'cat_02', name: 'Bimbingan Teknis & Pelatihan', color: '#0284c7', active: true },
-    { id: 'cat_03', name: 'Kunjungan Kerja & Lapangan', color: '#16a34a', active: true }
+    { id: 'cat_01', name: 'Rapat Koordinasi', color: '#2563eb', colorHex: '#2563eb', active: true },
+    { id: 'cat_02', name: 'Bimbingan Teknis & Pelatihan', color: '#0284c7', colorHex: '#0284c7', active: true },
+    { id: 'cat_03', name: 'Kunjungan Kerja & Lapangan', color: '#16a34a', colorHex: '#16a34a', active: true }
   ];
 
   const syntheticSignatory = {
