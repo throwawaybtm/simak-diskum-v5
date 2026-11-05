@@ -160,6 +160,9 @@ function renderMonthGrid(
   }
 
   return `
+    <div class="calendar-scroll-hint" aria-hidden="true">
+      <span>👉 Geser untuk melihat hari lainnya</span>
+    </div>
     <div class="month-grid-wrapper">
       <div class="month-headers-row">
         ${headerHtml}

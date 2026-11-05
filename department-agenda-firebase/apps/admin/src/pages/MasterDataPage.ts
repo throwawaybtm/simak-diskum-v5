@@ -583,7 +583,7 @@ function renderModal(context: MasterDataContext) {
       <div class="modal-card master-modal-card">
         <div class="modal-header">
           <h3>${isEdit ? 'Edit Data Master' : 'Tambah Data Master Baru'}</h3>
-          <button type="button" class="modal-close" id="btnMasterModalClose">✕</button>
+          <button type="button" class="modal-close" id="btnMasterModalClose" aria-label="Tutup dialog data master">✕</button>
         </div>
 
         <div class="modal-body">
@@ -599,11 +599,53 @@ function renderModal(context: MasterDataContext) {
     </div>
   `;
 
+  const previousActiveElement = document.activeElement as HTMLElement | null;
+  const modalCard = mount.querySelector('.master-modal-card') as HTMLElement | null;
+
   const closeModal = () => {
+    window.removeEventListener('keydown', handleModalKeyDown);
     state.isModalOpen = false;
     state.editingRecord = null;
     mount.innerHTML = '';
+    if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+      previousActiveElement.focus();
+    }
   };
+
+  const handleModalKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeModal();
+      return;
+    }
+
+    if (e.key === 'Tab' && modalCard) {
+      const focusables = Array.from(
+        modalCard.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(el => !el.hasAttribute('disabled') && el.offsetParent !== null);
+
+      if (focusables.length === 0) return;
+
+      const firstEl = focusables[0];
+      const lastEl = focusables[focusables.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstEl) {
+          e.preventDefault();
+          lastEl.focus();
+        }
+      } else {
+        if (document.activeElement === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
+      }
+    }
+  };
+
+  window.addEventListener('keydown', handleModalKeyDown);
 
   const closeBtn = document.getElementById('btnMasterModalClose');
   const cancelBtn = document.getElementById('btnMasterModalCancel');
@@ -617,6 +659,16 @@ function renderModal(context: MasterDataContext) {
       if (e.target === backdrop) closeModal();
     };
   }
+
+  // Auto-focus first input field
+  setTimeout(() => {
+    const firstInput = document.getElementById('modalInputName') as HTMLInputElement | null;
+    if (firstInput) {
+      firstInput.focus();
+    } else if (closeBtn) {
+      closeBtn.focus();
+    }
+  }, 50);
 
   if (saveBtn) {
     saveBtn.onclick = async () => {

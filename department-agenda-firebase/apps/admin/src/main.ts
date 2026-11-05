@@ -228,7 +228,7 @@ function bindActivitiesListEvents() {
     btn.onclick = async () => {
       const id = btn.getAttribute('data-delete-id');
       if (!id) return;
-      if (confirm(`Yakin ingin menghapus kegiatan ID ${id}?`)) {
+      if (confirm('Apakah Anda yakin ingin menghapus agenda kegiatan ini secara permanen?')) {
         try {
           const [{ deleteActivity }, { db }] = await Promise.all([
             import('@department-agenda/shared'),

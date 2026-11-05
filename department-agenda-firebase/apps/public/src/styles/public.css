@@ -79,6 +79,12 @@ body {
   border: 0;
 }
 
+/* Accessibility Focus Rings */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* ====================================================
    HEADER & TOP HORIZONTAL NAVIGATION (Reference Design)
    ==================================================== */
@@ -971,6 +977,21 @@ body {
 }
 
 /* MONTH GRID */
+.calendar-scroll-hint {
+  display: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-surface-subtle);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.85rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
 .month-grid-wrapper {
   background: white;
   border: 1px solid var(--border-color);
@@ -1653,7 +1674,7 @@ body {
 /* ====================================================
    MOBILE RESPONSIVENESS & DENSITY
    ==================================================== */
-@media (max-width: 1200px) {
+@media (max-width: 1350px) {
   .brand-divider,
   .agency-titles {
     display: none;
@@ -1751,6 +1772,9 @@ body {
   }
   .day-short {
     display: inline;
+  }
+  .calendar-scroll-hint {
+    display: flex;
   }
   .week-grid-container {
     min-width: 640px; /* guarantees 7 usable columns on mobile without vertical clipping */

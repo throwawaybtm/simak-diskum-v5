@@ -17,7 +17,7 @@ import {
   type ClientPerformanceSnapshot
 } from '@department-agenda/shared';
 import { db } from './firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 
 import { renderHeader } from './components/Header';
 import { renderActivityDetailModal } from './components/ActivityDetailModal';
@@ -579,8 +579,20 @@ function renderAnnouncementsRoute(container: HTMLElement): void {
 
 // --- Detail Modal Handling ---
 
-function openActivityDetail(activityId: string): void {
-  const act = activitiesMap.get(activityId);
+async function openActivityDetail(activityId: string): Promise<void> {
+  let act = activitiesMap.get(activityId);
+  if (!act) {
+    try {
+      const snap = await getDoc(doc(db, 'publicActivities', activityId));
+      if (snap.exists()) {
+        act = { id: snap.id, ...snap.data() } as PublicActivityDTO;
+        activitiesMap.set(act.id, act);
+      }
+    } catch (e) {
+      console.warn('[Public App] Error fetching single public activity:', e);
+    }
+  }
+
   if (!act) {
     console.warn(`[Public App] Activity with id "${activityId}" not found in cache.`);
     return;
@@ -589,15 +601,54 @@ function openActivityDetail(activityId: string): void {
   const modalContainer = document.getElementById('modal-container');
   if (!modalContainer) return;
 
+  const previousActiveElement = document.activeElement as HTMLElement | null;
   modalContainer.innerHTML = renderActivityDetailModal(act);
 
+  const btnClose = document.getElementById('btnModalClose') as HTMLButtonElement | null;
+  const btnCloseAction = document.getElementById('btnModalCloseAction') as HTMLButtonElement | null;
+  const backdrop = document.getElementById('activityDetailModal');
+  const modalCard = modalContainer.querySelector('.modal-card') as HTMLElement | null;
+
   const closeModal = () => {
+    window.removeEventListener('keydown', handleModalKeyDown);
     modalContainer.innerHTML = '';
+    if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+      previousActiveElement.focus();
+    }
   };
 
-  const btnClose = document.getElementById('btnModalClose');
-  const btnCloseAction = document.getElementById('btnModalCloseAction');
-  const backdrop = document.getElementById('activityDetailModal');
+  const handleModalKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeModal();
+      return;
+    }
+
+    if (e.key === 'Tab' && modalCard) {
+      const focusables = Array.from(
+        modalCard.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(el => !el.hasAttribute('disabled') && el.offsetParent !== null);
+
+      if (focusables.length === 0) return;
+
+      const firstEl = focusables[0];
+      const lastEl = focusables[focusables.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstEl) {
+          e.preventDefault();
+          lastEl.focus();
+        }
+      } else {
+        if (document.activeElement === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
+      }
+    }
+  };
 
   if (btnClose) btnClose.addEventListener('click', closeModal);
   if (btnCloseAction) btnCloseAction.addEventListener('click', closeModal);
@@ -608,27 +659,15 @@ function openActivityDetail(activityId: string): void {
     });
   }
 
-  const handleEsc = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      closeModal();
-      window.removeEventListener('keydown', handleEsc);
-    }
-  };
-  window.addEventListener('keydown', handleEsc);
+  window.addEventListener('keydown', handleModalKeyDown);
+
+  // Set initial focus to close button for immediate accessibility
+  setTimeout(() => {
+    if (btnClose) btnClose.focus();
+  }, 50);
 }
 
 function attachGlobalEventHandlers(): void {
-  // Delegate all [data-open-detail] clicks
-  document.querySelectorAll<HTMLElement>('[data-open-detail]').forEach(elem => {
-    elem.onclick = e => {
-      e.stopPropagation();
-      const id = elem.dataset.openDetail;
-      if (id) {
-        openActivityDetail(id);
-      }
-    };
-  });
-
   // Top navigation search input handler
   const topNavSearch = document.getElementById('topNavSearchInput') as HTMLInputElement | null;
   if (topNavSearch) {
@@ -642,6 +681,18 @@ function attachGlobalEventHandlers(): void {
       }
     };
   }
+}
+
+// Global delegated click listener for activity detail modal across all dynamic views & filters
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement)?.closest<HTMLElement>('[data-open-detail]');
+    if (target && target.dataset.openDetail) {
+      e.preventDefault();
+      e.stopPropagation();
+      openActivityDetail(target.dataset.openDetail);
+    }
+  });
 }
 
 // --- INITIALIZATION ---

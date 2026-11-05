@@ -40,9 +40,11 @@ export function renderActivitiesPage(activities: ActivityDocument[]): string {
             <td><span class="status-badge status-${act.status.toLowerCase()}">${statusIndonesian}</span></td>
             <td>v${act.version}</td>
             <td class="action-cell">
-              <a href="#activities/edit/${act.id}" class="btn-sm btn-edit">Edit</a>
-              <a href="#activities/duplicate/${act.id}" class="btn-sm btn-duplicate" data-duplicate-id="${act.id}">Duplikat</a>
-              <button type="button" class="btn-sm btn-delete" data-delete-id="${act.id}">Hapus</button>
+              <div class="action-buttons-wrap">
+                <a href="#activities/edit/${act.id}" class="btn-sm btn-edit" aria-label="Edit agenda: ${act.title}">Edit</a>
+                <a href="#activities/duplicate/${act.id}" class="btn-sm btn-duplicate" data-duplicate-id="${act.id}" aria-label="Duplikat agenda: ${act.title}">Duplikat</a>
+                <button type="button" class="btn-sm btn-delete" data-delete-id="${act.id}" aria-label="Hapus agenda: ${act.title}">Hapus</button>
+              </div>
             </td>
           </tr>
         `;
@@ -82,8 +84,11 @@ export function renderActivitiesPage(activities: ActivityDocument[]): string {
       </div>
 
       <div class="panel">
+        <div class="table-scroll-hint" aria-hidden="true">
+          <span>👉 Geser tabel ke kanan untuk melihat semua kolom & aksi</span>
+        </div>
         <div class="table-responsive">
-          <table class="data-table">
+          <table class="data-table activities-table">
             <thead>
               <tr>
                 <th>Hari / Tanggal</th>
