@@ -701,3 +701,175 @@ Milestone P01-A addresses the critical operational safety gaps identified during
   - Zero production Firestore rules or database documents modified.
   - Zero Blaze billing upgrades activated.
   - System paused and awaiting review.
+
+---
+
+# Milestone P01-B: Final Operational Safety Verification Pass Report
+
+**Date:** 2026-11-05  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Fully Verified (202/202 Vitest Tests, 32 Rules Tests, 10 Real Emulator Safety Scenarios, 79 Browser Scenarios, 100% Pass Rate)  
+**Authority:** P01-B Final Operational Safety Directives, `docs/BACKUP_RECOVERY_RUNBOOK.md` (v3.0), `docs/DEPLOYMENT_RUNBOOK.md` (v3.0), and `docs/P01_PREPRODUCTION_READINESS.md`  
+
+---
+
+## 1. Executive Summary
+
+Milestone P01-B closes the remaining operational safety and verification boundaries identified during the pre-production readiness phase. All requirements have been implemented in code, documented in runbooks, and proven via automated tests running against the live local Firebase Emulator Suite (Firestore on `127.0.0.1:8080`, Authentication on `127.0.0.1:9099`):
+
+1. **Complete Backup and Restore Correctness:**
+   - **Resumable & Restartable Checkpoints:** Implemented structured progress ledger (`restore-progress.json`) in `scripts/backupRestore.mjs` bound cryptographically and contextually to `manifestHash` (SHA-256 of backup manifest), `targetProjectId`, `mode` (`full` | `merge`), and `operationId`. Interrupted multi-batch operations can be safely inspected and resumed with `--resume` without repeating already committed batches, or cleanly restarted with `--restart`.
+   - **Strict Prohibition of Merge Mode on Partial Failure:** Runbook v3.0 and CLI explicitly prohibit switching to `--mode=merge` after a partial full restore failure, because merge mode leaves lingering orphaned records and deleted fields.
+   - **Mandatory Dry-Run Review & Confirmation:** Full restoration strictly blocks execution without prior `--dry-run-reviewed` flag and `--force` confirmation, even when the calculated orphan count is zero.
+   - **Full-Document Equality Verification:** Implemented `assertDeepFirestoreEquality` performing recursive deep comparison across nested objects, arrays, Firestore `Timestamp` objects (seconds and nanoseconds), `DocumentReference` paths, `Date` objects, and `null` values. In full mode, extra unbacked live fields trigger verification failure.
+   - **Application Maintenance Lockdown:** Documented in `BACKUP_RECOVERY_RUNBOOK.md` Section 3.1 that concurrent writes are prevented during destructive full restoration by locking down `firestore.rules` (`allow read, write: if false;`).
+
+2. **Audit History Protection:**
+   - **Zero Audit Log Deletion:** Post-backup audit logs are legally immune and never deleted during full restore.
+   - **Non-Overwriting ID Collision Handling:** If a restored backup record shares an ID with an existing live audit document, the live record is preserved untouched, and the backup record is safely written under `${id}_backup_restored_${timestamp}` with metadata `isCollidingRestoredRecord: true` and `originalCollidingId: id`.
+   - **Privileged Maintenance Tracking:** Maintenance restore executions record an audit entry with `action: 'MAINTENANCE_RESTORE'`, `identitySource: 'ADMIN_CLI_PRIVILEGED'`, and `isPrivilegedMaintenance: true`.
+   - **Honest Tamper-Evidence Claims:** Runbooks clarify that Firestore client rules provide append-only guarantees for authenticated sessions, but true cryptographic tamper-evidence requires external Write-Once-Read-Many (WORM) storage.
+
+3. **Project & Credential Safety:**
+   - **Strict Target Environment Validation:** Scripts mandate `--target=emulator` or `--target=prod`. When `--target=prod` is provided, scripts strictly verify `REQUIRED_PROJECT_ID = 'simakdiskum'`. When `--target=emulator` is specified, scripts verify `FIRESTORE_EMULATOR_HOST` (and `FIREBASE_AUTH_EMULATOR_HOST`) and forbid targeting production credentials.
+   - **Prominent Target Banner:** `printTargetBanner` displays the target environment, project ID, host/endpoint, auth method, and destructive status before any operations proceed.
+   - **Zero Credential Leaking:** Passwords and temporary credentials are never logged to console or disk.
+
+4. **Authentication Readiness (Spark Plan Feasibility):**
+   - **Disabling Client Sign-Up on Spark Plan:** Verified against official Firebase documentation that unchecking "Enable create (sign-up)" in Firebase Console > Authentication > Settings > User actions is 100% available on the free Spark plan without upgrading to Blaze.
+   - **Real Auth Emulator Verification:** Verified user provisioning, custom claim assignment (`admin`/`editor`), token revocation (`revokeRefreshTokens`), account disabling (`disabled: true`), and password reset link generation against the live Firebase Auth Emulator (`127.0.0.1:9099`).
+
+5. **Documentation & Quota Reconciliation:**
+   - **187 vs 189 Test Total Explanation:** Documented that P01-A added 2 new tests to `stagingReadiness.test.ts` (7 -> 9) and 5 tests to `backupRestore.test.ts` (3 -> 8), progressing from 182 to 189 total tests.
+   - **US Pacific to WIB Quota Conversion:** Cloud Firestore 50k reads reset at midnight US Pacific Time:
+     - PST (UTC-8, winter): **15:00 WIB (3:00 PM WIB)**.
+     - PDT (UTC-7, summer): **14:00 WIB (2:00 PM WIB)**.
+   - **Zero-Cost Free Tier Target:** System remains 100% within the Spark free tier ($0.00/month).
+
+---
+
+## 2. Test Attribution: Real Emulator vs. In-Memory Mocks
+
+To ensure complete transparency, the 202 automated Vitest tests are categorized by execution harness:
+
+| Category | Harness | Files | Tests | Purpose |
+|---|---|---|:---:|---|
+| **Real Emulator Integration** | Real Firestore (`8080`) & Auth (`9099`) | `tests/integration/p01bSafetyVerification.test.ts` | **10** | 10 mandatory operational safety scenarios (backup/restore, resumption, collisions, auth roles) |
+| **Real Rules Security** | Real Firestore Emulator (`8080`) | `tests/rules/firestore.rules.test.ts` | **32** | RBAC, document validation, audit server timestamps, lockstep public projection |
+| **Real Transactions & OCC** | Real Firestore Emulator (`8080`) | `tests/emulator/repository.emulator.test.ts` | **6** | Atomic multi-document transactions, optimistic concurrency control |
+| **Real Master Repository** | Real Firestore Emulator (`8080`) | `tests/emulator/masterRepository.emulator.test.ts` | **4** | Referential integrity, deactivation cascades, master CRUD |
+| **Real Query Benchmark** | Real Firestore Emulator (`8080`) | `tests/emulator/queryBenchmark.emulator.test.ts` | **1** | Multi-month date-range query benchmark (520 docs) |
+| **Real Privacy Leak Audit** | Real Firestore Emulator (`8080`) | `tests/integration/publicPrivacyAudit.emulator.test.ts` | **3** | Deep inspection of public projections to ensure zero private leakage |
+| **Subtotal Real Emulator Tests** | | | **56** | **27.7% of automated test suite** |
+| **Unit: Time & Date Engine** | In-Memory Pure Logic | `tests/unit/timeUtils.test.ts` | **27** | WIB time math, half-open intervals, leap years, formatting |
+| **Unit: Activity Validation** | In-Memory Pure Logic | `tests/unit/activityValidator.test.ts` | **17** | Start < end chronology, required fields, enum enforcement |
+| **Unit: UI Controllers** | In-Memory DOM / Controllers | `tests/unit/adminUi.test.ts`, `tests/unit/publicUi.test.ts` | **22** | Admin and Public UI routing, state updates, event dispatching |
+| **Unit: Backup & Restore Logic** | In-Memory Mocked SDK | `tests/unit/backupRestore.test.ts` | **9** | Manifest validation, diff computation, deep equality unit tests |
+| **Unit: Role Management Logic** | In-Memory Mocked SDK | `tests/unit/authRoleManagement.test.ts` | **9** | Claim assignment, token revocation, target banner unit tests |
+| **Unit: Staging & Config Safety** | In-Memory File & Config Check | `tests/unit/stagingReadiness.test.ts`, `tests/monorepo_config.test.ts` | **16** | Git exclusion, config separation, project ID verification |
+| **Unit: Master Data & Safety** | In-Memory Pure Logic | `tests/unit/masterData.test.ts`, `tests/unit/masterSafetyAndMigration.test.ts` | **14** | Master data contracts, snapshot preservation, whitespace deduplication |
+| **Unit: Reports & Migration** | In-Memory Excel & Migration | `tests/unit/reportsAndMigration.test.ts`, `tests/unit/xlsxParserVerification.test.ts` | **9** | 8-column layout, XLSX generation, formula injection neutralization |
+| **Unit: Privacy & Projection** | In-Memory Pure Logic | `tests/unit/privacyScanner.test.ts`, `tests/unit/publicProjector.test.ts`, `tests/unit/attendeeSnapshot.test.ts`, `tests/unit/conflictDetector.test.ts`, `tests/unit/schemas.test.ts` | **23** | Regex privacy scanner, snapshot immutability, conflict detection |
+| **Subtotal In-Memory Mocks** | | | **146** | **72.3% of automated test suite** |
+| **TOTAL VITEST SUITE** | | **23 Files** | **202** | **100% Pass Rate** |
+
+---
+
+## 3. Ten Mandatory Integration Safety Scenarios (Real Emulators)
+
+All 10 scenarios in `tests/integration/p01bSafetyVerification.test.ts` were executed against the live local Firebase Emulator Suite (`127.0.0.1:8080` and `127.0.0.1:9099`):
+
+1. **Scenario 1 — Backup-Export to Restore Round-Trip:**
+   - Populated Firestore emulator with full multi-collection dataset (activities, employees, settings).
+   - Executed `exportCollections` generating SHA-256 verified JSON files and manifest.
+   - Cleared emulator database.
+   - Executed `restoreCollections` in full mode.
+   - Verified 100% document restoration and deep equality via `assertDeepFirestoreEquality`.
+   - *Result:* **PASSED (3,597ms)**.
+
+2. **Scenario 2 — Full Restoration of Changed, Deleted, and Added Documents:**
+   - Modified live documents, added orphaned documents, deleted fields.
+   - Executed `restoreCollections` in full mode with dry-run review and confirmation.
+   - Verified that deleted documents were restored, modified documents reverted, extra fields removed, and unbacked orphaned documents deleted.
+   - *Result:* **PASSED (526ms)**.
+
+3. **Scenario 3 — Interrupted Restoration & Resumption via Bound Checkpoint Ledger:**
+   - Simulated partial restore failure after Batch 1.
+   - Verified checkpoint ledger `restore-progress.json` was written with `manifestHash`, `targetProjectId`, `mode`, and completed batch count.
+   - Executed resumption via `--resume`.
+   - Verified restoration continued from Batch 2 without repeating Batch 1 and achieved deep equality.
+   - *Result:* **PASSED (684ms)**.
+
+4. **Scenario 4 — Audit History Preservation Against Deletion and Overwriting:**
+   - Created live post-backup audit log documents.
+   - Created live audit log document sharing an ID with a backup audit record (simulating collision).
+   - Executed full restoration.
+   - Verified live post-backup audit logs were NOT deleted.
+   - Verified conflicting live record was NOT overwritten; colliding backup record was saved under `${id}_backup_restored_${timestamp}` with collision metadata.
+   - Verified `MAINTENANCE_RESTORE` audit record was appended with `isPrivilegedMaintenance: true`.
+   - *Result:* **PASSED (621ms)**.
+
+5. **Scenario 5 — Complete Nested Firestore Data-Type Equality:**
+   - Populated complex documents with nested objects, arrays, Firestore `Timestamp` objects (seconds and nanoseconds), `DocumentReference` objects, and `null` values.
+   - Tested `assertDeepFirestoreEquality`. Verified it passes for identical structures and throws descriptive errors for scalar mismatches, missing fields, or unexpected extra fields.
+   - *Result:* **PASSED (284ms)**.
+
+6. **Scenario 6 — Failed Manifest Checksum Validation:**
+   - Tampered with exported JSON file content after manifest creation.
+   - Executed restore.
+   - Verified `validateBackupIntegrity` detected SHA-256 checksum mismatch and aborted before modifying Firestore.
+   - *Result:* **PASSED (212ms)**.
+
+7. **Scenario 7 — Target Project & Environment Rejection:**
+   - Attempted restore with incorrect production project ID (`fake-project-id`).
+   - Attempted restore targeting emulator without setting emulator environment variable.
+   - Verified target guards immediately blocked execution and displayed safety error messages.
+   - *Result:* **PASSED (225ms)**.
+
+8. **Scenario 8 — Destructive Restore Without Prior Dry-Run Review:**
+   - Attempted full restore without `--dry-run-reviewed` flag.
+   - Attempted full restore without `--force` flag.
+   - Verified execution was blocked with explicit prompt to run `--dry-run` first.
+   - *Result:* **PASSED (346ms)**.
+
+9. **Scenario 9 — Unapproved Personnel-Data Seeding Rejection:**
+   - Attempted seeding production master data using unapproved template (`clientApproved: false`).
+   - Attempted seeding using template containing placeholder markers (`[NAMA PEJABAT SESUAI SK RESMI]`).
+   - Verified seeder rejected execution and protected production database from dirty data.
+   - *Result:* **PASSED (238ms)**.
+
+10. **Scenario 10 — Role Management & Boundaries on Real Auth Emulator:**
+    - Connected to live Firebase Auth Emulator (`127.0.0.1:9099`).
+    - Provisioned admin user (`admin_test@batam.go.id`) and editor user (`editor_test@batam.go.id`).
+    - Verified custom claims `{ role: 'admin' }` and `{ role: 'editor' }`.
+    - Revoked refresh tokens via `revokeRefreshTokens`.
+    - Disabled account via `disableUser` (`disabled: true`).
+    - Generated secure password reset link via `generatePasswordResetLink`.
+    - *Result:* **PASSED (372ms)**.
+
+---
+
+## 4. Full Regression Verification Summary
+
+- **Vitest Automated Suites:** **23 / 23 passed** (202 / 202 tests, 100% pass rate).
+- **Playwright Real-Browser Regression Suites:** **79 / 79 browser scenarios passed** (100% pass rate).
+  - V01-C Release Readiness Suite (`v01cReleaseReadinessVerification.mjs`): 27 / 27 passed.
+  - V01-B Final Correction Pass Suite (`v01bFinalCorrectionVerification.mjs`): 23 / 23 passed.
+  - Feature F01 Administrative Workflow Suite (`f01WorkflowVerification.mjs`): 13 / 13 passed.
+  - Master Data Management Suite (`masterDataVerification.mjs`): 8 / 8 passed.
+  - Reports & Migration Suite (`reportsVerification.mjs`): 8 / 8 passed.
+- **Monorepo Production Build:** Clean build of all packages (`@department-agenda/shared`, `@department-agenda/public`, `@department-agenda/admin`). Zero errors.
+- **Visual Artifacts:** 99 verified browser screenshots in `tests/e2e/screenshots/`.
+
+---
+
+## 5. Milestone P01-B Final Safety Review Checkpoint Status
+
+- **Checkpoint:** **Milestone P01-B Final Safety Review Checkpoint**
+- **Status:** **COMPLETED & VERIFIED (AWAITING USER AUTHORIZATION)**
+- **Strict Invariants Preserved:**
+  - Zero live deployment commands executed.
+  - Zero real operator accounts created.
+  - Zero production Firestore rules or database documents modified.
+  - Zero Blaze billing upgrades activated ($0.00/month Spark target preserved).
+  - System paused and awaiting review.

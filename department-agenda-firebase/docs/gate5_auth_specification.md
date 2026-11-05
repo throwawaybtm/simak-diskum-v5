@@ -695,7 +695,7 @@ sequenceDiagram
      firebase firestore:rules:release --project simakdiskum <previous-release-id>
      ```
 2. **Hosting Rollback:**
-   - Firebase Hosting supports instant rollback to any prior release directly via Firebase Console or CLI:
+   - Firebase Hosting supports rollback to any prior release directly via Firebase Console Release History (propagation takes 1–5 minutes; does NOT touch database records):
      ```bash
      firebase hosting:clone simakdiskum:<prior-version-id> simakdiskum:live
      ```
@@ -743,7 +743,7 @@ The architecture operates strictly within the **Firebase Spark (Free) tier** lim
 
 > [!IMPORTANT]
 > **Operational Denial-of-Service Risk from Free Quota Exhaustion:**
-> On the Spark plan, exceeding daily limits (e.g. 50,000 reads/day) does **not** incur surprise monetary charges; rather, Firebase responds with `RESOURCE_EXHAUSTED` (HTTP 429) until midnight Pacific Time. While financial liability is zero, denial of public service is an operational risk if unexpected viral traffic occurs. Public page caching headers on Firebase CDN mitigate this risk.
+> On the Spark plan, exceeding daily limits (e.g. 50,000 reads/day) does **not** incur surprise monetary charges; rather, Firebase responds with `RESOURCE_EXHAUSTED` (HTTP 429) until midnight Pacific Time (15:00 WIB during PST / 14:00 WIB during PDT). While financial liability is zero, denial of public service is an operational risk if unexpected viral traffic occurs. Public page caching headers on Firebase CDN mitigate this risk.
 
 ---
 
