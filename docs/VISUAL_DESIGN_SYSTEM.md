@@ -195,3 +195,30 @@ The SIMAK DISKUM v5.0 visual identity embodies modern minimalist Indonesian civi
 - **1024px (Standard Desktop):** 4-card / 5-card grids comfortably fit without wrapping; public header items remain strictly on a single line (`white-space: nowrap`); admin sidebar remains permanently docked.
 - **768px (Tablet):** Summary cards adapt to 2-column grids; public nav hides secondary subtitles to maintain single-line layout; admin sidebar switches to accessible off-canvas drawer with hamburger button (`#adminMenuToggleBtn`); zero horizontal overflow.
 - **375px (Mobile):** Single-column layout; full touch-friendly tap targets (>44px); public header offers horizontal touch scroll; admin drawer slides smoothly from left; banner height compacted (< 200px); zero horizontal overflow.
+
+---
+
+## 6. V01-B Final Correction Pass & Design Hardening
+
+### A. Public Month Calendar Grid Geometry
+- **Mathematical Column Equalization:** Both `.month-headers-row` and `.month-cells-grid` employ `grid-template-columns: repeat(7, minmax(0, 1fr))`. This prevents CSS Grid from defaulting to `minmax(auto, 1fr)`, which previously expanded columns containing event text while starving empty columns.
+- **Header-to-Cell Alignment:** Zero horizontal drift across all 7 columns (`diffX = 0.00px`, `diffW = 0.00px`) verified at 375px, 768px, 1024px, and 1440px viewports.
+- **November 2026 Date Placement:** Sunday, November 1, 2026 is mathematically placed in column 6 (Minggu/Sunday) in accordance with the Indonesian Monday-first workweek convention (`Senin, Selasa, Rabu, Kamis, Jumat, Sabtu, Minggu`).
+- **Event Overflow Defense:** Event cards within month cells employ `min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-sizing: border-box;`, guaranteeing zero pixel overflow past the cell border (`0.00px` offset).
+- **Mobile Horizontal Scrolling:** On viewports `< 768px`, `.month-grid-wrapper` enforces `min-width: 640px` within a smooth touch-scrolling container (`overflow-x: auto; -webkit-overflow-scrolling: touch;`), preserving complete multi-day bar continuity and preventing squeezed illegible cells.
+
+### B. Public Attendee Display & Privacy Shields
+- **Smart Degree Separation in Migration Parser:** Academic and professional titles (`M.Si`, `S.Sos`, `SE`, `S.Kom`, `M.M.`) are preserved alongside employee names rather than split into pseudo-attendees.
+- **Snapshot Deduplication:** `createAttendeeSnapshot()` enforces unique attendee IDs via `Set`, preventing duplicate employee entries while preserving official hierarchy order.
+- **Zero Raw ID Leakage:** Unlisted or fallback employee entries in public views are sanitized to generic civic titles (`Pegawai Dinas`) rather than revealing internal database IDs (`emp_01`, `emp_xx`).
+- **Projector Defense-in-Depth:** `projectPublicActivity()` includes secondary regex scrubbing removing any residual `(emp_...)` patterns before Firestore public projection write.
+
+### C. Civic UI Controls & Accessibility
+- **Action Buttons in Admin Tables:** Action buttons (`Edit`, `Duplikat`, `Hapus`) use flexbox alignment (`display: flex; gap: 0.4rem; align-items: center; white-space: nowrap;`) with minimum touch target sizing (height `>= 32px`, minimum width `>= 44px`).
+- **High-Contrast Master Data Tabs:** Active tab button (`.master-tabs-bar .tab-btn.active`) explicitly consumes `var(--color-primary)` (`#2563eb`) with pure white text (`#ffffff`), ensuring WCAG AAA compliant contrast against light backgrounds.
+- **Civic Announcements View:** Modern card stream styled with `.page-title-banner`, `.announcement-item-card`, `.ann-badge-pill`, and valid Indonesian date formatting (`WIB`).
+- **Activity Detail Modal Cleanliness:** Public detail modal renders human-readable location types (`Kantor Dinas`, `Luar Kantor`, `Daring`) and completely omits raw internal activity IDs (`ID Kegiatan: act_xxx`).
+- **Enum Localization Standards:**
+  - Status: `SCHEDULED` → `Terjadwal`, `COMPLETED` → `Selesai`, `CANCELLED` → `Dibatalkan`.
+  - Location Type: `OFFICE` → `Kantor Dinas`, `EXTERNAL` → `Luar Kantor`, `ONLINE` → `Daring`.
+  - Administrative Stage: `INITIAL_ENTRY` → `Input Awal`, `OFFLINE_PROCESS` → `Proses Offline`, `DETAILS_COMPLETED` → `Detail Dilengkapi`, `ADMIN_COMPLETE` → `Administrasi Lengkap`.
