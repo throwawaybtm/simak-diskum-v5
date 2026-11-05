@@ -32,6 +32,7 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 // Allowed department roles matching firestore.rules
 export const ALLOWED_ROLES = ['admin', 'editor'];
@@ -150,6 +151,7 @@ export async function provisionUser(auth, email, password, displayName, role) {
     throw new Error(`Invalid role "${role}". Allowed roles: ${ALLOWED_ROLES.join(', ')}`);
   }
 
+  const effectivePassword = password || (crypto.randomBytes(24).toString('base64url') + '!A1');
   console.log(`[manageRoles] Creating operator account for ${email} with role: ${role}...`);
   let user;
   try {
@@ -163,7 +165,7 @@ export async function provisionUser(auth, email, password, displayName, role) {
     if (err.code === 'auth/user-not-found' || err.message?.includes('user-not-found')) {
       user = await auth.createUser({
         email,
-        password,
+        password: effectivePassword,
         displayName,
         emailVerified: true,
         disabled: false
@@ -257,6 +259,7 @@ async function main() {
     console.log(`
 SIMAK DISKUM Auth Provisioning Utility
 Commands:
+  provision <email> <displayName> <role: admin|editor> [--target=emulator|prod]
   provision <email> <password> <displayName> <role: admin|editor> [--target=emulator|prod]
   set-role <email|uid> <role: admin|editor> [--target=emulator|prod]
   disable <email|uid> [--target=emulator|prod]
@@ -274,12 +277,26 @@ Commands:
 
   try {
     if (command === 'provision') {
-      const [, email, password, displayName, role] = args;
-      if (!email || !password || !displayName || !role) {
-        console.error('Usage: manageRoles.mjs provision <email> <password> <displayName> <role> [--target=emulator|prod]');
+      const positional = args.slice(1).filter(a => !a.startsWith('--'));
+      let email, password, displayName, role;
+      if (positional.length === 3) {
+        // Secure passwordless provisioning: email, displayName, role
+        [email, displayName, role] = positional;
+        password = null; // Auto-generated secure random credential
+      } else if (positional.length === 4) {
+        // Explicit password provisioning: email, password, displayName, role
+        [email, password, displayName, role] = positional;
+      } else {
+        console.error('Usage:');
+        console.error('  manageRoles.mjs provision <email> <displayName> <role: admin|editor> [--target=emulator|prod]');
+        console.error('  manageRoles.mjs provision <email> <password> <displayName> <role: admin|editor> [--target=emulator|prod]');
         process.exit(1);
       }
       await provisionUser(auth, email, password, displayName, role);
+      if (!password) {
+        console.log(`[manageRoles Security] Account provisioned with auto-generated secure entropy.`);
+        await generatePasswordResetLink(auth, email);
+      }
     } else if (command === 'set-role') {
       const [, identifier, role] = args;
       if (!identifier || !role) {

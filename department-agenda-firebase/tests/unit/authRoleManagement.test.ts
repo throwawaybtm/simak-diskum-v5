@@ -215,4 +215,25 @@ describe('P01-A: Operator Role Management & Custom Claims Verification', () => {
     }
     consoleSpy.mockRestore();
   });
+
+  it('supports secure passwordless provisioning generating random entropy without command line passwords', async () => {
+    const user = await provisionUser(
+      mockAuth,
+      'passwordless@batam.go.id',
+      null, // No password provided on CLI
+      'Operator Mandiri',
+      'editor'
+    );
+
+    expect(user.email).toBe('passwordless@batam.go.id');
+    expect(mockAuth.createUser).toHaveBeenCalledWith(expect.objectContaining({
+      email: 'passwordless@batam.go.id',
+      displayName: 'Operator Mandiri',
+      // Password must be auto-generated high-entropy string
+      password: expect.stringMatching(/^[A-Za-z0-9_-]{24,}!A1$/)
+    }));
+    expect(mockAuth.setCustomUserClaims).toHaveBeenCalledWith(user.uid, expect.objectContaining({
+      role: 'editor'
+    }));
+  });
 });

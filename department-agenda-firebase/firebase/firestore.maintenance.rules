@@ -1,5 +1,8 @@
 rules_version = '2';
 
+// RELEASE_IDENTITY: SIMAK_DISKUM_MAINTENANCE_LOCKDOWN_RULES_V5
+// MODE: MAINTENANCE_LOCKDOWN (All client-side mutations frozen; public & operator reads preserved)
+
 // ===============================================================
 // SIMAK DISKUM Kota Batam v5.0 — Temporary Maintenance Security Rules
 // ===============================================================

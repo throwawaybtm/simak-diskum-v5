@@ -116,4 +116,31 @@ describe('Public Projection & Privacy Isolation Engine', () => {
     expect(publicDto.attendeeLabels[0]).not.toContain('emp_01');
     expect(publicDto.attendeeLabels[1]).toBe('2. Sekretaris (Rini Marlina, S.Sos)');
   });
+
+  it('strictly excludes private Google Drive invitation letter metadata and URLs from public projection', () => {
+    const activityWithDriveUrl: ActivityDocument = {
+      ...samplePrivateActivity,
+      invitationLetter: {
+        number: '005/DISKUM/XI/2026',
+        sender: 'Walikota Batam',
+        originCity: 'Batam',
+        date: '2026-11-04',
+        subject: 'Undangan Rapat Evaluasi Anggaran Rahasia',
+        driveUrl: 'https://drive.google.com/file/d/1A2B3C4D_CONFIDENTIAL_INVITATION/view?usp=sharing'
+      }
+    };
+
+    const publicDto = projectPublicActivity(activityWithDriveUrl, lookups);
+    const rawDto = publicDto as any;
+
+    expect(rawDto.invitationLetter).toBeUndefined();
+    expect(rawDto.driveUrl).toBeUndefined();
+
+    // Verify raw JSON string has zero occurrences of Google Drive URL or invitation metadata
+    const serializedJson = JSON.stringify(publicDto);
+    expect(serializedJson).not.toContain('drive.google.com');
+    expect(serializedJson).not.toContain('1A2B3C4D_CONFIDENTIAL_INVITATION');
+    expect(serializedJson).not.toContain('005/DISKUM/XI/2026');
+    expect(serializedJson).not.toContain('Undangan Rapat Evaluasi Anggaran Rahasia');
+  });
 });
