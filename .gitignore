@@ -34,3 +34,19 @@ backups/
 *backup*.json
 restore-progress.json
 .env*
+ 
+temp_october_2026.xlsx
+*.xlsx
+*.rar
+*auditResults*.json
+
+ 
+# D:\Temp unrelated files
+Fan Cover/
+OldVersions/
+Sketch/
+Slice/
+Test Design/
+*.blend
+2026-11-04-department-agenda-firebase-plan.md
+

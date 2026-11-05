@@ -17,3 +17,9 @@ backups/
 *.backup
 *backup*.json
 restore-progress.json
+ 
+temp_october_2026.xlsx
+*.xlsx
+*.rar
+*auditResults*.json
+
