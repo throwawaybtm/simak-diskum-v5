@@ -1,9 +1,10 @@
-# SIMAK DISKUM v5.0 — User Acceptance Test (UAT) Plan
+# SIMAK DISKUM v5.0 — User Acceptance Test (UAT) Plan (Operational Safety Aligned)
 
 **Dinas Koperasi dan Usaha Mikro Kota Batam**  
 **Document Code:** UAT-SIMAK-5.0-202611  
 **Target Audience:** Department Leadership, Administrative Operators, Verification Team  
-**Evaluation Scope:** Dual-Portal Activity Scheduling System (Public & Admin)
+**Evaluation Scope:** Dual-Portal Activity Scheduling System (Public & Admin)  
+**Execution Posture:** All 11 scenarios are **REHEARSED & AUTOMATED IN LOCAL EMULATOR**, currently **PENDING PHYSICAL DEPARTMENT EXECUTION** prior to live activation.
 
 ---
 
@@ -22,17 +23,18 @@ A scenario is marked **PASSED** only when:
 
 ## 2. Testing Environment & Test Accounts
 
-| Portal | URL (Staging / Production) | Authorized Tester Roles |
-|---|---|---|
-| **Public Portal** | `https://simakdiskum.web.app` | Citizen, Public Employee, Any Browser (Unauthenticated) |
-| **Admin Portal** | `https://simakdiskum-admin.web.app` | Department Operator (`editor`), Kepala Subbag/Admin (`admin`) |
+| Portal | URL (Staging / Production) | Authorized Tester Roles | Access Policy |
+|---|---|---|---|
+| **Public Portal** | `https://simakdiskum.web.app` | Citizen, Public Employee, Any Browser | Unauthenticated public read (`publicActivities`) |
+| **Admin Portal** | `https://simakdiskum-admin.web.app` | Department Operator (`editor`), Kasubbag/Admin (`admin`) | Email/Password with custom role claim (`request.auth.token.role`) |
 
 ---
 
 ## 3. Core Acceptance Scenarios (11 Test Cases)
 
 ### Scenario 1: Initial Agenda Creation (`INITIAL_ENTRY` / Input Awal)
-* **Objective:** Verify that an invitation letter arriving at the front desk can be saved immediately with core details, without requiring immediate attendee assignment or full administrative filing.
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
+* **Objective:** Verify that an incoming invitation letter arriving at the front desk can be saved immediately with core details, without requiring immediate attendee assignment or full administrative filing.
 * **Prerequisites:** Logged in to Admin Portal as Operator (`editor`).
 * **Test Steps:**
   1. Click **+ Tambah Agenda** on the Admin sidebar or dashboard.
@@ -51,6 +53,7 @@ A scenario is marked **PASSED** only when:
 ---
 
 ### Scenario 2: Offline Administrative Stage Progression (`OFFLINE_PROCESS` / Proses Offline)
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Objective:** Track that the letter is physically routed to leadership for disposition.
 * **Prerequisites:** Agenda created in Scenario 1.
 * **Test Steps:**
@@ -66,11 +69,12 @@ A scenario is marked **PASSED** only when:
 ---
 
 ### Scenario 3: Completing Attendees & Remarks (`DETAILS_COMPLETED` / Detail Dilengkapi)
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Objective:** Record leadership disposition results (assigned officials and dress code/requirements).
 * **Prerequisites:** Agenda in `OFFLINE_PROCESS` stage.
 * **Test Steps:**
   1. Open the Agenda Edit modal.
-  2. Select assigned attendees: `Dr. H. Hendri Arulan, S.Pd, M.M.` and `Drs. Zulkifli, M.Si`.
+  2. Select assigned attendees from master directory.
   3. In Remarks (`Keterangan`), enter: `Pakaian Batik Lengan Panjang. Membawa bahan paparan evaluasi semester II`.
   4. Advance stage to **Detail Dilengkapi** (`DETAILS_COMPLETED`).
   5. Save changes.
@@ -81,6 +85,7 @@ A scenario is marked **PASSED** only when:
 ---
 
 ### Scenario 4: Full Administrative Filing (`ADMIN_COMPLETE` / Administrasi Lengkap)
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Objective:** Complete the official registry filing with No. Agenda, letter metadata, and digital archive link.
 * **Prerequisites:** Agenda in `DETAILS_COMPLETED` stage.
 * **Test Steps:**
@@ -94,32 +99,36 @@ A scenario is marked **PASSED** only when:
 * **Expected Result:**
   - Status advances to green `Administrasi Lengkap`.
   - Administrative 5-card summary on Admin Dashboard updates.
-  - The Drive URL is clickable from the Admin Portal details modal for internal staff.
+  - The Drive URL is clickable from the Admin Portal details modal for internal staff with `rel="noopener noreferrer" target="_blank"`.
+  - **Drive Permissions Boundary:** SIMAK DISKUM verifies valid HTTPS structure and safely opens the link in a new tab. Actual document access permissions (viewing/downloading the file) are managed directly by Google Drive IAM settings configured by the department letter archivist.
   - The Drive URL is omitted from the Public Portal projection.
 
 ---
 
 ### Scenario 5: Editing and Cancelling Agendas with Citizen Notice
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Objective:** Verify proper audit logging and citizen cancellation notices when events change.
 * **Test Steps:**
   1. Open an existing scheduled agenda.
   2. Click **Batalkan Kegiatan**.
-  3. In the cancellation dialog, enter reason: `Ditunda sesuai arahan pimpinan menyusul agenda mendadak Wali Kota`.
-  4. Confirm cancellation.
+  3. In the cancellation dialog, enter internal reason: `Ditunda sesuai arahan pimpinan menyusul agenda mendadak Wali Kota`.
+  4. Enter public cancellation notice: `PEMBERITAHUAN RESMI: Kegiatan ditunda sampai pemberitahuan lebih lanjut.`
+  5. Confirm cancellation.
 * **Expected Result:**
   - Status changes to `Dibatalkan` (Cancelled).
   - Admin audit log records the cancellation timestamp and operator identity.
-  - Public Portal prominently displays a cancellation warning badge and reason so citizens/attendees are not misinformed.
+  - Public Portal prominently displays a cancellation warning badge and public reason so citizens/attendees are not misinformed.
 
 ---
 
 ### Scenario 6: Room and Attendee Conflict Detection & Override
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Objective:** Warn operators when booking overlapping rooms or assigning officials to concurrent events.
 * **Test Steps:**
   1. Click **+ Tambah Agenda**.
   2. Set the same date and overlapping time window (`10:00 - 12:00 WIB`) as an existing event.
   3. Select the same location: `Ruang Rapat Kadis (Lantai 2)`.
-  4. Assign the same official: `Dr. H. Hendri Arulan, S.Pd, M.M.`.
+  4. Assign the same official attendee.
   5. Attempt to save.
 * **Expected Result:**
   - Conflict warning banner appears:
@@ -130,11 +139,12 @@ A scenario is marked **PASSED** only when:
 ---
 
 ### Scenario 7: Official 8-Column Government Report Generation (A4 Landscape Print)
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Objective:** Produce the official 8-column physical schedule adhering to Kepmendagri and Dinas standards.
 * **Test Steps:**
   1. Navigate to **Laporan** (Reports) in Admin Portal.
   2. Select Date Range: 1 November 2026 to 7 November 2026.
-  3. Select Signatory: `Dr. H. Hendri Arulan, S.Pd, M.M. (Kepala Dinas)`.
+  3. Select Signatory: Choose official department signatory (from client-approved template).
   4. Click **Cetak Laporan (Print / PDF)**.
   5. In the browser print dialog:
      - Set Destination: `Save as PDF` or Physical Laser Printer.
@@ -154,26 +164,29 @@ A scenario is marked **PASSED** only when:
     8. Keterangan
   - [ ] **Multi-Page Handling:** The table header row (`<thead>`) repeats automatically at the top of page 2+.
   - [ ] **No Row Splitting:** Table rows do not cut text horizontally across page margins (`page-break-inside: avoid`).
-  - [ ] **Official Signatory Block:** Located at the bottom right with "Batam, [Tanggal]", "Kepala Dinas Koperasi dan Usaha Mikro Kota Batam", formal signature space, and NIP.
+  - [ ] **Official Signatory Block:** Located at the bottom right with "Batam, [Tanggal]", "Kepala Dinas Koperasi dan Usaha Mikro Kota Batam", formal signature space, and verified official NIP.
 
 ---
 
-### Scenario 8: XLSX Spreadsheet Export & Microsoft Excel Verification
+### Scenario 8: XLSX Spreadsheet Export & Microsoft Excel Desktop Verification
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Objective:** Export agenda records to Excel and verify clean formatting without XML repair warnings.
 * **Test Steps:**
   1. In **Laporan**, click **Export Excel (.xlsx)**.
   2. Save file: `Jadwal_Kegiatan_Dinas_Koperasi_Batam_Nov2026.xlsx`.
-  3. Open the file directly in **Microsoft Excel (Desktop)**.
+  3. Open the file directly in **Microsoft Excel (Desktop 2019/365)** on Windows.
 * **Expected Result:**
   - [ ] Opens cleanly with zero "corrupt file" or "repaired records" XML warnings.
   - [ ] Title banner and period metadata occupy the top rows.
   - [ ] Table columns have bold headers with light blue background styling.
   - [ ] Dates and times are properly formatted text/date cells.
+  - [ ] Formula injection characters (`=`, `+`, `-`, `@`) in notes are safely neutralized with leading quotes (`'`).
   - [ ] Column widths accommodate Indonesian text without truncating.
 
 ---
 
 ### Scenario 9: Public Portal Responsive Navigation & Visual Fidelity
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Objective:** Validate citizen portal experience across desktop and mobile devices.
 * **Test Steps:**
   1. Open Public Portal on Desktop (1440px):
@@ -191,6 +204,7 @@ A scenario is marked **PASSED** only when:
 ---
 
 ### Scenario 10: Multi-Operator Concurrent Modification Handling
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Objective:** Verify database consistency when two operators view and update activities simultaneously.
 * **Test Steps:**
   1. Operator A opens Activity #101 on Workstation 1.
@@ -198,12 +212,14 @@ A scenario is marked **PASSED** only when:
   3. Operator A modifies location and saves.
   4. Operator B modifies remarks and saves 10 seconds later.
 * **Expected Result:**
-  - Firestore snapshot listeners trigger real-time UI updates on Workstation 2.
-  - When Operator B submits, atomic update rules ensure both fields are accurately reflected without crashing or corrupting the document.
+  - Optimistic concurrency control intercepts the version conflict (`expectedVersion`).
+  - Operator B is presented with a non-destructive conflict modal: *"Perubahan Terdeteksi — Data telah diperbarui oleh operator lain"*.
+  - Operator B can inspect diff and reload without corrupting Operator A's changes.
 
 ---
 
 ### Scenario 11: Error Recovery & Validation Failure Handling
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Objective:** Verify intuitive error messages when network drops or invalid data is entered.
 * **Test Steps:**
   1. Attempt to create an activity with `Waktu Selesai` earlier than `Waktu Mulai`.
@@ -220,6 +236,7 @@ A scenario is marked **PASSED** only when:
 ## 4. Special Display & Accessibility Acceptance Checks
 
 ### 4.1 True 200% Zoom Reflow Check (WCAG SC 1.4.10)
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Methodology:** On a 1280px display, set browser zoom to **200%** (yielding an effective CSS viewport width of **640px**).
 * **Criteria:**
   - [ ] The Public Portal and Admin Portal reflow content vertically into a single/double column.
@@ -227,6 +244,7 @@ A scenario is marked **PASSED** only when:
   - [ ] Modal dialogs remain completely within the screen boundary and can be closed via the `Escape` key or close button.
 
 ### 4.2 Keyboard Accessibility & Focus Trapping
+* **Status:** `PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)`
 * **Methodology:** Navigate entire Public and Admin portals using only `Tab`, `Shift+Tab`, `Enter`, and `Escape`.
 * **Criteria:**
   - [ ] Active interactive elements display visible blue focus rings (`:focus-visible`).
@@ -238,8 +256,8 @@ A scenario is marked **PASSED** only when:
 
 ## 5. UAT Sign-Off & Approval Record
 
-| Role | Name | Title | Decision | Signature & Date |
-|---|---|---|---|---|
-| **Department Operator** | ................................ | Pengadministrasi Umum | [ ] Lulus / [ ] Catatan | .............................. |
-| **Kasubbag Umum & Kepegawaian** | ................................ | Kasubbag Umum | [ ] Lulus / [ ] Catatan | .............................. |
-| **Kepala Dinas** | Dr. H. Hendri Arulan, S.Pd, M.M. | Kepala Dinas Koperasi & UM | [ ] Diterima / [ ] Revisi | .............................. |
+| Role | Required Approver | Title | Department Decision | Signature & Date |
+|---|---|---|:---:|---|
+| **Department Operator** | ................................ | Pengadministrasi Umum | [ ] Lulus / [ ] Catatan | PENDING EXECUTION |
+| **Kasubbag Umum & Kepegawaian** | ................................ | Kasubbag Umum & Kepegawaian | [ ] Lulus / [ ] Catatan | PENDING EXECUTION |
+| **Kepala Dinas** | ................................ | Kepala Dinas Koperasi & UM | [ ] Diterima / [ ] Revisi | PENDING EXECUTION |

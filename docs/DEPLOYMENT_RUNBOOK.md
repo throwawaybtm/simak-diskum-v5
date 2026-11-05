@@ -1,7 +1,7 @@
-# SIMAK DISKUM v5.0 — Deployment & Rollback Runbook
+# SIMAK DISKUM v5.0 — Deployment & Rollback Runbook (Hardened)
 
 **Dinas Koperasi dan Usaha Mikro Kota Batam**  
-**Document Version:** 1.0  
+**Document Version:** 2.0 (P01-A Operational Safety Hardened)  
 **Effective Date:** November 2026  
 **Infrastructure Target:** Firebase Spark (No-Cost) Plan  
 **Target Project ID:** `simakdiskum`  
@@ -14,195 +14,133 @@
 
 > [!CAUTION]
 > **PREPARATION & REHEARSAL ONLY.**
-> Do NOT execute live deployment commands until formal deployment authorization is granted by the department project lead. Live deployment alters cloud infrastructure, edge caching, and security enforcement.
+> Production deployment is **NOT APPROVED**.
+> Do NOT execute live deployment commands until formal written authorization is granted by the department project lead.
 
 ---
 
-## 2. Preflight Checklist (Mandatory Gates)
+## 2. Correcting Deployment & Rollback Misconceptions
 
-Before running any deployment command, the deploying engineer must check off all items in the following checklist:
+### 2.1 Non-Atomicity of Firebase Deployments
+A single command like `firebase deploy --only hosting,firestore` is **NOT globally atomic**:
+- **Firestore Security Rules:** Validated and compiled in Google Cloud; deployed within ~5–10 seconds.
+- **Firestore Indexes:** Queued and compiled asynchronously. Large composite indexes can take several minutes to finish building.
+- **Hosting Assets:** Uploaded as individual content-addressed blobs; edge routing releases update across global CDN nodes within 1–5 minutes.
+- **Failure Consequence:** If rules deploy successfully but hosting asset upload is interrupted, the database is governed by new rules while old frontend code is still live. Therefore, deployment must follow an **ordered sequence with verification gates**.
 
-- [ ] **Git Working Tree Clean:**
-  `git status --porcelain` returns no uncommitted modifications or untracked sensitive files.
-- [ ] **On Approved Release Tag / Branch:**
-  Repository is on `master` or a designated release tag (e.g. `v5.0.0-rc1`).
-- [ ] **All Automated Tests Pass:**
-  Run `npx vitest run` in `department-agenda-firebase`. All unit and integration test suites must pass (170+ tests, 0 failures).
-- [ ] **Firestore Rules Regression Tests Pass:**
-  Rules tests against the Firestore emulator must pass 100% (32/32 tests passed).
-- [ ] **Full Production Build Completes Cleanly:**
-  Run `npm run build` from `department-agenda-firebase`. Verify both `apps/public/dist` and `apps/admin/dist` are compiled with no errors.
-- [ ] **Build Artifacts Verified:**
-  - `apps/public/dist/index.html` exists and references hashed assets.
-  - `apps/admin/dist/index.html` exists and references hashed assets.
-  - No secret keys or `.env` files are bundled into distribution folders.
-- [ ] **Current State Backed Up (If Updating Existing System):**
-  Run logical backup: `node scripts/backupRestore.mjs export ./backups/pre_deploy_$(Get-Date -Format 'yyyyMMdd_HHmm')`
-- [ ] **Firebase Authentication & Target Verified:**
-  - Run `firebase login:list` to ensure authorized account is active.
-  - Verify project target: `firebase use simakdiskum`.
+### 2.2 Asset Rollback Does NOT Touch Database Records
+- **Hosting Rollback** reverts only static HTML, CSS, and JS files. It **never modifies, recovers, or deletes** documents in Cloud Firestore.
+- **Rules Rollback** restores security access policies. It does not revert data that was written under previous rules.
+- **Data Restoration** requires executing `scripts/backupRestore.mjs restore <backupDir>`.
+
+### 2.3 Rollback Realities (Not Instantaneous or Guaranteed)
+- Hosting rollback switches pointer releases in Firebase Hosting. While fast, edge POPs and browser disk caches may take minutes to reflect the reverted version.
+- Rules rollback requires compiling the previous rules text.
+- Rollback is only successful when verified with automated smoke tests against live endpoints.
 
 ---
 
-## 3. Production Build Execution
+## 3. Pre-Deployment Authorization & Confirmation Gates
 
-Execute the clean build across all monorepo packages:
+Before executing any deployment command, the two-operator verification gate must be completed:
 
-```bash
-cd department-agenda-firebase
+- [ ] **Dual-Operator Sign-off:** Lead System Administrator and Department Verifier have signed the release ticket.
+- [ ] **Target Project Verified:** Run `firebase use`. The active project must strictly return `simakdiskum`.
+- [ ] **Clean Git Working Tree:** `git status --porcelain` returns 0 modified or untracked files.
+- [ ] **Release Tag Checked Out:** Repository is on approved Git release tag (e.g. `v5.0.0-rc1`).
+- [ ] **Vitest Test Suite 100% Pass:** `npx vitest run` passes all 180+ tests with 0 failures.
+- [ ] **Firestore Rules Regression Pass:** `npx vitest run tests/rules/firestore.rules.test.ts` passes 32/32 tests.
+- [ ] **Pre-Deployment Database Backup:** Run `node scripts/backupRestore.mjs export ./backups/pre_deploy_$(Get-Date -Format 'yyyyMMdd_HHmm')`.
+- [ ] **Production Build Clean:** `npm run build` generates `apps/public/dist` and `apps/admin/dist` with 0 warnings/errors.
 
-# 1. Clean previous build output (optional but recommended)
-# PowerShell:
-Remove-Item -Recurse -Force apps/public/dist, apps/admin/dist, shared/dist -ErrorAction SilentlyContinue
+---
 
-# 2. Build shared library, public portal, and admin portal
-npm run build
-```
+## 4. Safe Step-by-Step Deployment Sequence
 
-Verify build output directory structure:
-```text
-department-agenda-firebase/
-├── apps/
-│   ├── public/
-│   │   └── dist/
-│   │       ├── index.html
-│   │       └── assets/
-│   │           ├── index-*.js
-│   │           └── index-*.css
-│   └── admin/
-│       └── dist/
-│           ├── index.html
-│           └── assets/
-│               ├── index-*.js
-│               └── index-*.css
+To avoid inconsistent intermediate states, deployments must occur in the following explicit sequence:
+
+```mermaid
+flowchart TD
+    G1[Gate 1: Preflight & Backup] --> D1[Step 1: Deploy Firestore Security Rules]
+    D1 --> V1{Verify Rules via Smoke Test?}
+    V1 -- Failed --> R1[Rollback Rules Immediately]
+    V1 -- Passed --> D2[Step 2: Deploy Firestore Indexes]
+    D2 --> V2{Verify Index Status?}
+    V2 -- Building / Ready --> D3[Step 3: Deploy Hosting Targets]
+    D3 --> V3{Verify Live Web Endpoints?}
+    V3 -- Failed --> R2[1-Click Hosting Rollback]
+    V3 -- Passed --> S1[Post-Deployment Smoke Tests Approved]
 ```
 
 ---
 
-## 4. Live Deployment Commands
-
-### 4.1 Full Production Deployment (Standard)
-Deploys both Hosting targets, Firestore Security Rules, and Firestore Compound Indexes simultaneously:
-
+### Step 1: Deploy Firestore Security Rules
+Always deploy and verify security rules first so data is protected before frontend code arrives:
 ```bash
-firebase deploy --project simakdiskum --only hosting:public,hosting:admin,firestore:rules,firestore:indexes
-```
-
-### 4.2 Targeted Deployments (Isolated Changes)
-
-#### When deploying web application updates only (no rules changes):
-```bash
-# Deploy both public and admin portals:
-firebase deploy --project simakdiskum --only hosting
-
-# Deploy public portal only:
-firebase deploy --project simakdiskum --only hosting:public
-
-# Deploy admin portal only:
-firebase deploy --project simakdiskum --only hosting:admin
-```
-
-#### When deploying security rules updates only:
-```bash
-# WARNING: Live rules take effect immediately globally!
 firebase deploy --project simakdiskum --only firestore:rules
 ```
+*Verification:*
+- Open [Firebase Console Rules Editor](https://console.firebase.google.com/project/simakdiskum/firestore/rules).
+- Verify the active version timestamp.
+- Attempt unauthorized unauthenticated write to `publicActivities` from DevTools console; verify `PERMISSION_DENIED`.
 
-#### When deploying Firestore index changes only:
+*Stop Condition:* If rules fail to deploy or cause legitimate reads to fail, halt immediately and restore previous rules version.
+
+---
+
+### Step 2: Deploy Firestore Indexes
 ```bash
 firebase deploy --project simakdiskum --only firestore:indexes
 ```
+*Verification:*
+- Open [Firebase Console Indexes Tab](https://console.firebase.google.com/project/simakdiskum/firestore/indexes).
+- Verify `activities` and `publicActivities` compound indexes (`startDate ASC, endDate ASC`, `isPublic ASC, startDate ASC`) show status **Enabled** (not Building or Error).
 
 ---
 
-## 5. Post-Deployment Verification (Smoke Tests)
-
-Immediately after deployment completes:
-
-1. **Verify Public Portal Online:**
-   Open `https://simakdiskum.web.app` (or `https://simakdiskum.firebaseapp.com`):
-   - Confirm Indonesian branding: "Dinas Koperasi dan Usaha Mikro Kota Batam".
-   - Confirm Barelang Bridge banner displays.
-   - Confirm 4 summary cards render.
-   - Navigate to **Kalender Kegiatan**, **Cari Agenda**, and **Pengumuman**.
-   - Check browser DevTools console: 0 JavaScript exceptions.
-
-2. **Verify Admin Portal Online:**
-   Open `https://simakdiskum-admin.web.app` (or `https://simakdiskum-admin.firebaseapp.com`):
-   - Confirm Admin Portal login page displays.
-   - Test login with authorized operator credentials.
-   - Confirm 5 workflow summary cards display accurate numbers.
-   - Check administrative status ring chart and upcoming agenda list.
-
-3. **Verify Security Rules Invariant:**
-   - Attempt unauthenticated access to private `activities` collection via console: expect `PERMISSION_DENIED`.
-   - Confirm public read access to `publicActivities` succeeds with zero errors.
-
----
-
-## 6. Rollback Procedures
-
-### 6.1 Distinguishing Asset Rollback vs Data Recovery
-
-> [!IMPORTANT]
-> - **Hosting Asset Rollback** reverts the static HTML/CSS/JavaScript files served to user browsers. It does NOT touch, revert, or modify any database records in Firestore.
-> - **Firestore Rules Rollback** reverts security access policies. It does NOT alter data stored in documents.
-> - **Data Recovery** (restoring modified/deleted documents) requires executing `scripts/backupRestore.mjs restore <backupDir>`.
-
----
-
-### 6.2 Procedure A: Instant Hosting Rollback
-
-If a critical frontend bug or breaking UI defect is discovered in production:
-
-#### Method 1: Via Firebase Console (Recommended — Instant 1-Click)
-1. Open [Firebase Console](https://console.firebase.google.com/) -> Select Project `simakdiskum`.
-2. Navigate to **Build** -> **Hosting**.
-3. Under the affected site (`simakdiskum` or `simakdiskum-admin`):
-   - Locate **Release History**.
-   - Find the previous known-good release.
-   - Click the three dots `⋮` on the right side of the release row.
-   - Select **Rollback**.
-4. Rollback takes effect globally within seconds at Google CDN edge nodes.
-
-#### Method 2: Via Firebase CLI
+### Step 3: Deploy Hosting Portals
+Once database security and indexing are operational, deploy the web application shells:
 ```bash
-# Clone the previous deployment release version to live:
-# Syntax: firebase hosting:clone <sourceSite>:<versionId> <targetSite>:live
-firebase hosting:clone simakdiskum:<PREVIOUS_VERSION_ID> simakdiskum:live --project simakdiskum
+firebase deploy --project simakdiskum --only hosting:public,hosting:admin
 ```
+*Verification:*
+- Open `https://simakdiskum.web.app` in an incognito window.
+- Verify civic branding, Barelang Bridge banner, and 4 summary cards.
+- Check DevTools console: 0 JavaScript exceptions.
+- Open `https://simakdiskum-admin.web.app`.
+- Verify admin login screen renders cleanly.
 
 ---
 
-### 6.3 Procedure B: Firestore Security Rules Rollback
+## 5. Rollback Procedures
 
-If newly deployed security rules inadvertently block legitimate department operations:
+### 5.1 Procedure A: 1-Click Hosting Rollback
+If a critical UI defect or frontend exception is discovered after deployment:
+1. Navigate to **Firebase Console** -> **Hosting**.
+2. Select the affected site (`simakdiskum` or `simakdiskum-admin`).
+3. Scroll to **Release History**.
+4. Click `⋮` next to the previous release and click **Rollback**.
+5. *Verification:* Clear browser cache and verify previous version loads.
 
-#### Method 1: Via Firebase Console
-1. Navigate to **Firestore Database** -> **Rules** tab.
-2. In the top right of the rules editor, click **Rules history**.
-3. Locate the previous operational version timestamp.
-4. Click **Restore version** and then **Publish**.
-
-#### Method 2: Via Git and Firebase CLI
-1. Checkout the previous Git release tag:
+### 5.2 Procedure B: Security Rules Rollback
+If newly published rules inadvertently block legitimate operations:
+1. Navigate to **Firebase Console** -> **Firestore** -> **Rules**.
+2. Click **Rules history** in top right.
+3. Select previous working version and click **Restore version** -> **Publish**.
+4. Or via CLI:
    ```bash
    git checkout tags/v5.0.0-rc1 -- firebase/firestore.rules
-   ```
-2. Deploy the restored rules immediately:
-   ```bash
    firebase deploy --project simakdiskum --only firestore:rules
    ```
-3. Verify test suite passes locally.
 
----
-
-### 6.4 Procedure C: Database State Rollback
-
-If unauthorized or corrupt batch updates occurred in the Firestore database:
-1. Identify the most recent clean backup directory created under `backups/`.
-2. Run the recovery utility:
+### 5.3 Procedure C: Database State Rollback
+If bad data was committed during deployment rehearsal:
+1. Locate the pre-deployment backup directory under `backups/`.
+2. Execute full restoration with dry-run diff check:
    ```bash
-   node scripts/backupRestore.mjs restore ./backups/<timestamp>_clean
+   node scripts/backupRestore.mjs restore ./backups/pre_deploy_xxx --mode=full --dry-run
    ```
-3. Inform logged-in operators to refresh their browser sessions.
+3. Once diff is verified:
+   ```bash
+   node scripts/backupRestore.mjs restore ./backups/pre_deploy_xxx --mode=full --force
+   ```

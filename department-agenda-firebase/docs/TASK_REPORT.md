@@ -589,10 +589,115 @@ Visual Makeover V01-C represents the final comprehensive quality assurance pass 
 ## 10. Milestone P01 Review Checkpoint Status
 
 - **Checkpoint:** **Milestone P01 Review Checkpoint**
+- **Status:** **CONDITIONALLY ACCEPTED — PROCEEDED TO P01-A CORRECTION PASS**
+
+---
+
+# Milestone P01-A: Operational Safety Correction Pass Report
+
+**Date:** 2026-11-05  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Fully Verified (189/189 Vitest Tests, 32 Rules Tests, 79 Browser Scenarios, 100% Pass Rate)  
+**Authority:** P01-A Operational Safety Directives, `docs/BACKUP_RECOVERY_RUNBOOK.md`, `docs/DEPLOYMENT_RUNBOOK.md`, and `docs/USER_ACCEPTANCE_TEST_PLAN.md`  
+
+---
+
+## 1. Executive Summary
+
+Milestone P01-A addresses the critical operational safety gaps identified during the P01 review, eliminating false assumptions regarding database restoration, non-atomic multi-endpoint deployments, unapproved master data seeding, and operator credential provisioning under the zero-cost Firebase Spark plan:
+
+1. **Backup and Restore Safety Hardening:**
+   - Eliminated the dangerous assumption that `batch.set(..., { merge: true })` restores a database to its previous state (merge mode does not remove records created after the backup or fields deleted since the backup).
+   - Implemented two explicit restore modes in `scripts/backupRestore.mjs`:
+     - Non-destructive import (`--mode=merge`): updates and inserts documents without deleting newer records.
+     - Controlled full restoration (`--mode=full`): identifies orphaned documents, requires explicit dry-run diffing (`--dry-run`), and blocks execution unless confirmed with `--force`.
+   - Lossless serialization and deserialization of Firestore `Timestamp` (`seconds`, `nanoseconds`), `DocumentReference` (`path`), and `null` values.
+   - SHA-256 integrity calculation on export and verification on restore via `manifest.json`.
+   - Post-restoration verification of document counts and field-level scalar equality across all collections.
+   - Batch atomicity boundary handling: individual 450-document batches are recorded in a failure progress ledger (`restore-progress.json`) allowing safe resumption upon network interruption.
+   - Legal audit log immunity: `auditLogs` collection is protected from orphan deletion during full restore, and a `MAINTENANCE_RESTORE` audit entry is appended.
+   - Git exclusion: reinforced `.gitignore` to prevent any `.json`, `.backup`, or progress ledger from being committed.
+
+2. **Production Seeding Safety & Client Approval Gate:**
+   - Separated synthetic development fixtures (`seed:dev` / `--env=dev`) from client-approved production templates.
+   - Authored `templates/productionMasterDataTemplate.json` containing `clientApproved: false` and explicit placeholder tags (`[NAMA PEJABAT SESUAI SK RESMI]`, `[NIP RESMI]`).
+   - Production seeding command (`backupRestore.mjs seed`) strictly rejects unapproved templates, missing template files, or unpopulated placeholders.
+
+3. **Authentication & Operator Management Hardening:**
+   - Constrained custom claim roles strictly to `'admin'` and `'editor'` in `scripts/manageRoles.mjs`.
+   - Added project safeguard: validates `REQUIRED_PROJECT_ID = 'simakdiskum'`.
+   - Replaced mandatory service account JSON requirements with Application Default Credentials (ADC via `gcloud auth application-default login`) and secure environment variables.
+   - Documented 1-hour JWT token expiration and token revocation boundaries.
+   - Documented out-of-band password reset link delivery limitation on Spark plan (automated SMTP is unavailable without external relays or Blaze billing).
+   - Documented API-level client sign-up risk and the mandatory Firebase Console toggle ("Allow users to sign up" disabled).
+
+4. **Deployment & Rollback Safety Overhaul:**
+   - Corrected false atomicity claims in `DEPLOYMENT_RUNBOOK.md`: Firebase Hosting, Firestore Rules, and Firestore Indexes deploy via distinct endpoints with separate lifecycles.
+   - Mandated sequential deployment order: Rules $\rightarrow$ Indexes $\rightarrow$ Hosting $\rightarrow$ Smoke Verification.
+   - Corrected the myth that Hosting rollback touches database records.
+   - Clarified edge propagation timing (1–5 minutes) and smoke verification requirements.
+
+5. **Realistic Spark Plan Cold vs Warm Caching Quota Model:**
+   - Calculated actual production build transfer weights:
+     - Public Portal: ~388.11 kB cold transfer (HTML 0.57 kB + CSS 5.05 kB + JS 13.67 kB + Vendor 226.02 kB + Images 142.8 kB).
+     - Warm citizen visits: < 3 kB HTTP 304 due to 1-year immutable caching on `/assets/*`.
+     - Monthly bandwidth at 200 daily visitors: ~0.84 GB (<8.4% of Spark 10 GB limit).
+     - Documented daily Firestore 50k reads limit reset at midnight PST (14:00/15:00 WIB).
+
+6. **User Acceptance Testing Formal Staging:**
+   - Marked all 11 business scenarios in `USER_ACCEPTANCE_TEST_PLAN.md` as "Status: PENDING DEPARTMENT EXECUTION (Automated Rehearsal: PASSED)".
+   - Documented pending official signatory SK decree requirements and Google Drive IAM permission boundaries.
+
+---
+
+## 2. Detailed Verification Evidence
+
+### A. Vitest Automated Suites (Unit, Integration & Rules)
+- **Total Test Files:** 22 passed (22 total)
+- **Total Tests:** **189 passed** (189 total, 100% pass rate)
+- **New & Hardened Unit Suites:**
+  - Backup, Restore & Seeding Verification: **8 / 8 passed** (`backupRestore.test.ts`)
+  - Operator Role Management & Custom Claims: **7 / 7 passed** (`authRoleManagement.test.ts`)
+  - Staging Readiness & Git Exclusion Safety: **9 / 9 passed** (`stagingReadiness.test.ts`)
+  - Live Firestore Security Rules (Emulator): **32 / 32 passed** (`firestore.rules.test.ts`)
+  - WIB Time Engine & Date Arithmetic: **27 / 27 passed** (`timeUtils.test.ts`)
+  - Activity Validation: **17 / 17 passed** (`activityValidator.test.ts`)
+  - Admin UI Controller: **11 / 11 passed** (`adminUi.test.ts`)
+  - Public UI Controller: **11 / 11 passed** (`publicUi.test.ts`)
+  - Master Data Snapshot & Validation: **8 / 8 passed** (`masterData.test.ts`)
+  - Official 8-Column Reports & XLSX: **8 / 8 passed** (`reportsAndMigration.test.ts`)
+  - Conflict Detection & Concurrency: **6 / 6 passed** (`conflictDetector.test.ts`)
+  - Privacy Scanner: **5 / 5 passed** (`privacyScanner.test.ts`)
+  - Attendee Snapshot Immutability: **5 / 5 passed** (`attendeeSnapshot.test.ts`)
+  - Master Safety & Migration: **6 / 6 passed** (`masterSafetyAndMigration.test.ts`)
+  - Public Projector: **4 / 4 passed** (`publicProjector.test.ts`)
+  - Schemas & DTO Contracts: **3 / 3 passed** (`schemas.test.ts`)
+  - Monorepo Configuration: **7 / 7 passed** (`monorepo_config.test.ts`)
+  - OpenXML XLSX Parser: **1 / 1 passed** (`xlsxParserVerification.test.ts`)
+
+### B. Playwright Real-Browser Verification Suites
+- **Total Browser Scenarios:** **79 / 79 passed** (100% pass rate):
+  - V01-C Release Readiness Suite (`v01cReleaseReadinessVerification.mjs`): **27 / 27 passed**
+  - V01-B Final Correction Pass Suite (`v01bFinalCorrectionVerification.mjs`): **23 / 23 passed**
+  - Feature F01 Administrative Workflow Suite (`f01WorkflowVerification.mjs`): **13 / 13 passed**
+  - Master Data Management Suite (`masterDataVerification.mjs`): **8 / 8 passed**
+  - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed**
+
+### C. Monorepo Production Build
+- Clean production build via Vite and TypeScript (`npm run build`):
+  - `@department-agenda/shared`: Compiled cleanly with `tsc`.
+  - `@department-agenda/public`: Built in 4.21s (Shell entry 13.67 kB gzip, Firebase vendor 226.02 kB gzip, ExcelJS vendor 275.76 kB gzip lazy).
+  - `@department-agenda/admin`: Built in 4.54s (Shell entry 4.70 kB gzip, Firebase vendor 273.95 kB gzip, lazy routes ~25 kB gzip).
+
+---
+
+## 11. Milestone P01-A Review Checkpoint Status
+
+- **Checkpoint:** **Milestone P01-A Operational Safety Review Checkpoint**
 - **Status:** **COMPLETED & VERIFIED (AWAITING USER AUTHORIZATION)**
 - **Strict Invariants Preserved:**
   - Zero live deployment commands executed.
-  - Zero real user accounts created.
-  - Zero production database rules or collections modified.
+  - Zero real operator accounts created.
+  - Zero production Firestore rules or database documents modified.
   - Zero Blaze billing upgrades activated.
   - System paused and awaiting review.

@@ -706,6 +706,24 @@ sequenceDiagram
      - Run `auth.revokeRefreshTokens(uid)` (invalidates session refresh).
      - *Note:* Existing active JWT tokens will expire naturally within a maximum of 60 minutes.
 
+4. **Operator Role Management Utility (`scripts/manageRoles.mjs`):**
+   - Provides safe operator provisioning, claim assignment, account disabling, and inspection:
+     ```bash
+     # Set role:
+     node scripts/manageRoles.mjs set-role operator@batam.go.id editor
+
+     # Disable account & revoke refresh tokens:
+     node scripts/manageRoles.mjs disable operator@batam.go.id
+
+     # Generate password reset link:
+     node scripts/manageRoles.mjs reset-password operator@batam.go.id
+     ```
+   - **Target Project Safeguard:** Validates `REQUIRED_PROJECT_ID = 'simakdiskum'`.
+   - **Credential Separation:** Prefers Application Default Credentials (ADC via `gcloud auth application-default login`) or secure local environment keys over hardcoded or committed service account files.
+   - **Role Boundaries:** Constrained strictly to `'admin'` and `'editor'` matching `firestore.rules`.
+   - **Password Reset Limitation:** On the Spark plan, links generated via `generatePasswordResetLink()` must be transmitted out-of-band via secure municipal communication.
+   - **Client Registration Safeguard:** Firebase Web API keys permit user sign-ups unless disabled in Firebase Console Identity Platform settings (**"Allow users to sign up" toggle must be set to DISABLED**). In Firestore rules, unassigned users have zero write permissions and zero access to private records.
+
 ---
 
 ## 10. Firebase Spark Free Tier Quota & Financial Safeguards

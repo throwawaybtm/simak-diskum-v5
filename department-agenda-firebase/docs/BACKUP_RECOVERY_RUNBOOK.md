@@ -1,205 +1,199 @@
-# SIMAK DISKUM v5.0 — Backup, Disaster Recovery & Seeding Runbook
+# SIMAK DISKUM v5.0 — Backup, Disaster Recovery & Seeding Runbook (Hardened)
 
 **Dinas Koperasi dan Usaha Mikro Kota Batam**  
-**Document Version:** 1.0  
+**Document Version:** 2.0 (P01-A Operational Safety Hardened)  
 **Effective Date:** November 2026  
 **Infrastructure Target:** Firebase Spark (No-Cost) Plan  
 **Primary Tool:** `scripts/backupRestore.mjs`
 
 ---
 
-## 1. Executive Summary & Plan Constraints
+## 1. Executive Summary & Critical Safety Principles
 
 ### 1.1 The Firebase Spark Backup Reality
 On the **Firebase Spark (No-Cost Plan)**:
 - Managed, automated Cloud Firestore backups (`gcloud firestore export` / `firebase firestore:export`) require a **Google Cloud Storage (GCS)** destination bucket.
 - Provisioning and writing to external GCS buckets is restricted to the pay-as-you-go **Blaze Plan**.
-- **Crucial Architectural Invariant:** On the Spark plan, standard Google Cloud automated backups cannot be configured without upgrading to Blaze.
+- On the Spark plan, database safety is achieved via **logical JSON exports** using the Firebase Admin SDK / client scripts (`scripts/backupRestore.mjs`).
 
-### 1.2 The Spark-Compatible Logical Backup Solution
-To guarantee complete data protection without violating the zero-cost requirement, SIMAK DISKUM v5.0 provides a dedicated, production-tested Node.js administrative utility:
-```
-department-agenda-firebase/scripts/backupRestore.mjs
-```
-This utility utilizes the **Firebase Admin SDK** to perform deterministic, atomic chunked reads and writes directly between Firestore and local JSON datasets.
+### 1.2 Critical Distinction: Merge Import vs Controlled Full Restoration
 
----
+> [!CAUTION]
+> **CORRECTING THE MERGE ASSUMPTION:**  
+> A standard `batch.set(docRef, data, { merge: true })` does **NOT** restore a database to its previous state.  
+> `merge: true` only merges fields present in the backup. It **does NOT**:
+> 1. Remove fields that were created or modified *after* the backup.
+> 2. Remove orphaned documents that were created *after* the backup.
+> 3. Recover deleted documents if an unauthorized batch operation cleared IDs without record.
+> 
+> Therefore, SIMAK DISKUM v5.0 defines **two distinct, explicit restore modes**:
 
-## 2. Core Collections Covered
-
-The backup and disaster recovery utility covers all 9 Firestore collections that form the SIMAK DISKUM v5.0 data architecture:
-
-| Collection Name | Classification | Content Description | Backup Frequency |
-|---|---|---|---|
-| `activities` | Restricted Private | Canonical operational activity records, including internal notes and draft fields | Daily / Pre-change |
-| `publicActivities` | Public Projection | Sanitized, citizen-facing activity projections | Daily / Re-derivable |
-| `employees` | Restricted Master Data | Official department personnel directory (NIP, Nama, Jabatan, Golongan) | Weekly / On update |
-| `departments` | Master Data | Department division / bidangs list | Weekly / On update |
-| `locations` | Master Data | Official meeting rooms and external venues | Weekly / On update |
-| `organizers` | Master Data | Internal and external event organizer entities | Weekly / On update |
-| `categories` | Master Data | Activity taxonomy tags | Weekly / On update |
-| `settings` | System Configuration | Dinas header, default report signatories, and system metadata | On configuration change |
-| `auditLogs` | Immutable Audit Trail | Tamper-evident administrative activity logs | Daily / Incremental |
+| Mode | Command Flag | Mechanism | Effect on Orphaned Live Docs | Effect on Modified Fields | Intended Use Case |
+|---|---|---|---|---|---|
+| **Non-Destructive Import** | `--mode=merge` | `batch.set(..., { merge: true })` | Preserved intact | Overwritten by backup values | Restoring lost documents or seeding non-conflicting master data |
+| **Controlled Full Restoration** | `--mode=full` | `batch.set(..., { merge: false })` + orphan deletion | **Deleted** (requires `--force`) | Completely replaced by exact backup payload | Disaster recovery after corruption or unauthorized batch update |
 
 ---
 
-## 3. Prerequisites & Environment Setup
+## 2. Lossless Serialization of Firestore Data Types
 
-### 3.1 Hardware & Environment Prerequisites
-1. **Node.js**: Version 20.x or 22.x LTS.
-2. **Repository Directory**: `department-agenda-firebase/`
-3. **Dependencies**: `npm install` completed (`firebase-admin` available).
+Standard `JSON.stringify` drops or mangles Firestore native types (Timestamps, DocumentReferences, GeoPoints).  
+`backupRestore.mjs` implements **lossless type tagging**:
 
-### 3.2 Service Account Credentials (Production Only)
-In production, the Admin SDK requires a Google Cloud Service Account Key with `Cloud Datastore User` or `Firebase Admin` role:
+```json
+// Example serialized Timestamp in activities.json:
+{
+  "id": "act_101",
+  "title": "Rapat Koordinasi Koperasi",
+  "createdAt": {
+    "_type": "Firestore.Timestamp",
+    "seconds": 1762740000,
+    "nanoseconds": 0
+  },
+  "departmentRef": {
+    "_type": "Firestore.DocumentReference",
+    "path": "departments/dept_01"
+  }
+}
+```
+
+Upon restoration, `deserializeFirestoreData()` reconstructs true `Timestamp` and `DocumentReference` objects before committing writes to Cloud Firestore.
+
+---
+
+## 3. SHA-256 Integrity Verification
+
+During export, the utility computes a cryptographic SHA-256 checksum for every exported collection file and records it in `manifest.json`:
+
+```json
+{
+  "exportedAt": "2026-11-05T05:28:21.000Z",
+  "systemVersion": "5.0.0",
+  "projectId": "simakdiskum",
+  "collections": { "activities": 62, "employees": 25 },
+  "files": {
+    "activities.json": {
+      "sha256": "a6b07ab9cf3e284a1e94817a027384...",
+      "count": 62
+    }
+  }
+}
+```
+
+Before any restore begins, `validateBackupIntegrity()` recalculates all file hashes. If any file has been modified, corrupted, or tampered with, restoration **halts immediately** with a fatal integrity error.
+
+---
+
+## 4. Safety Gates: Dry-Run Diff Analysis & Confirmation
+
+### 4.1 Dry-Run Diff Mode
+To inspect what a restore will do without writing or deleting anything:
 ```bash
-# On secure operator machine:
-export GOOGLE_APPLICATION_CREDENTIALS="/secure/path/to/simakdiskum-service-account.json"
-# Windows PowerShell:
-$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\secure\path\to\simakdiskum-service-account.json"
+node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --dry-run
 ```
+
+#### Output:
+```text
+RESTORE DIFF REPORT (Mode: FULL):
+  - activities: 62 backup docs, 64 live docs, 2 orphans
+  - employees: 25 backup docs, 25 live docs, 0 orphans
+Total documents to restore: 87
+Total orphaned live documents: 2 (act_201_new, act_202_new)
+[backupRestore] Dry-run complete. No changes were made to Firestore.
+```
+
+### 4.2 Mandatory Confirmation Gate (`--force`)
+If orphaned live documents exist in a collection, `--mode=full` will **refuse to run** unless `--force` is explicitly provided:
+```bash
+# Throws error if orphans exist:
+node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full
+
+# Executes controlled deletion of orphans and restoration:
+node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --force
+```
+
+---
+
+## 5. Audit Log Immutability & Maintenance Logging
+
+### 5.1 Audit Logs Are Protected
+`auditLogs` represent a tamper-evident administrative record.
+- In `--mode=full`, **orphaned audit logs are NEVER deleted**. Any audit records created after the backup timestamp remain strictly preserved.
+- Restoring an older backup will never erase subsequent audit history.
+
+### 5.2 Independent Maintenance Logging
+Every execution of `restore` or `seed` automatically writes an audit record directly into `auditLogs`:
+```json
+{
+  "action": "MAINTENANCE_RESTORE",
+  "entity": "DATABASE_BACKUP",
+  "entityId": "2026-11-05",
+  "actor": "admin@diskum.batam.go.id",
+  "mode": "full",
+  "details": "Restored 87 documents across collections (mode: full, dryRun: false)",
+  "performedAt": "2026-11-05T05:30:00.000Z",
+  "timestamp": "[Firestore.Timestamp]"
+}
+```
+
+---
+
+## 6. Batch Atomicity & Partial Failure Handling
+
+Firestore limits batched writes to 500 operations. `backupRestore.mjs` executes in chunks of **450 operations**.
 
 > [!WARNING]
-> Never commit service account credentials into Git repositories or upload them to public storage. Verify `.gitignore` contains `*.serviceAccountKey.json` and `*service-account*.json`.
+> **BATCH ATOMICITY BOUNDARY:**  
+> Each 450-document batch is atomic *within itself*. However, Firestore does **NOT** provide multi-batch atomicity across an entire database restore.  
+> If batch 2 of 5 fails due to network termination, batches 1 has already been committed to Firestore.
 
-### 3.3 Emulator Testing Environment
-When testing backups locally against the Firestore Emulator:
-```bash
-# Windows PowerShell:
-$env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080"
-```
-
----
-
-## 4. Operational Procedures
-
-### 4.1 Procedure A: Performing a Full Logical Backup
-
-Run the export command specifying an output directory:
-```bash
-# Example syntax:
-node scripts/backupRestore.mjs export ./backups/2026-11-05_pre_deploy
-```
-
-#### What Happens:
-1. Validates connectivity to Firestore.
-2. Sequentially streams all documents from each of the 9 collections.
-3. Generates structured JSON files:
-   - `activities.json`
-   - `publicActivities.json`
-   - `employees.json`
-   - `departments.json`
-   - `locations.json`
-   - `organizers.json`
-   - `categories.json`
-   - `settings.json`
-   - `auditLogs.json`
-4. Generates `manifest.json` containing:
-   - Timestamp in UTC ISO 8601.
-   - System version (`5.0.0`).
-   - Document counts per collection.
-   - SHA-256 integrity metadata.
-
-#### Sample Output:
-```text
-[backupRestore] Starting logical backup to: ./backups/2026-11-05_pre_deploy
-[backupRestore] Exporting collection: activities...
-  ✓ Exported 62 documents from activities to activities.json
-[backupRestore] Exporting collection: publicActivities...
-  ✓ Exported 62 documents from publicActivities to publicActivities.json
-[backupRestore] Exporting collection: employees...
-  ✓ Exported 25 documents from employees to employees.json
-...
-[backupRestore] Backup completed successfully in ./backups/2026-11-05_pre_deploy
-```
+### Handling Partial Batch Failures:
+1. `backupRestore.mjs` records completed batches into a local progress file: `restore-progress.json`.
+2. If a commit error occurs, the script logs the exact collection name, batch index, and document IDs.
+3. **Rollback Guidance:** The operator can inspect `restore-progress.json`, resolve the network/credential issue, and re-run `--mode=merge` to complete the remaining documents idempotently.
 
 ---
 
-### 4.2 Procedure B: Disaster Recovery / Restoring a Backup
+## 7. Post-Restoration Verification Pass
 
-In the event of accidental data corruption, unauthorized deletion, or environment recreation:
+After all batches commit, `backupRestore.mjs` executes an automated two-level verification:
+1. **Document Count Verification:** Confirms live document counts match `manifest.json`.
+2. **Field-Level Equality Verification:** Reads back restored documents and verifies that primary scalars (`title`, `startDate`, `status`, `version`, `name`, `nip`) match the backup JSON records.
 
-```bash
-node scripts/backupRestore.mjs restore ./backups/2026-11-05_pre_deploy
-```
-
-#### What Happens:
-1. Validates the existence and syntax of `manifest.json` and collection files.
-2. Chunks document restoration into batches of **450 operations** (safely below Firestore's 500-operation transaction/batch limit).
-3. Uses `batch.set(docRef, docData, { merge: true })` to prevent partial overwrite anomalies while restoring all document fields with exact IDs preserved.
-4. Restores collections in dependency order: master data first, then private activities, public projections, system settings, and audit logs.
-
-#### Safety Verification:
-After restoration finishes, verify document counts in the Admin Portal or via:
-```bash
-node scripts/manageRoles.mjs inspect
-```
+If any field does not match, the utility throws an explicit `Field mismatch` error.
 
 ---
 
-### 4.3 Procedure C: Initial System Master Data Seeding
+## 8. Production Master Data Seeding Safety
 
-When deploying SIMAK DISKUM to a clean environment for the first time, initial master data (official department structure, default rooms, categories, and initial Kepala Dinas signatory profile) must be seeded.
+### 8.1 Separation of Dev Fixtures vs Production Templates
+- **Development Fixtures (`seed:dev` or `--env=dev`):** Synthetic placeholder data clearly labeled `[DEMO]` for local testing in the Firestore emulator.
+- **Production Seeding (`seed` / `--env=prod`):** Strictly blocked from inserting unverified civil servant names or NIPs.
 
-Run:
+### 8.2 Production Import Approval Step
+The default command:
 ```bash
 node scripts/backupRestore.mjs seed
 ```
+will **REJECT** execution with:
+```text
+[Production Seeding Blocked] Production master data seeding requires a client-approved JSON template.
+Pass --template=<path> pointing to an approved template (e.g. templates/productionMasterDataTemplate.json).
+```
 
-#### Seeded Records:
-1. **Employees (`employees`):**
-   - Kepala Dinas: Dr. H. Hendri Arulan, S.Pd, M.M. (NIP: 197206121998021003)
-   - Sekretaris Dinas: Drs. Zulkifli, M.Si
-   - Kepala Bidang Koperasi
-   - Kepala Bidang Pemberdayaan Usaha Mikro
-   - Kepala Bidang Pengawasan & Akuntabilitas
-2. **Locations (`locations`):**
-   - Ruang Rapat Kadis (Lantai 2)
-   - Ruang Rapat Sekda (Kantor Wali Kota Batam)
-   - Aula Dinas Koperasi dan Usaha Mikro
-   - Ruang Pelatihan PLUT Kota Batam
-3. **Organizers (`organizers`):**
-   - Sekretariat Dinas Koperasi & UM
-   - Bidang Koperasi
-   - Bidang Usaha Mikro
-   - Kementerian Koperasi dan UKM RI
-   - Dinas Koperasi & UKM Provinsi Kepulauan Riau
-4. **Categories (`categories`):**
-   - Rapat Koordinasi
-   - Sosialisasi / Pelatihan
-   - Kunjungan Lapangan / Pengawasan
-   - Upacara / Acara Resmi
-   - Workshop / Bimtek
-5. **System Settings (`settings/general`):**
-   - Instansi: `Dinas Koperasi dan Usaha Mikro Kota Batam`
-   - Default Signatory: `Dr. H. Hendri Arulan, S.Pd, M.M.`
-   - Default Location: `Batam`
-
-The seed operation is **idempotent**: running it multiple times safely merges without deleting existing modifications.
-
----
-
-## 5. Schema Evolution & Migration Dry-Run Rules
-
-When the schema evolves (e.g. from v5.0 to a future v5.1):
-1. **Always export current data** using `backupRestore.mjs export` before running migrations.
-2. **Run a Dry-Run Test against Firestore Emulator**:
-   - Start local emulator: `npm run emulators`
-   - Restore real snapshot to emulator: `$env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080"; node scripts/backupRestore.mjs restore <snapshot>`
-   - Execute migration script on emulator.
-   - Run Vitest integration suite: `npx vitest run`
-   - Verify both Public Portal and Admin Portal function properly with migrated records.
-3. **Rollback Plan**:
-   - If a live migration encounters any failure, immediately restore the pre-migration snapshot using `backupRestore.mjs restore <snapshot>`.
-
----
-
-## 6. Daily / Weekly Backup Schedule Recommendations
-
-For municipal IT staff managing SIMAK DISKUM on the Spark plan without Cloud Scheduler:
-1. **Automated Scheduled Task**: Configure a scheduled task (Windows Task Scheduler or Linux cron on a secure office server/desktop) to run every weekday at 18:00 WIB (after office hours):
-   ```powershell
-   # Windows Task Scheduler Action:
-   powershell.exe -ExecutionPolicy Bypass -Command "cd D:\Apps\SIMAK-DISKUM\department-agenda-firebase; node scripts/backupRestore.mjs export ('D:\Backups\SIMAK-DISKUM\' + (Get-Date -Format 'yyyy-MM-dd_HHmm'))"
+To seed production:
+1. Obtain official civil service decree (SK Penetapan Pejabat & Signatory) from Dinas Koperasi dan Usaha Mikro Kota Batam.
+2. Fill `templates/productionMasterDataTemplate.json` with verified names, NIPs, and signatory profiles.
+3. Set `"clientApproved": true` and provide `"approvalReference": "SK/DISKUM/..."`.
+4. Execute:
+   ```bash
+   node scripts/backupRestore.mjs seed --template=templates/productionMasterDataTemplate.json
    ```
-2. **Offsite Retention**: Synchronize the weekly backup directory to an approved secure offsite storage location (e.g., Kota Batam municipal private drive or encrypted offline drive). Retain daily backups for 30 days and monthly backups for 12 months.
+
+---
+
+## 9. Backup File Security & Data Protection Policies
+
+1. **Git Exclusion:** All backup folders (`backups/`, `*.backup`, `*backup*.json`, `restore-progress.json`) are strictly excluded in `.gitignore`.
+2. **Access Control:** Backups contain non-public invitation letter metadata and internal department notes. Store exported files on encrypted, access-controlled municipal drives with restricted administrative access.
+3. **Retention Schedule:** Retain daily backups for 30 days and monthly archival snapshots for 12 months.
