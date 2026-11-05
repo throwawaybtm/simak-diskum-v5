@@ -193,10 +193,123 @@ All browser verification tests executed against the live Firebase Emulator and l
 
 ---
 
-## 7. Git Commit & Review Checkpoint Status
+## 7. Git Commit & Review Checkpoint Status (V01-A)
 
 - **Git Commit Hash:** `9d8bce8`
 - **Git Commit Message:** `feat(design): implement Visual Makeover V01-A design system, public header/dashboard, and admin sidebar/dashboard`
-- **Checkpoint Status:** **V01-A VISUAL REVIEW CHECKPOINT — PENDING USER APPROVAL**
-- **Recommendation for Next Step:**
-  - Await explicit user authorization on the V01-A design system and dashboard prototypes before proceeding to **Visual Makeover V01-B: Sub-Pages, Calendar, Agenda, Master Data & Reports Polish**.
+- **Checkpoint Status:** **V01-A VISUAL REVIEW CHECKPOINT — APPROVED**
+
+---
+
+# Visual Makeover V01-B: Secondary Pages & Full Design Consistency Report
+
+**Date:** 2026-11-05  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Fully Verified (163/163 Vitest Tests, 91 Playwright Browser Scenarios Passed, 100% Pass Rate)  
+**Authority:** `docs/design/reference-approved.png`, `docs/VISUAL_DESIGN_SYSTEM.md`, and Approved V01-A Layouts  
+
+---
+
+## 1. Executive Summary
+
+Visual Makeover Phase V01-B extends the approved civic minimalist design identity across all secondary pages of both the Public Portal and Admin Portal, while resolving all four usability and responsive issues identified during V01-A:
+
+1. **Admin Mobile & Tablet Navigation Drawer (Fix A):** Resolved the missing navigation controls on `< 1024px` viewports by introducing an off-canvas drawer (`#adminSidebar.sidebar-open`), accessible hamburger toggle (`#adminMenuToggleBtn`), backdrop blur overlay (`#sidebarBackdrop.active`), keyboard Escape key handling, focus management, and automatic drawer closing on navigation taps, while keeping the sidebar permanently docked on desktop (`>= 1024px`).
+2. **Admin Upcoming Agenda Location Resolution (Fix B):** Eliminated raw database location IDs (e.g. `loc_01`, `loc_02`) by resolving human-readable names via the master location lookup map and fallback dictionary (`FALLBACK_LOCATIONS`), without incurring additional per-row Firestore reads.
+3. **Public Desktop Header Navigation Wrapping (Fix C):** Prevented awkward multi-line text wrapping of navigation links (`white-space: nowrap; flex-shrink: 0;`), expanded the header container from 1240px to 1380px with a responsive subtitle hide breakpoint (`<= 1200px`), and provided smooth horizontal touch scrolling on mobile (`< 768px`), achieving 0px horizontal overflow at 1440px desktop.
+4. **Responsive Information Density (Fix D):** Reduced excessive vertical margins and mobile banner height (< 200px) while maintaining full touch target accessibility (>= 44px).
+5. **Secondary Pages Consistency:** Standardized the design system across the Public Calendar (Month, Week, Day, List), Agenda Search & Filter, Activity Details Modal, Announcements, Admin Activities List, F01 4-Stage Edit Workflow with visual progress indicator bar (`.stage-indicator-bar`), Master Data (5 entity tabs), Official 8-Column Reports, Spreadsheet Migration, and Signatory Settings.
+
+---
+
+## 2. Detailed Verification Evidence
+
+### A. Vitest Automated Suites (Unit, Integration & Rules)
+- **Total Test Files:** 19 passed (19 total)
+- **Total Tests:** **163 passed** (163 total, 100% pass rate)
+- **Test Categories:**
+  - Live Firestore Security Rules (Emulator): **32 / 32 passed** (`firestore.rules.test.ts`)
+  - Monorepo Configuration & Rules: **7 / 7 passed** (`monorepo_config.test.ts`)
+  - Schemas & Data Contracts: **3 / 3 passed** (`schemas.test.ts`)
+  - WIB Time Engine & Date Arithmetic: **27 / 27 passed** (`timeUtils.test.ts`)
+  - Activity Validation: **17 / 17 passed** (`activityValidator.test.ts`)
+  - Privacy Scanner & Credential Blocker: **5 / 5 passed** (`privacyScanner.test.ts`)
+  - Attendee Snapshot Immutability: **3 / 3 passed** (`attendeeSnapshot.test.ts`)
+  - Conflict Engine: **6 / 6 passed** (`conflictDetector.test.ts`)
+  - Public Projection & Isolation: **3 / 3 passed** (`publicProjector.test.ts`)
+  - Admin UI Controller: **6 / 6 passed** (`adminUi.test.ts`)
+  - Public UI Controller: **11 / 11 passed** (`publicUi.test.ts`)
+  - Master Data Validation & Snapshot Preservation: **8 / 8 passed** (`masterData.test.ts`)
+  - Official 8-Column Reports, XLSX & Migration: **8 / 8 passed** (`reportsAndMigration.test.ts`)
+  - Repository Atomic Transactions (Emulator): **6 / 6 passed** (`repository.emulator.test.ts`)
+  - Master Repository CRUD & Integrity (Emulator): **4 / 4 passed** (`masterRepository.emulator.test.ts`)
+  - Query Benchmark & Multi-Month Range (Emulator): **1 / 1 passed** (`queryBenchmark.emulator.test.ts`)
+  - OpenXML Spreadsheet Independent Parser: **1 / 1 passed** (`xlsxParserVerification.test.ts`)
+  - Master Safety, Whitespace Deduplication & Dry-Run Isolation: **5 / 5 passed** (`masterSafetyAndMigration.test.ts`)
+  - Staging Readiness & Firebase Config Separation: **5 / 5 passed** (`stagingReadiness.test.ts`)
+
+### B. Playwright Real-Browser Verification Suites
+All browser tests executed against live Vite dev servers and the local Firestore emulator:
+1. **Visual Makeover V01-B Comprehensive Suite (`visualMakeoverV01BVerification.mjs`):** **30 / 30 passed (100%)**
+   - *Test 1 (Fix A - Drawer & Accessibility):* Menu toggle visible at 768px, drawer opens, backdrop active, `aria-expanded=true`, Escape closes drawer, backdrop click closes drawer, mobile drawer opens at 375px, nav link click auto-closes drawer.
+   - *Test 2 (Fix B - Location Resolution):* Verified zero raw `loc_xx` identifiers in Admin Upcoming Agenda; human-readable labels rendered.
+   - *Test 3 (Fix C - Header Wrapping):* Verified single-line navigation pills without wrapping at 1024px, 1280px, and 1440px.
+   - *Test 4 (Fix D - Mobile Density):* Verified compact mobile banner height (< 200px, measured 185px).
+   - *Test 5 (Public Secondary Pages):* Verified Month, Week, Day, List calendar views, debounced Agenda Search view with 9 cards, sanitized Activity Detail modal with clean open and dismiss, and Announcements view.
+   - *Test 6 (Admin Secondary Pages):* Verified Activities list with stage filtering, F01 Edit Workflow with 4-step progress indicator bar (`.stage-indicator-bar`), structured invitation letter panel, real-time privacy scanner alert, live preview card, safe Google Drive DOM anchor (`target="_blank" rel="noopener noreferrer"`), Master Data 5 tabs with tab switching, Official 8-Column report preview with print/XLSX export, spreadsheet migration tab, and Settings page with Firestore signatory persistence.
+   - *Test 7 (Responsive Overflows):* Verified **0px horizontal overflow** across 375px, 768px, 1024px, and 1440px viewports on both Public and Admin portals.
+2. **Visual Makeover V01-A Responsive Suite (`visualMakeoverVerification.mjs`):** **8 / 8 passed**
+3. **Feature F01 Workflow Suite (`f01WorkflowVerification.mjs`):** **13 / 13 passed**
+4. **Admin Portal Regression Suite (`runVerification.mjs`):** **13 / 13 passed**
+5. **Public Portal Regression Suite (`runPublicVerification.mjs`):** **11 / 11 passed**
+6. **Responsive Calendar & Announcement Suite (`calendarResponsiveVerification.mjs`):** **8 / 8 passed**
+7. **Reports & Migration Suite (`reportsVerification.mjs`):** **8 / 8 passed**
+8. **Master Data Suite (`masterDataVerification.mjs`):** **8 / 8 passed**
+- **Total Real-Browser Scenarios:** **91 / 91 passed (100% pass rate)**
+
+### C. Monorepo Production Build & Bundle Metrics
+- **Shared Workspace:** `tsc` clean build with exit code 0.
+- **Public Application (`dist/`):**
+  - `dist/index.html`: 1.14 kB (gzip: 0.58 kB)
+  - `dist/assets/index.css`: 22.58 kB (gzip: 4.76 kB)
+  - `dist/assets/index.js` (Initial app entry): **47.54 kB** (gzip: **13.12 kB**) *(Well within 150 kB budget)*
+  - `dist/assets/firebase-vendor.js`: 871.46 kB (gzip: 225.69 kB)
+  - `dist/assets/exceljs-vendor.js`: 953.20 kB (gzip: 275.76 kB, strictly lazy-loaded on demand)
+- **Admin Application (`dist/`):**
+  - `dist/index.html`: 2.84 kB (gzip: 1.00 kB)
+  - `dist/assets/index.css`: 23.24 kB (gzip: 5.28 kB)
+  - `dist/assets/index.js` (Initial shell): 13.96 kB (gzip: 4.68 kB)
+  - `dist/assets/DashboardPage.js`: 10.28 kB (gzip: 2.58 kB, lazy)
+  - `dist/assets/ActivityEditWorkflow.js`: 31.26 kB (gzip: 8.36 kB, lazy)
+  - `dist/assets/MasterDataPage.js`: 18.66 kB (gzip: 4.51 kB, lazy)
+  - `dist/assets/ReportsPage.js`: 14.68 kB (gzip: 5.09 kB, lazy)
+  - `dist/assets/SettingsPage.js`: 5.19 kB (gzip: 2.08 kB, lazy)
+  - `dist/assets/ActivitiesPage.js`: 4.65 kB (gzip: 1.76 kB, lazy)
+  - `dist/assets/firebase-vendor.js`: 1,071.18 kB (gzip: 273.95 kB)
+  - `dist/assets/legacyMigrationParser.js`: 952.15 kB (gzip: 275.60 kB, lazy)
+
+---
+
+## 3. Invariants & Security Controls Maintained
+
+1. **Dual-Portal Navigation Layout Invariant:**
+   - Public Portal: Top horizontal navigation bar strictly maintained; zero desktop sidebar.
+   - Admin Portal: Left vertical navigation sidebar strictly maintained; off-canvas drawer activated exclusively on mobile/tablet viewports (< 1024px).
+2. **Official 8-Column Government Format Invariant:**
+   - Maintained official layout: `No | Hari / Tanggal | Pukul | Kegiatan | Tempat | Penyelenggara | Dihadiri Oleh | Keterangan`.
+   - Letter reference metadata is strictly omitted from public views and 8-column reports.
+3. **Safe Google Drive Anchor Construction:**
+   - Strict DOM API instantiation (`target="_blank" rel="noopener noreferrer"`) prevents attribute injection.
+4. **Gate 5A Security & Optimistic Version Lockstep:**
+   - Version concurrency checks and synchronized batch commits remain strictly enforced.
+5. **No Production / Blaze Activation:**
+   - System remains in local development/emulator mode. No live Firebase deployment or billing changes performed.
+
+---
+
+## 4. Visual Review Checkpoint Status
+
+- **Git Commit Hash:** `a7a3a1c`
+- **Git Commit Message:** `feat(design): complete Visual Makeover V01-B secondary pages and responsive consistency`
+- **Status:** **V01-B VISUAL REVIEW CHECKPOINT — STOPPED FOR USER REVIEW**
+- **Action:** Awaiting explicit user review and approval before proceeding to any subsequent milestones (V01-C or production readiness).

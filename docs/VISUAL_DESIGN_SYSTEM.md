@@ -1,9 +1,9 @@
-# SIMAK DISKUM v5.0 — Visual Design System (V01-A)
+# SIMAK DISKUM v5.0 — Visual Design System (V01-B)
 
 **Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
 **Target Architecture:** Firebase Multi-site Web Applications (`public` & `admin`)  
 **Design Authority:** Approved Minimalist Dual-Portal Reference (`docs/design/reference-approved.png`)  
-**Status:** Phase A — Design System and Dashboard Prototypes Implemented  
+**Status:** Phase B — Secondary Pages & Full Design Consistency Implemented & Verified  
 
 ---
 
@@ -107,11 +107,11 @@ The SIMAK DISKUM v5.0 visual identity embodies modern minimalist Indonesian civi
 ## 3. Portal Layout Architectures
 
 ### A. Public Portal Layout (Top Navigation)
-- **Top Header:** Full-width white bar with container (`max-width: 1240px`).
-  - Left: Lambang Kota Batam crest (`batam-emblem.png`, 32px), "SIMAK DISKUM Kota Batam", vertical divider, and official agency subtitle.
-  - Center: Horizontal navigation links with pill highlights (`Beranda`, `Kalender Kegiatan`, `Cari Agenda`, `Pengumuman`).
-  - Right: Quick search pill input ("Cari agenda...") and WIB operational timezone indicator.
-- **Hero Welcome Banner:** Wide card (`border-radius: 16px`) with Barelang Bridge scenic photography, left-to-right soft gradient overlay, vertical accent indicator line, and official welcome message.
+- **Top Header:** Full-width white bar with container (`max-width: 1380px; gap: 1rem; padding: 0.75rem 1.25rem;`).
+  - Left: Lambang Kota Batam crest (`batam-emblem.png`, 32px), "SIMAK DISKUM Kota Batam", vertical divider, and official agency subtitle (agency subtitle gracefully hidden on narrow screens `<= 1200px` to reserve 350px for navigation links).
+  - Center: Horizontal navigation links with pill highlights (`Beranda`, `Kalender Kegiatan`, `Cari Agenda`, `Pengumuman`), styled with `white-space: nowrap; flex-shrink: 0;` to prevent awkward multi-line wrapping on 1024px–1440px viewports. Features smooth touch horizontal scrolling on mobile viewports (`< 768px`).
+  - Right: Quick search pill input ("Cari agenda...") and WIB operational timezone indicator. Zero horizontal overflow across all desktop and mobile viewports.
+- **Hero Welcome Banner:** Wide card (`border-radius: 16px`) with Barelang Bridge scenic photography, left-to-right soft gradient overlay, vertical accent indicator line, and official welcome message. Optimized for mobile viewports with compact height (< 200px) and appropriate vertical breathing room.
 - **Summary Cards (4-column grid):**
   - Agenda Hari Ini (Calendar outline icon in `#eff6ff`)
   - Agenda Minggu Ini (Calendar outline icon in `#eff6ff`)
@@ -121,14 +121,16 @@ The SIMAK DISKUM v5.0 visual identity embodies modern minimalist Indonesian civi
   - Primary Column (65%): Hari Ini & Agenda 7 Hari Mendatang.
   - Secondary Column (35%): Lompat ke Tanggal & Pengumuman Kedinasan.
 
-### B. Admin Portal Layout (Left Sidebar)
+### B. Admin Portal Layout (Left Sidebar & Off-Canvas Mobile Drawer)
 - **Left Vertical Sidebar (250px):**
-  - White surface with subtle right border (`#e2e8f0`).
+  - Desktop (`>= 1024px`): Permanently docked left sidebar with subtle right border (`#e2e8f0`).
+  - Mobile & Tablet (`< 1024px`): Responsive off-canvas navigation drawer (`#adminSidebar.sidebar-open`, `transform: translateX(0)`), paired with a translucent backdrop overlay (`#sidebarBackdrop.active`, `backdrop-filter: blur(4px)`).
+  - Accessibility & Interaction: Accessible hamburger button (`#adminMenuToggleBtn`, `aria-expanded`, `aria-label="Buka menu navigasi"`), automatic keyboard Escape keypress close handler, focus management on open/close, and automatic drawer close when any navigation item is tapped.
   - Top branding: Lambang Kota Batam crest + "SIMAK DISKUM Kota Batam".
   - Nav list with lightweight icons: `Dashboard`, `Agenda`, `Master Data`, `Laporan`, `Pengaturan`.
   - Active item styled as a light-blue rounded pill (`#dbeafe`, `#2563eb`).
 - **Top Header Bar:**
-  - Left: "Admin Portal" heading and "Sistem Informasi Manajemen Agenda Kedinasan" subtitle.
+  - Left: Mobile menu toggle button (`#adminMenuToggleBtn`, visible on `< 1024px`), "Admin Portal" heading and "Sistem Informasi Manajemen Agenda Kedinasan" subtitle.
   - Right: Notification bell outline icon + "Operator ⌄" profile button.
 - **Administrative Stage Summary Cards (5-column grid):**
   - Input Awal (Document outline in `#eff6ff`, `#3b82f6`)
@@ -137,14 +139,59 @@ The SIMAK DISKUM v5.0 visual identity embodies modern minimalist Indonesian civi
   - Administrasi Lengkap (Checkmark circle in `#dcfce7`, `#16a34a`)
   - Total Agenda (Calendar outline in `#eff6ff`, `#2563eb`)
 - **Administrative Analytics & Upcoming Panels:**
-  - Left Panel (60%): Agenda Mendatang with date badges ("06 Nov"), event titles, locations, and time ranges.
+  - Left Panel (60%): Agenda Mendatang with date badges ("06 Nov"), event titles, human-readable resolved location names (via master location lookup & fallback dictionary; zero raw `loc_xx` identifiers), and formatted time ranges.
   - Right Panel (40%): Status Administrasi with pure CSS conic-gradient Donut Chart and interactive color-coded legend.
 
 ---
 
-## 4. Responsive Breakpoints & Viewport Usability
+## 4. Secondary Pages Visual Consistency (V01-B)
 
-- **1440px (Wide Desktop):** Maximum readability, multi-column dashboard layouts, generous whitespace.
-- **1024px (Standard Desktop):** 4-card / 5-card grids comfortably fit without wrapping; sidebar fixed at 250px.
-- **768px (Tablet):** Summary cards adapt to 2-column grids; sidebar collapses gracefully or scales; public horizontal menu wraps cleanly.
-- **375px (Mobile):** Single-column layout; full touch-friendly tap targets (>44px); header controls stack logically without horizontal overflow.
+### A. Public Secondary Pages
+1. **Kalender Kegiatan (Month, Week, Day, List):**
+   - Clean civic toolbar with segmented view mode controls (`Bulan`, `Minggu`, `Hari`, `Daftar`).
+   - Category filtering pills with semantic dot indicators.
+   - Month view: 7-column calendar grid with today highlights and multi-day spanning indicator badges.
+   - Week view: Responsive 7-day schedule with full/abbreviated day labels (`.day-full` / `.day-short`) and horizontal touch scroll on viewports `< 768px`.
+   - Day & List views: Chronological agenda stream with time badges, location icons, and category badges.
+2. **Cari Agenda (Debounced Multi-Criteria Search):**
+   - Search hero bar with real-time text query and dropdown filters (Category, Status, Date Range).
+   - Agenda cards styled with crisp borders, date pills, location tags, and attendee indicators.
+   - Nonblocking feedback when 0 results match, with reset actions.
+3. **Detail Kegiatan Modal:**
+   - Pure CSS/DOM accessible modal overlay with keyboard Escape and backdrop dismissal.
+   - Sanitized Public DTO fields: Title, formatted WIB datetime, human-readable location, organizer, public notes, and cancellation notices.
+   - Guaranteed ZERO rendering of private internal notes, Zoom passcodes, meeting credentials, or operator audit logs.
+4. **Pengumuman Kedinasan:**
+   - Official municipal notification stream with icon banners, valid WIB formatted publication dates, and category tags.
+
+### B. Admin Secondary Pages
+1. **Daftar Agenda (Activities Management):**
+   - Multi-stage filter tabs (`Semua`, `Input Awal`, `Proses Offline`, `Detail Dilengkapi`, `Administrasi Lengkap`).
+   - Civic tabular layout with status badges, date/time chips, action buttons (`Edit`, `Duplikat`, `Hapus`), and quick search.
+2. **Form Tambah / Edit Agenda (F01 4-Stage Pipeline):**
+   - Visual 4-step progress indicator bar (`.stage-indicator-bar`) with numbered circles and active stage highlighting (`.stage-step.active`).
+   - Structured Surat Masuk / Undangan panel with Nomor Surat, Tanggal Surat, Pengirim/Asal, and safe Google Drive link input.
+   - Safe Google Drive link rendering via strict DOM anchor construction (`target="_blank" rel="noopener noreferrer"`).
+   - Real-time privacy scanner alerts triggered for credentials (passcodes, meeting IDs) before save.
+   - Live public preview card demonstrating exactly what public citizens will see.
+   - Conflict warning modal for overlapping rooms or assigned staff.
+3. **Master Data Management (5 Entity Tabs):**
+   - Tabbed interface: `Pegawai`, `Bidang`, `Lokasi Ruangan`, `Penyelenggara`, `Kategori Kegiatan`.
+   - Clean civic data tables with search filters, active/inactive badges, inline editing, and referential deactivation safety.
+4. **Laporan Resmi 8-Kolom & Export:**
+   - Official Indonesian government 8-column layout (`No | Hari / Tanggal | Pukul | Kegiatan | Tempat | Penyelenggara | Dihadiri Oleh | Keterangan`).
+   - Single-row multi-day event formatting (`Jumat–Minggu, 6–8 November 2026`).
+   - Instant print view formatted for A4 Landscape with official Kop Surat and signatory block.
+   - Genuine OpenXML XLSX download with formula injection defense (`=`, `+`, `-`, `@`).
+   - Legacy spreadsheet ingestion tab with dry-run verification and credential isolation.
+5. **Pengaturan Aplikasi (Signatory Settings):**
+   - Department signatory configuration (Kepala Dinas name, NIP, title, department city) with persistent Firestore storage and live preview in report printouts.
+
+---
+
+## 5. Responsive Breakpoints & Viewport Usability
+
+- **1440px (Wide Desktop):** Maximum readability, multi-column dashboard layouts, generous whitespace, unwrapped public navigation, docked 250px admin sidebar, zero horizontal overflow.
+- **1024px (Standard Desktop):** 4-card / 5-card grids comfortably fit without wrapping; public header items remain strictly on a single line (`white-space: nowrap`); admin sidebar remains permanently docked.
+- **768px (Tablet):** Summary cards adapt to 2-column grids; public nav hides secondary subtitles to maintain single-line layout; admin sidebar switches to accessible off-canvas drawer with hamburger button (`#adminMenuToggleBtn`); zero horizontal overflow.
+- **375px (Mobile):** Single-column layout; full touch-friendly tap targets (>44px); public header offers horizontal touch scroll; admin drawer slides smoothly from left; banner height compacted (< 200px); zero horizontal overflow.

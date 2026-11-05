@@ -3,8 +3,8 @@
 **Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
 **Target Architecture:** Firebase Hosting (Multi-site: `public` & `admin`), Cloud Firestore Standard Edition, Firebase Emulator Suite  
 **Development Tooling:** Vite, TypeScript, Vitest, Playwright, Firebase CLI, ExcelJS  
-**Last Updated:** 2026-11-04  
-**Overall Status:** Visual Makeover V01-A Completed & Formally Verified (163/163 Vitest tests, 69 browser scenarios); Ready for V01-A Visual Review Checkpoint (V01-B & Production Activation Pending Approval)  
+**Last Updated:** 2026-11-05  
+**Overall Status:** Visual Makeover V01-B Completed & Formally Verified (163/163 Vitest tests, 91 browser scenarios across 8 suites, 0 horizontal overflow across 4 viewports); Ready for V01-B Visual Review Checkpoint (V01-C & Production Activation Pending Approval)  
 
 ---
 
@@ -24,15 +24,17 @@
 | **Task 9** | Gate 5 Authentication & Authorization Specification | **Completed** | 2026-11-04 | `7611376` | Fixed announcement date defect (zero "Invalid Date WIB"); verified 7-day calendar usability across 375px, 768px, 1024px, 1440px viewports without clipping; authored 13-point security specification (`gate5_auth_specification.md`); designed and verified production `firestore.rules` (20/20 tests); least-privilege RBAC (Admin/Editor); append-only audit trail; staging-to-prod runbook; 100% Spark free tier compatible. 136 Vitest tests + 52 browser/audit executions verified. *(Gate 5 Review)* |
 | **Gate 5A**| Security Hardening & Honest Verification Pass | **Completed** | 2026-11-04 | `b86a2d4` | Addressed `getAfter()` limitation on untouched documents; implemented synchronized optimistic `version` lockstep across `activities` and `publicActivities`; full projection text matching (`publicNotes`, `endTime`, `openEnded`, `updatedAt`, `publicCancellationNotice`); 6-scenario regression passed; strict server timestamp `request.time` enforced on audit logs; repositories aligned; API-level sign-up risk documented with Console mitigation; honest boundaries of browser-only architecture documented. Commit `b86a2d4`. *(Gate 5A Approved)* |
 | **Feature F01** | Agenda Administrative Workflow & Invitation Letter Reference | **Completed** | 2026-11-04 | `cca3958` | Decoupled 4-stage administrative workflow (`INITIAL_ENTRY`, `OFFLINE_PROCESS`, `DETAILS_COMPLETED`, `ADMIN_COMPLETE`) from operational status; private structured invitation letter metadata; nonblocking warnings for initial entry vs blocking gate for final stage; multi-operator collaboration; backward stage regression with audit logging; safe Google Drive links; strict isolation from public portal and 8-column reports; 163 Vitest tests (32 rules tests) + 65 browser scenarios verified. Commits `c04609c` through `cca3958`. *(Feature F01 Approved)* |
-| **Makeover V01-A** | Design System and Dashboard Prototypes | **Completed** | 2026-11-04 | `9d8bce8` | **Public Portal:** Top horizontal navigation bar, civic brand identity, Barelang Bridge hero welcome banner, 4 summary cards below banner, 2-column feed. **Admin Portal:** Left vertical white sidebar with active light-blue pill, topbar with operator profile pill, 5-stage administrative pipeline cards, upcoming agenda list, and pure CSS conic-gradient donut chart analytics. Zero-dependency lightweight design system; DOM-safe Google Drive anchor creation; verified across 375px, 768px, 1024px, 1440px; 163 Vitest tests + 69 browser scenarios verified. *(V01-A Visual Review Checkpoint)* |
+| **Makeover V01-A** | Design System and Dashboard Prototypes | **Completed** | 2026-11-04 | `9d8bce8` | **Public Portal:** Top horizontal navigation bar, civic brand identity, Barelang Bridge hero welcome banner, 4 summary cards below banner, 2-column feed. **Admin Portal:** Left vertical white sidebar with active light-blue pill, topbar with operator profile pill, 5-stage administrative pipeline cards, upcoming agenda list, and pure CSS conic-gradient donut chart analytics. Zero-dependency lightweight design system; DOM-safe Google Drive anchor creation; verified across 375px, 768px, 1024px, 1440px; 163 Vitest tests + 69 browser scenarios verified. Commit `9d8bce8`. *(V01-A Approved)* |
+| **Makeover V01-B** | Secondary Pages & Full Design Consistency | **Completed** | 2026-11-05 | `a7a3a1c` | Implemented V01-A usability fixes: Admin mobile/tablet off-canvas drawer (`#adminMenuToggleBtn`, backdrop blur, Escape handler, auto-close on link click, docked on desktop >= 1024px); human-readable location resolution eliminating raw IDs (`loc_xx`); public desktop header single-line layout (`white-space: nowrap`, 1380px container, mobile horizontal scroll); responsive density tuning (<200px mobile banner). Extended visual polish across all secondary pages: Calendar (Month, Week, Day, List), Agenda Search, Detail Modal, Announcements, Admin Activities List, F01 4-stage edit form with progress indicator bar (`.stage-indicator-bar`), Master Data (5 entity tabs), Official 8-column reports, spreadsheet migration, and Settings. 163/163 Vitest tests + 91 browser scenarios verified with 100% pass rate. *(V01-B Visual Review Checkpoint)* |
 
 ---
 
-## 2. Test Totals at Latest Checkpoint (Visual Makeover V01-A Completed & Formally Verified)
+## 2. Test Totals at Latest Checkpoint (Visual Makeover V01-B Completed & Formally Verified)
 
 - **Vitest Unit & Integration Suites:** 19 passed (19 total)
 - **Vitest Automated Tests:** **163 passed** (163 total, 100% pass rate)
 - **Playwright Real-Browser Verification Suites:**
+  - Visual Makeover V01-B Full Suite (`visualMakeoverV01BVerification.mjs`): **30 / 30 passed** (Fixes A-D, all secondary pages, 4 viewports 375px, 768px, 1024px, 1440px)
   - Visual Makeover V01-A Responsive Suite (`visualMakeoverVerification.mjs`): **8 / 8 passed** (375px, 768px, 1024px, 1440px for Public & Admin)
   - Feature F01 Administrative Workflow Suite (`f01WorkflowVerification.mjs`): **13 / 13 passed** (100%)
   - Admin Portal Regression Suite (`runVerification.mjs`): **13 / 13 passed** (100%)
@@ -40,14 +42,35 @@
   - Responsive Calendar & Announcement Suite (`calendarResponsiveVerification.mjs`): **8 / 8 passed** (100%)
   - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed** (100%)
   - Master Data Suite (`masterDataVerification.mjs`): **8 / 8 passed** (100%)
-- **Total Real-Browser Scenarios:** **69 verified browser executions** (100% pass rate)
-- **Total Automated Test Assertions:** **232 passed** (232 total, 100% pass rate)
-- **Visual Artifacts:** 56 verified browser screenshots in `tests/e2e/screenshots/` (V01 Responsive Viewports, F01 Workflow, Admin, Master, Public, Reports, Migration, Responsive Calendar)
+- **Total Real-Browser Scenarios:** **91 verified browser executions** (100% pass rate across 8 test scripts)
+- **Total Automated Test Assertions:** **254 passed** (163 Vitest + 91 Browser, 100% pass rate)
+- **Visual Artifacts:** 76 verified browser screenshots in `tests/e2e/screenshots/` (V01-B Fixes & Secondary Pages, V01-A Viewports, F01 Workflow, Admin, Master, Public, Reports, Migration, Responsive Calendar)
 - **Bundle Metrics:**
-  - Public Shell: `index.html` 1.14 kB (gzip: 0.57 kB), `index.css` 22.18 kB (gzip: 4.68 kB)
+  - Public Shell: `index.html` 1.14 kB (gzip: 0.58 kB), `index.css` 22.58 kB (gzip: 4.76 kB)
   - Public Initial App Code: `index.js` **47.54 kB** (gzip: **13.12 kB**) *(Initial critical path well below 150 kB budget)*
   - Public Vendor: `firebase-vendor` 871.46 kB (gzip: 225.69 kB), `exceljs-vendor` 953.20 kB (gzip: 275.76 kB, lazy-loaded on export demand)
-  - Admin Initial Shell: `index.js` 12.72 kB (gzip: 4.33 kB), `index.css` 21.35 kB (gzip: 4.94 kB)
+  - Admin Initial Shell: `index.js` 13.96 kB (gzip: 4.68 kB), `index.css` 23.24 kB (gzip: 5.28 kB)
+  - Admin Lazy Modules: `SettingsPage` 5.19 kB (gzip: 2.08 kB), `ReportsPage` 14.68 kB (gzip: 5.09 kB), `MasterDataPage` 18.66 kB (gzip: 4.51 kB), `ActivitiesPage` 4.65 kB (gzip: 1.76 kB), `DashboardPage` 10.28 kB (gzip: 2.58 kB), `ActivityEditWorkflow` 31.26 kB (gzip: 8.36 kB), `legacyMigrationParser` 952.15 kB (gzip: 275.60 kB)
+- **Test Categories Breakdown:**
+  - Live Firestore Security Rules (Emulator): **32 tests** (`firestore.rules.test.ts`)
+  - Monorepo Configuration & Rules: 7 tests (`monorepo_config.test.ts`)
+  - Schemas & Data Contracts: 3 tests (`schemas.test.ts`)
+  - WIB Time Engine & Date Arithmetic: 27 tests (`timeUtils.test.ts`)
+  - Activity Validation: 17 tests (`activityValidator.test.ts`)
+  - Privacy Scanner & Credential Blocker: 5 tests (`privacyScanner.test.ts`)
+  - Attendee Snapshot Immutability: 3 tests (`attendeeSnapshot.test.ts`)
+  - Conflict Engine: 6 tests (`conflictDetector.test.ts`)
+  - Public Projection & Isolation: 3 tests (`publicProjector.test.ts`)
+  - Admin UI Controller: 6 tests (`adminUi.test.ts`)
+  - Public UI Controller: 11 tests (`publicUi.test.ts`)
+  - Master Data Validation & Snapshot Preservation: 8 tests (`masterData.test.ts`)
+  - Official 8-Column Reports, XLSX & Migration: 8 tests (`reportsAndMigration.test.ts`)
+  - Repository Atomic Transactions (Emulator): 6 tests (`repository.emulator.test.ts`)
+  - Master Repository CRUD & Integrity (Emulator): 4 tests (`masterRepository.emulator.test.ts`)
+  - Query Benchmark & Multi-Month Range (Emulator): 1 test (`queryBenchmark.emulator.test.ts`)
+  - OpenXML Spreadsheet Independent Parser: 1 test (`xlsxParserVerification.test.ts`)
+  - Master Safety, Whitespace Deduplication & Dry-Run Isolation: 5 tests (`masterSafetyAndMigration.test.ts`)
+  - Staging Readiness & Firebase Config Separation: 5 tests (`stagingReadiness.test.ts`)
   - Admin Lazy Modules: `SettingsPage` 5.19 kB (gzip: 2.08 kB), `ReportsPage` 14.68 kB (gzip: 5.09 kB), `MasterDataPage` 17.30 kB (gzip: 4.15 kB), `ActivitiesPage` 4.65 kB (gzip: 1.76 kB), `DashboardPage` 9.80 kB (gzip: 2.33 kB), `ActivityEditWorkflow` 30.39 kB (gzip: 8.18 kB)
 - **Test Categories Breakdown:**
   - Live Firestore Security Rules (Emulator): **32 tests** (`firestore.rules.test.ts`)
@@ -85,7 +108,8 @@
 | **Task 9 Review**| Task 9 Authentication Spec | **Accepted** | Production auth specification completed (`gate5_auth_specification.md`); custom role claims (Admin/Editor); append-only audit trail with actor ID binding; production rules verified (20/20 Vitest rules tests); announcement date bug fixed and verified; 7-day calendar verified responsive (375px–1440px); staging-to-prod runbook authored. |
 | **Gate 5A Checkpoint**| Security Hardening & Honest Verification | **Approved** | Addressed `getAfter()` limitation on untouched documents; implemented synchronized optimistic `version` lockstep across `activities` and `publicActivities`; full projection text matching (`publicNotes`, `endTime`, `openEnded`, `updatedAt`, `publicCancellationNotice`); 6-scenario regression passed; strict server timestamp `request.time` enforced on audit logs; repositories aligned; API-level sign-up risk documented with Console mitigation; honest boundaries of browser-only architecture documented. Commit `b86a2d4`. |
 | **Feature F01 Checkpoint**| Administrative Workflow & Invitation Letter Reference | **Approved** | Decoupled 4-stage administrative workflow; structured private invitation letter metadata; nonblocking warnings for initial entry vs blocking gate for final stage; multi-operator collaboration; backward stage regression with audit logging; safe external Google Drive link; strict isolation from public portal and 8-column reports; 163 Vitest tests (32 rules tests) + 65 browser scenarios verified. Commits `c04609c` through `cca3958`. |
-| **V01-A Visual Review Checkpoint**| Design System & Dashboard Prototypes | **READY FOR REVIEW** | Aligned with approved reference `docs/design/reference-approved.png`. **Public:** Top horizontal pill navigation, Batam identity, Barelang Bridge hero welcome banner, 4 summary cards below banner, 2-column feed. **Admin:** Left vertical white sidebar with active light-blue pill, top header with operator profile pill, 5-stage administrative cards, upcoming agenda list, and pure CSS conic-gradient donut chart analytics. Zero-dependency lightweight design system; DOM-safe Google Drive anchor creation; verified across 375px, 768px, 1024px, 1440px viewports (8/8 passed); 163 Vitest tests + 69 browser scenarios verified. Commit `9d8bce8`. |
+| **V01-A Visual Review Checkpoint**| Design System & Dashboard Prototypes | **Approved** | Aligned with approved reference `docs/design/reference-approved.png`. **Public:** Top horizontal pill navigation, Batam identity, Barelang Bridge hero welcome banner, 4 summary cards below banner, 2-column feed. **Admin:** Left vertical white sidebar with active light-blue pill, top header with operator profile pill, 5-stage administrative cards, upcoming agenda list, and pure CSS conic-gradient donut chart analytics. Commit `9d8bce8`. |
+| **V01-B Visual Review Checkpoint**| Secondary Pages & Full Design Consistency | **READY FOR REVIEW** | Resolved V01-A usability issues: Admin mobile/tablet off-canvas drawer (`#adminMenuToggleBtn`, backdrop blur, Escape key, focus trap, docked on desktop >=1024px); human-readable location resolution (`FALLBACK_LOCATIONS` + master map, zero raw `loc_xx` IDs); public desktop header single-line layout (`white-space: nowrap`, 1380px container, mobile horizontal scroll); responsive density tuning (<200px mobile banner). Extended visual polish across all secondary pages: Calendar (Month, Week, Day, List), Agenda Search, Detail Modal, Announcements, Admin Activities List, F01 4-stage edit form with progress indicator bar (`.stage-indicator-bar`), Master Data (5 entity tabs), Official 8-column reports, spreadsheet migration, and Settings. 163/163 Vitest tests + 91 browser scenarios verified with 100% pass rate. *(Pending Approval)* |
 
 ---
 
@@ -99,7 +123,11 @@
    - *Status:* **RECORDED & ENFORCED**. In `firestore.rules`, `isEditor()` and `isAdmin()` strictly check lowercase roles (`request.auth.token.role == 'editor'`). Auth tokens with uppercase `'EDITOR'` or `'ADMIN'` are denied. All client and test auth helpers use lowercase role strings.
 4. **Calendar Grid Responsive Layout & Column Clipping (375px to 1440px):**
    - *Status:* **RESOLVED & VERIFIED**. Added dual day name tags (`.day-full` / `.day-short`) with mobile CSS toggles in `CalendarView.ts` and `public.css`. Added smooth horizontal scrolling container on `.calendar-container` with `min-width: 640px` on `.week-grid-container` on mobile. All 7 columns verified intact and readable across 375px, 768px, 1024px, and 1440px viewports.
-5. **Official Eight-Column A4 Landscape Multi-Page Print Layout:**
-   - *Status:* Maintained. CSS print rules (`@media print`, `@page { size: A4 landscape; margin: 15mm; }`, `thead { display: table-header-group; }`, `tr { page-break-inside: avoid; }`) ensure header repetition across page boundaries and avoid orphan signatures. Feature F01 letter metadata is strictly omitted from all 8 columns.
-6. **Browser Architecture Audit Completeness Boundary:**
+5. **Admin Off-Canvas Navigation Drawer & Backdrop Integration:**
+   - *Status:* **RESOLVED & VERIFIED**. On viewports `< 1024px`, the admin sidebar is transformed off-screen (`-100%`) and triggered by `#adminMenuToggleBtn` with `.sidebar-open`. Focus is managed, backdrop blur overlay `#sidebarBackdrop` dismisses on click, Escape key closes drawer, and navigation clicks automatically close drawer. On viewports `>= 1024px`, sidebar remains docked and toggle button is hidden.
+6. **Public Header Zero-Overflow at 1440px Desktop:**
+   - *Status:* **RESOLVED & VERIFIED**. Adjusted `.header-container` from `max-width: 1240px` to `max-width: 1380px; gap: 1rem; padding: 0.75rem 1.25rem;`. Verified `document.documentElement.scrollWidth === window.innerWidth` (1440px) with 0px horizontal overflow.
+7. **Human-Readable Location Display in Admin Panels:**
+   - *Status:* **RESOLVED & VERIFIED**. `resolveAdminLocationName()` resolves location IDs via master data map and fallback dictionary (`FALLBACK_LOCATIONS`), guaranteeing zero raw `loc_xx` identifiers are presented in the UI without incurring extra per-row Firestore reads.
+8. **Browser Architecture Audit Completeness Boundary:**
    - *Boundary:* Client-side audit logs written during activity transactions are atomic and enforced with server timestamps (`request.time`). For unlinked collections (such as Master Data), audit logs cannot be guaranteed if an authorized Admin bypasses the client UI and invokes the raw SDK. Complete uncircumventable audit trails require server-side Cloud Functions (Blaze billing).
