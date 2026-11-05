@@ -503,11 +503,13 @@ function renderAgendaRoute(container: HTMLElement): void {
       const sDate = agendaFilters.startDate || (filteredActs[0]?.startDate || '2026-11-01');
       const eDate = agendaFilters.endDate || (filteredActs[filteredActs.length - 1]?.endDate || '2026-11-30');
 
+      const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
       const html = generateEightColumnHtmlReport({
         startDate: sDate,
         endDate: eDate,
         rows: reportRows,
-        departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM'
+        departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
+        isStaging
       });
 
       const printWindow = window.open('', '_blank');
@@ -548,7 +550,8 @@ function renderAgendaRoute(container: HTMLElement): void {
       const buffer = await generateEightColumnXlsx({
         departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
         periodLabel,
-        rows: reportRows
+        rows: reportRows,
+        isStaging
       });
 
       const blob = new Blob([buffer], {

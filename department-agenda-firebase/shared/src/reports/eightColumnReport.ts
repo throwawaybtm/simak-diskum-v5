@@ -159,6 +159,8 @@ export interface HtmlReportOptions {
   signatoryNip?: string;
   signatoryPosition?: string;
   currentDateStr?: string;
+  isStaging?: boolean;
+  watermarkText?: string;
 }
 
 /**
@@ -175,6 +177,7 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
   const signDate = options.currentDateStr
     ? formatIndonesianDate(options.currentDateStr)
     : formatIndonesianDate(new Date().toISOString().slice(0, 10));
+  const watermark = options.watermarkText || (options.isStaging ? 'DATA SIMULASI — TIDAK UNTUK PENGGUNAAN RESMI' : '');
 
   const tableRowsHtml = options.rows.map(row => `
     <tr class="${row.isCancelled ? 'cancelled-row' : ''}">
@@ -270,6 +273,37 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
     .text-nowrap { white-space: nowrap; }
     .font-bold { font-weight: 600; }
     .pre-line { white-space: pre-line; }
+
+    .watermark-overlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-25deg);
+      font-size: 32pt;
+      font-weight: 900;
+      color: rgba(220, 38, 38, 0.13);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      pointer-events: none;
+      z-index: 9999;
+      white-space: nowrap;
+      border: 3.5px dashed rgba(220, 38, 38, 0.25);
+      padding: 12px 28px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .staging-report-warning {
+      background: #fef2f2;
+      border: 1.5px solid #ef4444;
+      color: #991b1b;
+      font-weight: bold;
+      font-size: 9pt;
+      padding: 6px 12px;
+      margin-bottom: 12px;
+      text-align: center;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
     
     .signature-container {
       display: flex;
@@ -300,6 +334,12 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
   </style>
 </head>
 <body>
+  ${watermark ? `
+    <div class="watermark-overlay" aria-hidden="true">${watermark}</div>
+    <div class="staging-report-warning">
+      ⚠️ ${watermark} (LINGKUNGAN STAGING) ⚠️
+    </div>
+  ` : ''}
   <div class="kop-surat">
     <h1>PEMERINTAH KOTA BATAM</h1>
     <h2>${department}</h2>
@@ -338,6 +378,12 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
       <div class="signatory-nip">NIP. ${signatoryNip}</div>
     </div>
   </div>
+
+  ${watermark ? `
+    <div style="font-size: 8pt; color: #991b1b; font-style: italic; margin-top: 15px; border-top: 1px dashed #ef4444; padding-top: 6px;">
+      * Peringatan: Dokumen ini dicetak dari Lingkungan Staging / Uji Coba SIMAK DISKUM. ${watermark}.
+    </div>
+  ` : ''}
 </body>
 </html>
   `.trim();

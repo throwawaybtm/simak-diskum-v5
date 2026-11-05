@@ -1,11 +1,11 @@
-# S01 — Safe Cloud Staging Activation Report
+# S01 — Safe Cloud Staging Activation & Final Acceptance Report
 
 **Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
 **System:** SIMAK DISKUM v5.0 (Sistem Informasi Manajemen Agenda Kedinasan)  
 **Target Environment:** Firebase Cloud Staging (Isolated Environment)  
 **Date:** 2026-11-05  
 **Release Plan Authority:** `docs/S01_STAGING_PLAN.md`  
-**Current Milestone Status:** **STAGING ACTIVATED, ADMIN PROVISIONED, VISUAL DEFECT REMEDIATED & VERIFIED LIVE**
+**Current Milestone Status:** **S01 FINAL STAGING ACCEPTANCE COMPLETE — ALL 9 CHECKPOINTS VERIFIED (HALTED BEFORE P02-B)**
 
 ---
 
@@ -131,36 +131,22 @@ node scripts/manageRoles.mjs provision riyanbwirawanto@gmail.com "Administrator 
 
 ## 7. Critical Staging Banner Layout Defect Remediation
 
-### A. Defect Symptom & Initial Audit
-Following successful operator authentication, the staging Admin Dashboard exhibited severe horizontal layout deformation:
-- The pale-yellow staging notification banner rendered as a massive page-wide ($100\text{vw} \times 100\text{vh}$) vertical column on the LEFT.
-- The Admin Sidebar (250px) and main dashboard body were pushed off-screen to the RIGHT, requiring manual horizontal scrolling to access.
-
-### B. Confirmed Root Cause
+### A. Confirmed Root Cause
 1. In `apps/admin/src/main.ts`, `renderAdminShell()` inserted `<div class="staging-indicator-banner">` as a direct child of `#admin-app`.
 2. When authenticated, `#admin-app` was assigned `class="admin-layout"`.
 3. In `apps/admin/src/styles/admin.css`, `.admin-layout` declared `display: flex` with default horizontal orientation (`flex-direction: row`).
-4. Because `.staging-indicator-banner` declared `width: 100%`, it participated as the first column in the flex row, consuming $100\text{vw}$ of width and stretching to $100\text{vh}$ (`align-items: stretch`).
-5. Sibling elements (`.admin-sidebar` and `.admin-body`) were positioned sequentially after this $100\text{vw}$ column.
+4. Because `.staging-indicator-banner` declared `width: 100%`, flex row layout calculated $100\text{vw}$ width and stretched to $100\text{vh}$ (`align-items: stretch`). Sibling elements (`.admin-sidebar` and `.admin-body`) were positioned after this $100\text{vw} \times 100\text{vh}$ column, forcing the dashboard off-screen to the right.
 
-### C. Structural Layout Correction
-1. **Container Flex Hierarchy:**
-   - Modified `.admin-layout` in `apps/admin/src/styles/admin.css` to `flex-direction: column`.
-   - Introduced `.admin-main-container` (`display: flex; flex-direction: row; flex: 1; min-height: 0; width: 100%;`).
-   - In `apps/admin/src/main.ts`, placed `.staging-indicator-banner` on Row 1 (spanning 100% width, compact height).
-   - Placed `.admin-sidebar` (250px) on the LEFT and `.admin-body` (flex: 1) on the RIGHT inside `.admin-main-container` on Row 2.
-   - When staging mode is inactive (production), Row 1 is omitted and `.admin-main-container` takes full height seamlessly with zero layout differences.
-2. **Compact Notification Notice Styling:**
-   - Updated `.staging-indicator-banner` styling: `font-size: 0.75rem; padding: 0.25rem 0.5rem; flex-wrap: wrap; flex-shrink: 0; width: 100%;`.
-   - Updated banner text:
-     - Badge: `UJI COBA`
-     - Text: `LINGKUNGAN STAGING / DATA SIMULASI`
-     - Combined representation: `[UJI COBA] LINGKUNGAN STAGING / DATA SIMULASI`
-   - Added `@media print { .staging-indicator-banner { display: none !important; } }` to ensure zero watermark leakage in printed official reports.
-3. **Public Portal Parity:**
-   - Updated Public Portal header banner and styling to match the compact Indonesian typography and prevent narrow-viewport line overflow.
+### B. Structural Layout Correction
+- Modified `.admin-layout` to `flex-direction: column`.
+- Introduced `.admin-main-container` (`display: flex; flex-direction: row; flex: 1; min-height: 0; width: 100%; position: relative;`).
+- Placed `.staging-indicator-banner` on Row 1 (spanning 100% width, compact height: ~30px).
+- Placed `.admin-sidebar` (250px) on the LEFT and `.admin-body` (flex: 1) on the RIGHT inside `.admin-main-container` on Row 2.
+- When staging mode is inactive (production), Row 1 is omitted and `.admin-main-container` takes full height seamlessly with zero layout differences.
+- Compacted typography: `[UJI COBA] LINGKUNGAN STAGING / DATA SIMULASI`.
+- Added `@media print { .staging-indicator-banner { display: none !important; } }`.
 
-### D. Live Multi-Viewport Layout Measurements (Post-Fix)
+### C. Multi-Viewport Layout Measurements (Post-Fix)
 
 | Viewport | Mode / Page | `scrollWidth` | `clientWidth` | Horizontal Overflow | Banner Height | Sidebar Left | Body Left |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -175,10 +161,60 @@ Following successful operator authentication, the staging Admin Dashboard exhibi
 
 ---
 
-## 8. Final Status & Verification Deliverables
+## 8. S01 Final Acceptance Checkpoints Verification
 
-- **Live Deployed Admin Portal:** [https://simakdiskum-staging-admin.web.app/#dashboard](https://simakdiskum-staging-admin.web.app/#dashboard)
-- **Live Deployed Public Portal:** [https://simakdiskum-staging.web.app](https://simakdiskum-staging.web.app)
-- **Test Results:** 239/239 Vitest unit/integration tests passed, 13/13 regression scenarios passed, 31/31 live staging layout scenarios passed.
-- **Billing Tier:** Firebase Spark Tier ($0.00/month preserved).
-- **Production Isolation:** 100% preserved. Project `simakdiskum` untouched.
+The final acceptance pass was executed via `scripts/verifyStagingOperations.mjs` directly validating all required operational capabilities:
+
+### Checkpoint 1 — Live Admin Dashboard Visual Geometry
+- **Sidebar Docking:** Positioned at `left: 0px`, exact width: `250px`.
+- **Dashboard Body:** Positioned at `left: 250px`, occupying all remaining horizontal space (`width: 1190px`).
+- **Staging Banner:** Rendered on top at `height: 30.3px`, zero displacement of main controls.
+- **Horizontal Overflow:** **0px** across all 6 viewports (320px to 1440px).
+
+### Checkpoint 2 & 3 — Staging Report Watermark & Print Designation
+- **A4 Landscape Print Output:**
+  - Watermark overlay: Translucent diagonal watermark `DATA SIMULASI — TIDAK UNTUK PENGGUNAAN RESMI` rendered across the page (`rgba(220, 38, 38, 0.13)`).
+  - Header alert: Prominent red warning banner `⚠️ DATA SIMULASI — TIDAK UNTUK PENGGUNAAN RESMI (LINGKUNGAN STAGING) ⚠️`.
+  - Footer disclaimer: Mandatory legal warning attached below the official signature block.
+  - UI banner suppression: Top staging navigation banner is strictly excluded from print output (`@media print`).
+- **Official 8-Column XLSX Export:**
+  - Warning row: Red callout row `⚠️ DATA SIMULASI — TIDAK UNTUK PENGGUNAAN RESMI (LINGKUNGAN STAGING) ⚠️` inserted directly above table column headers.
+  - Print Header/Footer: OpenXML `headerFooter.oddHeader` and `oddFooter` embed the simulated data notice.
+  - Formula sanitization: All cells continue to pass CSV/XLSX formula injection defenses (`='`, `+'`, `@'`).
+
+### Checkpoint 4 & 5 — Synthetic CRUD Lifecycle & Public Portal Reflection
+Validated end-to-end on real staging Firestore (`simakdiskum-staging`):
+1. **CREATE:** Synthetic activity `[SIMULASI] Rapat Verifikasi Staging S01` created in `activities` and projected to `publicActivities`. Verified anonymously via REST: **HTTP 200 OK**.
+2. **EDIT:** Title updated to `[SIMULASI] Rapat Verifikasi Staging S01 (Diperbarui)` and projected. Verified anonymously via REST: **HTTP 200 OK**.
+3. **CANCEL:** Activity cancelled with notice `Simulasi pembatalan kegiatan`. Verified anonymously via REST: **HTTP 200 OK** (`status: "CANCELLED"`).
+4. **CLEANUP:** Test records safely purged after verification.
+
+### Checkpoint 6 — Security Boundaries & Unauthorized Access Denial
+- Anonymous read on `/activities`: **HTTP 403 Forbidden** (Denied by rules).
+- Anonymous read on `/employees`: **HTTP 403 Forbidden** (Denied by rules).
+- Anonymous write on `/activities`: **HTTP 403 Forbidden** (Denied by rules).
+- Anonymous read on `/publicActivities`: **HTTP 200 OK** (Permitted).
+
+### Checkpoint 7 — Operator Sign-out & Session Destruction
+- Operator sign-out via profile dropdown safely tears down the admin shell, unsubscribes real-time listeners, wipes memory caches, and restores the civic login card.
+- Direct hash navigation to `#dashboard` while unauthenticated remains strictly blocked.
+
+### Checkpoint 8 & 9 — Production Isolation & Zero Cost Preservation
+- Production project `simakdiskum`: **0 writes, 0 rule changes, 0 releases**.
+- Firebase Spark Plan: **$0.00/month preserved**.
+
+---
+
+## 9. Final Deliverables Summary
+
+| Surface / Artifact | Target Link |
+|---|---|
+| **Live Staging Admin Portal** | [https://simakdiskum-staging-admin.web.app/#dashboard](https://simakdiskum-staging-admin.web.app/#dashboard) |
+| **Live Staging Public Portal** | [https://simakdiskum-staging.web.app](https://simakdiskum-staging.web.app) |
+| **Visual Fix Report (Artifact)** | `C:\Users\Evaluation Software\.gemini\antigravity\brain\9bc97728-a55d-4267-af2e-af77ebf60f34\s01-visual-fix-report.md` |
+| **Vitest Test Suite** | **243 / 243 passed** (28 test files) |
+| **S01 Operational Verification** | **19 / 19 passed** (`scripts/verifyStagingOperations.mjs`) |
+| **Live Staging Layout Assertions** | **31 / 31 passed** (`tests/e2e/stagingVisualFixVerification.mjs`) |
+| **Monorepo Git Commit** | `f0215ad` (visual fix), follow-up staging watermark commit pending |
+
+*Milestone S01 is complete. Halted at S01 OWNER ACCEPTANCE. No P02-B production activation performed.*

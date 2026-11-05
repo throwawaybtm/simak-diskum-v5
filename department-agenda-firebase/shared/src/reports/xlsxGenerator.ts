@@ -21,6 +21,8 @@ export interface GenerateXlsxOptions {
   signatoryNip?: string;
   signatoryPosition?: string;
   signDateStr?: string;
+  isStaging?: boolean;
+  watermarkText?: string;
 }
 
 export async function generateEightColumnXlsx(
@@ -44,12 +46,36 @@ export async function generateEightColumnXlsx(
 
   const deptName = options.departmentName || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM';
   const title = options.subTitle || 'LAPORAN AGENDA KEGIATAN KEDINASAN';
+  const watermark = options.watermarkText || (options.isStaging ? 'DATA SIMULASI — TIDAK UNTUK PENGGUNAAN RESMI' : '');
 
   // 1. Title rows
   worksheet.addRow(['PEMERINTAH KOTA BATAM']);
   worksheet.addRow([deptName]);
   worksheet.addRow([title]);
   worksheet.addRow([`Periode: ${options.periodLabel}`]);
+
+  if (watermark) {
+    const warningRow = worksheet.addRow([`⚠️ ${watermark} (LINGKUNGAN STAGING) ⚠️`]);
+    worksheet.mergeCells(warningRow.number, 1, warningRow.number, 8);
+    const cell = worksheet.getCell(warningRow.number, 1);
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.font = {
+      name: 'Arial',
+      bold: true,
+      size: 10,
+      color: { argb: 'FF991B1B' }
+    };
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFEE2E2' }
+    };
+    warningRow.height = 24;
+
+    worksheet.headerFooter.oddHeader = `&C&B&11&K991B1B ⚠️ ${watermark} ⚠️`;
+    worksheet.headerFooter.oddFooter = `&C&8 Dokumen dibuat di Lingkungan Staging — ${watermark}`;
+  }
+
   worksheet.addRow([]); // Empty spacer row
 
   // Merge and format title rows
@@ -172,6 +198,13 @@ export async function generateEightColumnXlsx(
   sigPosRow.getCell(6).font = { name: 'Arial', size: 9 };
   sigNameRow.getCell(6).font = { name: 'Arial', bold: true, underline: true, size: 9 };
   sigNipRow.getCell(6).font = { name: 'Arial', size: 9 };
+
+  if (watermark) {
+    worksheet.addRow([]);
+    const disclaimerRow = worksheet.addRow([`* Peringatan: Dokumen ini diunduh dari Lingkungan Staging / Uji Coba SIMAK DISKUM. ${watermark}.`]);
+    worksheet.mergeCells(disclaimerRow.number, 1, disclaimerRow.number, 8);
+    disclaimerRow.font = { name: 'Arial', italic: true, size: 8, color: { argb: 'FF991B1B' } };
+  }
 
   const rawBuffer = await workbook.xlsx.writeBuffer();
   return rawBuffer instanceof Uint8Array ? rawBuffer : new Uint8Array(rawBuffer);

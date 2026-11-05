@@ -395,12 +395,14 @@ export async function mountReportsPage(
     if (printBtn) {
       printBtn.addEventListener('click', () => {
         const rows = getFilteredRows();
+        const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
         const html = generateEightColumnHtmlReport({
           startDate,
           endDate,
           rows,
           departmentName: currentSignatory.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
-          signatory: currentSignatory
+          signatory: currentSignatory,
+          isStaging
         });
 
         const printWindow = window.open('', '_blank');
@@ -429,11 +431,13 @@ export async function mountReportsPage(
         try {
           const rows = getFilteredRows();
           const periodLabel = formatIndonesianDateSpan(startDate, endDate);
+          const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
           const buffer = await generateEightColumnXlsx({
             departmentName: currentSignatory.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
             periodLabel,
             rows,
-            signatory: currentSignatory
+            signatory: currentSignatory,
+            isStaging
           });
 
           const blob = new Blob([buffer], {
