@@ -24,10 +24,11 @@ const publicBaseUrl = 'http://localhost:3000';
 
 async function resetEmulatorDatabase() {
   try {
-    const res = await fetch('http://127.0.0.1:8080/emulator/v1/projects/demo-department-agenda/databases/(default)/documents', {
-      method: 'DELETE'
-    });
-    console.log(`[Setup] Reset Firestore Emulator: ${res.status} ${res.statusText}`);
+    await Promise.allSettled([
+      fetch('http://127.0.0.1:8080/emulator/v1/projects/simakdiskum/databases/(default)/documents', { method: 'DELETE' }),
+      fetch('http://127.0.0.1:8080/emulator/v1/projects/demo-department-agenda/databases/(default)/documents', { method: 'DELETE' })
+    ]);
+    console.log('[Setup] Reset Firestore Emulator for simakdiskum & demo-department-agenda');
   } catch (err) {
     console.warn('[Setup] Warning: Could not reset emulator database:', err.message);
   }

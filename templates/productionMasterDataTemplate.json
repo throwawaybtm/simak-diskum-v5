@@ -1,0 +1,63 @@
+{
+  "templateVersion": "1.0.0",
+  "clientApproved": false,
+  "approvedBy": null,
+  "approvalReference": null,
+  "approvalDate": null,
+  "description": "Template Master Data Produksi SIMAK DISKUM Kota Batam. Membutuhkan verifikasi dan pengesahan resmi dari Kasubbag Kepegawaian dan Kepala Dinas sebelum diimpor ke lingkungan produksi.",
+  "employees": [
+    {
+      "id": "emp_01",
+      "name": "[NAMA KEPALA DINAS SESUAI SK RESMI]",
+      "nip": "[NIP RESMI]",
+      "position": "Kepala Dinas",
+      "rank": "[PANGKAT/GOLONGAN RESMI]",
+      "active": true
+    },
+    {
+      "id": "emp_02",
+      "name": "[NAMA SEKRETARIS DINAS SESUAI SK RESMI]",
+      "nip": "[NIP RESMI]",
+      "position": "Sekretaris Dinas",
+      "rank": "[PANGKAT/GOLONGAN RESMI]",
+      "active": true
+    }
+  ],
+  "departments": [
+    { "id": "dept_01", "name": "Sekretariat Dinas", "code": "SEKR", "active": true },
+    { "id": "dept_02", "name": "Bidang Pemberdayaan Koperasi", "code": "KOP", "active": true },
+    { "id": "dept_03", "name": "Bidang Fasilitasi Usaha Mikro", "code": "MIKRO", "active": true },
+    { "id": "dept_04", "name": "Bidang Pengawasan dan Akuntabilitas", "code": "WAS", "active": true }
+  ],
+  "locations": [
+    { "id": "loc_01", "name": "Ruang Rapat Kadis (Lantai 2)", "type": "OFFICE", "address": "Kantor Dinas Koperasi dan Usaha Mikro Kota Batam", "bookable": true, "active": true },
+    { "id": "loc_02", "name": "Aula Pertemuan PLUT Batam", "type": "OFFICE", "address": "Pusat Layanan Usaha Terpadu (PLUT) KUKM Kota Batam", "bookable": true, "active": true },
+    { "id": "loc_03", "name": "Ruang Media Center PLUT Batam", "type": "OFFICE", "address": "PLUT KUKM Kota Batam", "bookable": true, "active": true },
+    { "id": "loc_04", "name": "Ruang Rapat Hang Nadim Kantor Walikota", "type": "EXTERNAL", "address": "Jl. Engku Putri No. 1, Batam Centre", "bookable": false, "active": true },
+    { "id": "loc_05", "name": "Zoom Meeting Kedinasan", "type": "ONLINE", "address": "https://zoom.us", "bookable": false, "active": true }
+  ],
+  "organizers": [
+    { "id": "org_01", "name": "Sekretariat Dinas Koperasi & UM", "code": "SEKR", "active": true },
+    { "id": "org_02", "name": "Bidang Pemberdayaan Koperasi", "code": "KOP", "active": true },
+    { "id": "org_03", "name": "Bidang Fasilitasi Usaha Mikro", "code": "MIKRO", "active": true },
+    { "id": "org_04", "name": "Bidang Pengawasan dan Akuntabilitas", "code": "WAS", "active": true },
+    { "id": "org_05", "name": "Pemerintah Kota Batam", "code": "PEMKO", "active": true },
+    { "id": "org_06", "name": "Kementerian Koperasi dan UKM RI", "code": "KEMENKOP", "active": true }
+  ],
+  "categories": [
+    { "id": "cat_01", "name": "Rapat Koordinasi", "color": "#2563eb", "active": true },
+    { "id": "cat_02", "name": "Bimbingan Teknis & Pelatihan", "color": "#0284c7", "active": true },
+    { "id": "cat_03", "name": "Kunjungan Kerja & Pengawasan Lapangan", "color": "#16a34a", "active": true },
+    { "id": "cat_04", "name": "Sosialisasi & Edukasi", "color": "#d97706", "active": true },
+    { "id": "cat_05", "name": "Pameran & Bazaar UMKM", "color": "#9333ea", "active": true }
+  ],
+  "signatory": {
+    "headOfDepartmentName": "[NAMA RESMI KEPALA DINAS]",
+    "headOfDepartmentNip": "[NIP RESMI KEPALA DINAS]",
+    "headOfDepartmentRank": "[PANGKAT / GOLONGAN RESMI]",
+    "headOfDepartmentTitle": "Kepala Dinas Koperasi dan Usaha Mikro Kota Batam",
+    "city": "Batam",
+    "updatedAt": null,
+    "updatedBy": "pending_client_approval"
+  }
+}

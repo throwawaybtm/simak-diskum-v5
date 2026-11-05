@@ -2,16 +2,18 @@
  * Unit Test Suite for Operator Role Management & Custom Claims Invariants
  * 
  * Verifies:
- * 1. Allowed roles are strictly constrained ('admin', 'editor', 'viewer').
- * 2. Custom claims payload adheres to Firestore Security Rules expectations (request.auth.token.role).
- * 3. Role transitions update claims and revoke refresh tokens for immediate propagation.
- * 4. Account disabling marks account disabled and revokes tokens.
- * 5. Password reset link generation adheres to valid email format.
+ * 1. Allowed roles are strictly constrained ('admin', 'editor') matching firestore.rules.
+ * 2. Required project safeguard protects against operations on wrong Firebase projects.
+ * 3. Custom claims payload adheres to Firestore Security Rules expectations (request.auth.token.role).
+ * 4. Role transitions update claims and revoke refresh tokens for immediate propagation.
+ * 5. Account disabling marks account disabled and revokes tokens.
+ * 6. Password reset link generation adheres to valid email format with out-of-band delivery notes.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   ALLOWED_ROLES,
+  REQUIRED_PROJECT_ID,
   provisionUser,
   setUserRole,
   disableUser,
@@ -19,7 +21,7 @@ import {
   inspectUser
 } from '../../scripts/manageRoles.mjs';
 
-describe('P01: Operator Role Management & Custom Claims Verification', () => {
+describe('P01-A: Operator Role Management & Custom Claims Verification', () => {
   let mockAuth: any;
   let storedUsers: Map<string, any>;
 
@@ -76,8 +78,9 @@ describe('P01: Operator Role Management & Custom Claims Verification', () => {
     };
   });
 
-  it('strictly restricts allowed roles to admin, editor, and viewer', () => {
-    expect(ALLOWED_ROLES).toEqual(['admin', 'editor', 'viewer']);
+  it('strictly restricts allowed roles to admin and editor matching firestore.rules', () => {
+    expect(ALLOWED_ROLES).toEqual(['admin', 'editor']);
+    expect(REQUIRED_PROJECT_ID).toBe('simakdiskum');
   });
 
   it('provisions a new operator with valid role and custom claims', async () => {
@@ -96,7 +99,11 @@ describe('P01: Operator Role Management & Custom Claims Verification', () => {
     }));
   });
 
-  it('rejects provisioning with an unauthorized role', async () => {
+  it('rejects provisioning with an unauthorized or unmapped role (viewer, superuser)', async () => {
+    await expect(
+      provisionUser(mockAuth, 'bad@batam.go.id', 'pwd', 'Bad Actor', 'viewer')
+    ).rejects.toThrow(/Invalid role/);
+
     await expect(
       provisionUser(mockAuth, 'bad@batam.go.id', 'pwd', 'Bad Actor', 'superuser')
     ).rejects.toThrow(/Invalid role/);

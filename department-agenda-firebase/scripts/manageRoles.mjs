@@ -19,10 +19,12 @@
  *   node scripts/manageRoles.mjs inspect operator@batam.go.id
  * 
  * SECURITY DIRECTIVES:
- * 1. NEVER commit service-account credentials to source control.
- * 2. In production, this script consumes GOOGLE_APPLICATION_CREDENTIALS pointing to a secure
- *    local file on the administrator's workstation outside the repository tree.
- * 3. Custom role claims are evaluated directly by Cloud Firestore Security Rules (firebase/firestore.rules).
+ * 1. Target project is strictly validated against `simakdiskum`.
+ * 2. In production, this script prefers Application Default Credentials (ADC via `gcloud auth application-default login`)
+ *    or a locally secured service account referenced via GOOGLE_APPLICATION_CREDENTIALS.
+ * 3. Custom role claims ('admin', 'editor') are evaluated directly by Cloud Firestore Security Rules (firebase/firestore.rules).
+ * 4. Token lifetime limitation: ID tokens carry claims for up to 1 hour until client calls `getIdToken(true)` or token expires.
+ * 5. Password reset limitation: Spark plan lacks automated SMTP email functions; links must be transmitted out-of-band securely.
  */
 
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
@@ -30,40 +32,50 @@ import { getAuth } from 'firebase-admin/auth';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Allowed department roles
-export const ALLOWED_ROLES = ['admin', 'editor', 'viewer'];
+// Allowed department roles matching firestore.rules
+export const ALLOWED_ROLES = ['admin', 'editor'];
+export const REQUIRED_PROJECT_ID = 'simakdiskum';
 
 /**
- * Initializes the Firebase Admin SDK safely
+ * Initializes the Firebase Admin SDK safely with ADC, service account, or emulator
  */
 export function initAdminApp() {
   if (getApps().length > 0) {
     return getApps()[0];
   }
 
-  const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
   const isEmulator = Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST);
+  const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const targetProjectId = process.env.GCLOUD_PROJECT || REQUIRED_PROJECT_ID;
+
+  // Project Safeguard: prevent accidental operations on unintended Firebase projects
+  if (!isEmulator && targetProjectId !== REQUIRED_PROJECT_ID && !process.env.ALLOW_ANY_PROJECT) {
+    throw new Error(
+      `[manageRoles Safeguard] Execution blocked: Target project "${targetProjectId}" does not match required project "${REQUIRED_PROJECT_ID}". ` +
+      `Set GCLOUD_PROJECT=${REQUIRED_PROJECT_ID} or set ALLOW_ANY_PROJECT=true to override.`
+    );
+  }
 
   if (isEmulator) {
-    console.log(`[manageRoles] Using Firebase Auth Emulator at ${process.env.FIREBASE_AUTH_EMULATOR_HOST}`);
-    return initializeApp({
-      projectId: process.env.GCLOUD_PROJECT || 'simakdiskum'
-    });
+    console.log(`[manageRoles] Using Firebase Auth Emulator at ${process.env.FIREBASE_AUTH_EMULATOR_HOST} (Project: ${targetProjectId})`);
+    return initializeApp({ projectId: targetProjectId });
   }
 
   if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
-    console.log(`[manageRoles] Initializing with service account from: ${serviceAccountPath}`);
+    console.log(`[manageRoles] Initializing with service account credentials from: ${serviceAccountPath}`);
     const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
+    if (serviceAccount.project_id && serviceAccount.project_id !== REQUIRED_PROJECT_ID && !process.env.ALLOW_ANY_PROJECT) {
+      throw new Error(`[manageRoles Safeguard] Service account belongs to "${serviceAccount.project_id}", expected "${REQUIRED_PROJECT_ID}".`);
+    }
     return initializeApp({
       credential: cert(serviceAccount),
-      projectId: serviceAccount.project_id || 'simakdiskum'
+      projectId: serviceAccount.project_id || targetProjectId
     });
   }
 
-  // Fallback to application default credentials
-  return initializeApp({
-    projectId: process.env.GCLOUD_PROJECT || 'simakdiskum'
-  });
+  // Application Default Credentials (ADC)
+  console.log(`[manageRoles] Initializing with Application Default Credentials (ADC) for project: ${targetProjectId}`);
+  return initializeApp({ projectId: targetProjectId });
 }
 
 /**
@@ -120,7 +132,7 @@ export async function provisionUser(auth, email, password, displayName, role) {
 }
 
 /**
- * Modifies an existing operator's custom role claim
+ * Modifies an existing operator's custom role claim and forces token refresh
  */
 export async function setUserRole(auth, identifier, role) {
   if (!ALLOWED_ROLES.includes(role)) {
@@ -136,7 +148,8 @@ export async function setUserRole(auth, identifier, role) {
 
   // Revoke refresh tokens to force client token refresh on next request
   await auth.revokeRefreshTokens(user.uid);
-  console.log(`[manageRoles] Role updated to "${role}" for ${user.email} (UID: ${user.uid}). Tokens revoked for refresh.`);
+  console.log(`[manageRoles] Role updated to "${role}" for ${user.email} (UID: ${user.uid}). Refresh tokens revoked.`);
+  console.log(`[manageRoles Note] Active browser sessions will receive the new role upon next token refresh (within 1 hour or when calling getIdToken(true)).`);
 }
 
 /**
@@ -146,7 +159,8 @@ export async function disableUser(auth, identifier) {
   const user = await resolveUser(auth, identifier);
   await auth.updateUser(user.uid, { disabled: true });
   await auth.revokeRefreshTokens(user.uid);
-  console.log(`[manageRoles] User ${user.email} (UID: ${user.uid}) has been DISABLED and all active sessions revoked.`);
+  console.log(`[manageRoles] User ${user.email} (UID: ${user.uid}) has been DISABLED and refresh tokens revoked.`);
+  console.log(`[manageRoles Note] User cannot obtain new ID tokens. Existing client JWT tokens expire within 1 hour.`);
 }
 
 /**
@@ -155,7 +169,9 @@ export async function disableUser(auth, identifier) {
 export async function generatePasswordResetLink(auth, identifier) {
   const user = await resolveUser(auth, identifier);
   const link = await auth.generatePasswordResetLink(user.email);
-  console.log(`[manageRoles] Password reset link generated for ${user.email}:\n  ${link}`);
+  console.log(`[manageRoles] Password reset link generated for ${user.email}:`);
+  console.log(`  ${link}`);
+  console.log(`[manageRoles Spark Note] Automated email sending is not available on Spark plan without external SMTP. Deliver this link securely to the operator via official municipal channels.`);
   return link;
 }
 
@@ -185,8 +201,8 @@ async function main() {
     console.log(`
 SIMAK DISKUM Auth Provisioning Utility
 Commands:
-  provision <email> <password> <displayName> <role: admin|editor|viewer>
-  set-role <email|uid> <role: admin|editor|viewer>
+  provision <email> <password> <displayName> <role: admin|editor>
+  set-role <email|uid> <role: admin|editor>
   disable <email|uid>
   reset-password <email|uid>
   inspect <email|uid>
@@ -200,7 +216,7 @@ Commands:
   try {
     if (command === 'provision') {
       const [, email, password, displayName, role] = args;
-      if (!email || !password || !role) {
+      if (!email || !password || !displayName || !role) {
         console.error('Usage: manageRoles.mjs provision <email> <password> <displayName> <role>');
         process.exit(1);
       }

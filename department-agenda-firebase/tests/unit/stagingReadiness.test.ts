@@ -101,4 +101,22 @@ describe('Task 8: Staging Readiness & Deployment Configuration Verification', ()
     expect(hasServiceAccount).toBe(false);
   });
 
+  it('verifies .gitignore excludes backup files, progress ledgers and credentials', () => {
+    const gitignore = fs.readFileSync(path.join(rootDir, '.gitignore'), 'utf-8');
+    expect(gitignore).toContain('backups/');
+    expect(gitignore).toContain('*.backup');
+    expect(gitignore).toContain('*backup*.json');
+    expect(gitignore).toContain('restore-progress.json');
+  });
+
+  it('verifies production master data template requires client approval before seeding', () => {
+    const templatePath = path.join(rootDir, 'templates/productionMasterDataTemplate.json');
+    expect(fs.existsSync(templatePath)).toBe(true);
+
+    const template = JSON.parse(fs.readFileSync(templatePath, 'utf-8'));
+    expect(template.clientApproved).toBe(false);
+    expect(template.templateVersion).toBe('1.0.0');
+    expect(template.employees[0].name).toContain('[NAMA');
+    expect(template.signatory.headOfDepartmentName).toContain('[NAMA');
+  });
 });

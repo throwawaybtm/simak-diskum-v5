@@ -35,11 +35,22 @@ export interface SaveActivityResult {
   auditId: string;
 }
 
+function isPlainObject(value: any): boolean {
+  if (value === null || typeof value !== 'object') return false;
+  return value.constructor === Object || value.constructor === undefined;
+}
+
 function sanitizeDocumentData<T extends Record<string, any>>(obj: T): T {
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeDocumentData(item)) as unknown as T;
+  }
+  if (!isPlainObject(obj)) {
+    return obj;
+  }
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value !== undefined) {
-      result[key] = value;
+      result[key] = sanitizeDocumentData(value);
     }
   }
   return result as T;

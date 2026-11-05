@@ -13,3 +13,7 @@ ui-debug.log*
 *.serviceAccountKey.json
 *service-account*.json
 *credentials*.json
+backups/
+*.backup
+*backup*.json
+restore-progress.json

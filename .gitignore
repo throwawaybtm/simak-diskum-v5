@@ -1,3 +1,7 @@
+# Node / NPM
+node_modules/
+.vitest-cache/
+
 # Virtual environments
 venv/
 .venv/
@@ -22,3 +26,11 @@ dist/
 *.swp
 *.bak
 Thumbs.db
+*.serviceAccountKey.json
+*service-account*.json
+*credentials*.json
+backups/
+*.backup
+*backup*.json
+restore-progress.json
+.env*

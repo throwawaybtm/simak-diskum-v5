@@ -42,13 +42,16 @@ export function captureAttendeeSnapshots(
     const emp = empMap.get(empId);
     if (emp) {
       const shortPos = abbreviatePosition(emp.position);
-      snapshots.push({
+      const snapshotItem: AttendeeSnapshot = {
         employeeId: emp.id,
         name: emp.name,
         position: emp.position,
-        departmentId: emp.departmentId,
         label: `${counter}. ${shortPos} (${emp.name})`
-      });
+      };
+      if (emp.departmentId) {
+        snapshotItem.departmentId = emp.departmentId;
+      }
+      snapshots.push(snapshotItem);
       counter++;
     } else {
       // Fallback if employee was not found in active master list (Strict Privacy: zero raw IDs exposed)
