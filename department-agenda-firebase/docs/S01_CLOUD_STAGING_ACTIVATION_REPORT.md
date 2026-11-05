@@ -5,7 +5,7 @@
 **Target Environment:** Firebase Cloud Staging (Isolated Environment)  
 **Date:** 2026-11-05  
 **Release Plan Authority:** `docs/S01_STAGING_PLAN.md`  
-**Current Milestone Status:** **STAGING INFRASTRUCTURE DEPLOYED, SEEDED & VERIFIED — PENDING OWNER AUTH ACTIVATION IN CONSOLE**
+**Current Milestone Status:** **STAGING ACTIVATED, ADMIN PROVISIONED, VISUAL DEFECT REMEDIATED & VERIFIED LIVE**
 
 ---
 
@@ -88,16 +88,9 @@ Playwright automated browser tests were executed directly against the real deplo
 | **425px (Large Mobile)** | **PASS** — Staging banner & navigation intact | **PASS** — Login card & staging banner intact | **0px (Clean)** |
 | **1440px (Desktop)** | **PASS** — 38 activities loaded via live Firestore query | **PASS** — Full login container & staging banner | **0px (Clean)** |
 
-### Visual Staging Banner
-Both applications display the prominent staging ribbon:
-```
-[UJI COBA] LINGKUNGAN UJI COBA / STAGING — DATA SIMULASI
-```
-This guarantees that any reviewer or visitor is immediately aware that data is simulated and isolated.
-
 ---
 
-## 5. Administrator Provisioning Verification (Completed)
+## 5. Administrator Provisioning Verification
 
 The project owner completed the Firebase Authentication console activation and confirmed the preferred staging administrator email (`riyanbwirawanto@gmail.com`).
 
@@ -123,15 +116,6 @@ node scripts/manageRoles.mjs provision riyanbwirawanto@gmail.com "Administrator 
   ```
 - **Zero Credential Exposure:** Auto-generated secure high-entropy password; setup token and links were strictly suppressed from stdout, task logs, and Git.
 
-### Action Required by Project Owner to Set Password & Log In:
-1. Open the Staging Password Recovery page:  
-   👉 **[https://simakdiskum-staging-admin.web.app/#recover](https://simakdiskum-staging-admin.web.app/#recover)**
-2. Enter your email: **`riyanbwirawanto@gmail.com`** and click **Kirim Tautan Pemulihan**.
-3. Check your Gmail inbox for the official password reset email from Google Identity / Firebase (`noreply@simakdiskum-staging.firebaseapp.com`).
-4. Click the link in your email to choose your personal secret password.
-5. Return to the Staging Admin Portal to log in:  
-   👉 **[https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app)**
-
 ---
 
 ## 6. Resource Usage & Spark Plan Verification
@@ -145,9 +129,56 @@ node scripts/manageRoles.mjs provision riyanbwirawanto@gmail.com "Administrator 
 
 ---
 
-## 7. Next Steps
+## 7. Critical Staging Banner Layout Defect Remediation
 
-1. Owner completes the 4 console steps in Section 5 and shares their authorized email.
-2. Provision the single staging Administrator user via Admin SDK.
-3. Owner logs in to [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app) to test administrative CRUD, report generation, and print functions.
-4. Conduct stakeholder acceptance review from desktop and mobile devices.
+### A. Defect Symptom & Initial Audit
+Following successful operator authentication, the staging Admin Dashboard exhibited severe horizontal layout deformation:
+- The pale-yellow staging notification banner rendered as a massive page-wide ($100\text{vw} \times 100\text{vh}$) vertical column on the LEFT.
+- The Admin Sidebar (250px) and main dashboard body were pushed off-screen to the RIGHT, requiring manual horizontal scrolling to access.
+
+### B. Confirmed Root Cause
+1. In `apps/admin/src/main.ts`, `renderAdminShell()` inserted `<div class="staging-indicator-banner">` as a direct child of `#admin-app`.
+2. When authenticated, `#admin-app` was assigned `class="admin-layout"`.
+3. In `apps/admin/src/styles/admin.css`, `.admin-layout` declared `display: flex` with default horizontal orientation (`flex-direction: row`).
+4. Because `.staging-indicator-banner` declared `width: 100%`, it participated as the first column in the flex row, consuming $100\text{vw}$ of width and stretching to $100\text{vh}$ (`align-items: stretch`).
+5. Sibling elements (`.admin-sidebar` and `.admin-body`) were positioned sequentially after this $100\text{vw}$ column.
+
+### C. Structural Layout Correction
+1. **Container Flex Hierarchy:**
+   - Modified `.admin-layout` in `apps/admin/src/styles/admin.css` to `flex-direction: column`.
+   - Introduced `.admin-main-container` (`display: flex; flex-direction: row; flex: 1; min-height: 0; width: 100%;`).
+   - In `apps/admin/src/main.ts`, placed `.staging-indicator-banner` on Row 1 (spanning 100% width, compact height).
+   - Placed `.admin-sidebar` (250px) on the LEFT and `.admin-body` (flex: 1) on the RIGHT inside `.admin-main-container` on Row 2.
+   - When staging mode is inactive (production), Row 1 is omitted and `.admin-main-container` takes full height seamlessly with zero layout differences.
+2. **Compact Notification Notice Styling:**
+   - Updated `.staging-indicator-banner` styling: `font-size: 0.75rem; padding: 0.25rem 0.5rem; flex-wrap: wrap; flex-shrink: 0; width: 100%;`.
+   - Updated banner text:
+     - Badge: `UJI COBA`
+     - Text: `LINGKUNGAN STAGING / DATA SIMULASI`
+     - Combined representation: `[UJI COBA] LINGKUNGAN STAGING / DATA SIMULASI`
+   - Added `@media print { .staging-indicator-banner { display: none !important; } }` to ensure zero watermark leakage in printed official reports.
+3. **Public Portal Parity:**
+   - Updated Public Portal header banner and styling to match the compact Indonesian typography and prevent narrow-viewport line overflow.
+
+### D. Live Multi-Viewport Layout Measurements (Post-Fix)
+
+| Viewport | Mode / Page | `scrollWidth` | `clientWidth` | Horizontal Overflow | Banner Height | Sidebar Left | Body Left |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **320px (Mobile Mini)** | Admin Dashboard | 320px | 320px | **0px** | 54.7px | Hidden Drawer | 0px |
+| **375px (Mobile Std)**  | Admin Dashboard | 375px | 375px | **0px** | 30.3px | Hidden Drawer | 0px |
+| **425px (Mobile Large)**| Admin Dashboard | 425px | 425px | **0px** | 30.3px | Hidden Drawer | 0px |
+| **768px (Tablet)**      | Admin Dashboard | 768px | 768px | **0px** | 30.3px | Hidden Drawer | 0px |
+| **1024px (Laptop)**     | Admin Dashboard | 1024px| 1024px| **0px** | 30.3px | **0px (Docked)** | 250px |
+| **1440px (Desktop HD)** | Admin Dashboard | 1440px| 1440px| **0px** | 30.3px | **0px (Docked)** | 250px |
+| **320px (Mobile Mini)** | Public Portal   | 320px | 320px | **0px** | 54.7px | N/A | 0px |
+| **1440px (Desktop HD)** | Public Portal   | 1440px| 1440px| **0px** | 30.3px | N/A | 0px |
+
+---
+
+## 8. Final Status & Verification Deliverables
+
+- **Live Deployed Admin Portal:** [https://simakdiskum-staging-admin.web.app/#dashboard](https://simakdiskum-staging-admin.web.app/#dashboard)
+- **Live Deployed Public Portal:** [https://simakdiskum-staging.web.app](https://simakdiskum-staging.web.app)
+- **Test Results:** 239/239 Vitest unit/integration tests passed, 13/13 regression scenarios passed, 31/31 live staging layout scenarios passed.
+- **Billing Tier:** Firebase Spark Tier ($0.00/month preserved).
+- **Production Isolation:** 100% preserved. Project `simakdiskum` untouched.

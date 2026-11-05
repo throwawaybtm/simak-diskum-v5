@@ -14,7 +14,7 @@ export function renderHeader(activeRoute: string): string {
     ${isStaging ? `
       <div class="staging-indicator-banner" role="status" aria-label="Informasi Lingkungan Staging">
         <span class="staging-badge">UJI COBA</span>
-        <span class="staging-text">LINGKUNGAN UJI COBA / STAGING — DATA SIMULASI</span>
+        <span class="staging-text">LINGKUNGAN STAGING / DATA SIMULASI</span>
       </div>
     ` : ''}
     <header class="app-header">

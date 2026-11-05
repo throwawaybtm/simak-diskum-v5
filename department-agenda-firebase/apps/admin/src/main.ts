@@ -14,6 +14,7 @@ import { renderSidebar } from './components/Sidebar';
 import {
   subscribeAuthState,
   signInOperator,
+  signInWithToken,
   requestPasswordReset,
   signOutOperator,
   isValidEmailFormat,
@@ -212,67 +213,69 @@ function renderAdminShell(): string {
     ${isStaging ? `
       <div class="staging-indicator-banner" role="status" aria-label="Informasi Lingkungan Staging">
         <span class="staging-badge">UJI COBA</span>
-        <span class="staging-text">LINGKUNGAN UJI COBA / STAGING — DATA SIMULASI</span>
+        <span class="staging-text">LINGKUNGAN STAGING / DATA SIMULASI</span>
       </div>
     ` : ''}
-    <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true"></div>
-    <aside class="admin-sidebar" id="adminSidebar" aria-label="Navigasi Utama Admin" aria-hidden="false">
-      <!-- Injected by renderSidebar -->
-    </aside>
-    <div class="admin-body">
-      <header class="topbar">
-        <div class="topbar-left">
-          <button type="button" id="adminMenuToggleBtn" class="btn-menu-toggle mobile-only" aria-label="Buka menu navigasi" aria-expanded="false" aria-controls="adminSidebar">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-          </button>
-          <div class="topbar-title-wrap">
-            <h1 class="topbar-portal-title">Admin Portal</h1>
-            <p class="topbar-portal-sub">Sistem Informasi Manajemen Agenda Kedinasan</p>
-          </div>
-        </div>
-        <div class="topbar-right">
-          <button type="button" class="btn-topbar-icon" title="Notifikasi" aria-label="Notifikasi">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-            </svg>
-          </button>
-          <div class="operator-profile-wrapper">
-            <div class="operator-profile-pill" id="operatorProfilePill" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Menu profil operator">
-              <svg class="operator-avatar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="8" r="5"/>
-                <path d="M20 21a8 8 0 1 0-16 0"/>
+    <div class="admin-main-container">
+      <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+      <aside class="admin-sidebar" id="adminSidebar" aria-label="Navigasi Utama Admin" aria-hidden="false">
+        <!-- Injected by renderSidebar -->
+      </aside>
+      <div class="admin-body">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button type="button" id="adminMenuToggleBtn" class="btn-menu-toggle mobile-only" aria-label="Buka menu navigasi" aria-expanded="false" aria-controls="adminSidebar">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
               </svg>
-              <span class="operator-name" id="operatorDisplayName">Operator</span>
-              <svg class="operator-chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
+            </button>
+            <div class="topbar-title-wrap">
+              <h1 class="topbar-portal-title">Admin Portal</h1>
+              <p class="topbar-portal-sub">Sistem Informasi Manajemen Agenda Kedinasan</p>
             </div>
-            <div class="operator-dropdown-menu hidden" id="operatorDropdownMenu" role="menu" aria-label="Opsi akun operator">
-              <div class="dropdown-user-info">
-                <p class="dropdown-user-name" id="dropdownUserName">Operator</p>
-                <p class="dropdown-user-email" id="dropdownUserEmail">operator@batam.go.id</p>
-                <span class="dropdown-role-badge role-admin" id="dropdownRoleBadge">Administrator</span>
-              </div>
-              <button type="button" id="btnLogout" class="dropdown-logout-btn" role="menuitem">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                  <polyline points="16 17 21 12 16 7"/>
-                  <line x1="21" y1="12" x2="9" y2="12"/>
+          </div>
+          <div class="topbar-right">
+            <button type="button" class="btn-topbar-icon" title="Notifikasi" aria-label="Notifikasi">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+              </svg>
+            </button>
+            <div class="operator-profile-wrapper">
+              <div class="operator-profile-pill" id="operatorProfilePill" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Menu profil operator">
+                <svg class="operator-avatar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="8" r="5"/>
+                  <path d="M20 21a8 8 0 1 0-16 0"/>
                 </svg>
-                Keluar (Sign Out)
-              </button>
+                <span class="operator-name" id="operatorDisplayName">Operator</span>
+                <svg class="operator-chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </div>
+              <div class="operator-dropdown-menu hidden" id="operatorDropdownMenu" role="menu" aria-label="Opsi akun operator">
+                <div class="dropdown-user-info">
+                  <p class="dropdown-user-name" id="dropdownUserName">Operator</p>
+                  <p class="dropdown-user-email" id="dropdownUserEmail">operator@batam.go.id</p>
+                  <span class="dropdown-role-badge role-admin" id="dropdownRoleBadge">Administrator</span>
+                </div>
+                <button type="button" id="btnLogout" class="dropdown-logout-btn" role="menuitem">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                  Keluar (Sign Out)
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
-      <main id="admin-main" class="admin-content">
-        <div class="loading-shell">Memuat konsol admin...</div>
-      </main>
+        </header>
+        <main id="admin-main" class="admin-content">
+          <div class="loading-shell">Memuat konsol admin...</div>
+        </main>
+      </div>
     </div>
   `;
 }
@@ -851,6 +854,30 @@ window.addEventListener('hashchange', () => {
     router();
   }
 });
+
+// Expose auth helper and visual test hooks for verified headless e2e tests
+(window as any).__ADMIN_AUTH_HELPER__ = { signInWithToken };
+(window as any).__ADMIN_TEST_VIEW__ = async (mockProfile?: any) => {
+  currentUser = mockProfile || {
+    uid: '31Bin8ErtBaAy3YODaf1SKKymYb2',
+    email: 'riyanbwirawanto@gmail.com',
+    displayName: 'Administrator Staging',
+    role: 'admin',
+    roleLabel: 'Administrator',
+    department: 'Dinas Koperasi dan Usaha Mikro Kota Batam',
+    claims: { role: 'admin' }
+  };
+  currentAuthState = 'AUTHENTICATED_ADMIN';
+  const adminApp = document.getElementById('admin-app');
+  if (adminApp) {
+    adminApp.className = 'admin-layout';
+    adminApp.innerHTML = renderAdminShell();
+    updateOperatorHeader(currentUser);
+    setupOperatorDropdown();
+    setupAdminMobileDrawer();
+    await router();
+  }
+};
 
 // Protected Application Bootstrap
 window.addEventListener('DOMContentLoaded', () => {

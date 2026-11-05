@@ -17,7 +17,7 @@ function renderStagingBanner(): string {
   return `
     <div class="staging-indicator-banner" role="status" aria-label="Informasi Lingkungan Staging" style="position: absolute; top: 0; left: 0; width: 100%;">
       <span class="staging-badge">UJI COBA</span>
-      <span class="staging-text">LINGKUNGAN UJI COBA / STAGING — DATA SIMULASI</span>
+      <span class="staging-text">LINGKUNGAN STAGING / DATA SIMULASI</span>
     </div>
   `;
 }

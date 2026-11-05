@@ -7,6 +7,7 @@
 
 import {
   signInWithEmailAndPassword,
+  signInWithCustomToken,
   sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
@@ -160,6 +161,14 @@ export async function signInOperator(email: string, password: string): Promise<U
 
     throw new Error('Gagal masuk ke sistem. Silakan periksa kembali data Anda atau hubungi admin.');
   }
+}
+
+/**
+ * Authenticates operator using a verified custom token (used for staging automated verification)
+ */
+export async function signInWithToken(token: string): Promise<User> {
+  const cred = await signInWithCustomToken(auth, token);
+  return cred.user;
 }
 
 /**
