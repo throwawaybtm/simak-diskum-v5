@@ -4,7 +4,7 @@
 **Target Architecture:** Firebase Hosting (Multi-site: `public` & `admin`), Cloud Firestore Standard Edition, Firebase Emulator Suite  
 **Development Tooling:** Vite, TypeScript, Vitest, Playwright, Firebase CLI, ExcelJS  
 **Last Updated:** 2026-11-05  
-**Overall Status:** Milestone P02-A Final Activation Plan Corrections Completed & Formally Verified (214/214 Vitest tests across 25 files, 38 Firestore Security Rules tests, 79 browser scenarios, 100% pass rate); Deterministic Maintenance Rules Deployment Configured (`firebase.maintenance.json` + `verifyRulesSource.mjs`); Passwordless Provisioning Hardened; Private Drive URLs Excluded from Public Projections; Initial Production Activation Order Reconciled (Gates 0–9); Maintenance Quarantined to DR; Spark Quotas & Reset Times Modeled; P02-A Final Review Checkpoint Reached (Zero Live Production Changes; Production Activation On Hold Awaiting Category 2 Stakeholder Approvals).  
+**Overall Status:** Milestone A01 Admin Authentication UI & RBAC Verification Completed & Formally Verified (233/233 Vitest tests across 26 files, 38 Firestore Security Rules tests, 34/34 Admin Auth browser scenarios, 113 total browser scenarios, 100% pass rate); Deterministic 6-State RBAC Machine Implemented (`authService.ts`); Zero Private Firestore Reads Prior to Authentication; Batam Civic Login Interface, Password Show/Hide Toggle, Password Recovery with Anti-Enumeration Defense, and Access Denied Isolation Implemented; Topbar Operator Profile Pill with Dynamic Role Badge (`Administrator` vs `Operator Agenda`) and Functional Sign-Out; 10 Verified Multi-Viewport Screenshots Captured (375px & 1440px); P02-A Blocker 2 (Admin Auth UI) Completely Resolved; System Paused at A01 Admin Authentication Review Checkpoint (Zero Live Cloud Deployments; P02-B On Hold Awaiting Category 2 Stakeholder Approvals).  
 
 ---
 
@@ -33,30 +33,34 @@
 | **Milestone P01-B** | Final Operational Safety Verification | **Completed** | 2026-11-05 | `f029d24` (code) / `fa9d1bf` (docs) | Hardened backup/restore script with resumable checkpoints bound to manifest checksum, target project, mode, and op ID; deep Firestore equality verification across nested objects, arrays, timestamps, and references; audit log zero deletion and ID collision preservation; target project environment guards rejecting non-simakdiskum production IDs; zero credential logging; real Auth emulator verification of roles, token revocation, account disabling, and password reset. 202 Vitest tests (56 on real emulators) + 79 browser scenarios verified with 100% pass rate. |
 | **Milestone P02-A** | Controlled Production Activation Planning | **Completed** | 2026-11-05 | `8ba9aa5` (code) / `10572eb` (docs) | Authored initial P02_ACTIVATION_PLAN.md with 10-phase sequence and stop/go gates; authored P02_GO_NO_GO_CHECKLIST.md with 5-category matrix; designed and verified reversible maintenance rules (`firestore.maintenance.rules`, 6 tests); corrected all runbook CLI commands with `--target=prod/emulator`; added backup progress status inspector; clean production build. 209 Vitest tests + 79 browser scenarios passing. |
 | **Milestone P02-A (Corrected)** | Final Activation Plan Corrections & Invariant Enforcement | **Completed** | 2026-11-05 | `b933ce2` (code) / `8463203` (docs) | Implemented deterministic maintenance config (`firebase.maintenance.json`) and preflight verifier (`scripts/verifyRulesSource.mjs`, 3 tests); tagged release identities (`SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5` and `SIMAK_DISKUM_MAINTENANCE_LOCKDOWN_RULES_V5`); implemented passwordless provisioning with auto-generated secure random entropy and setup link (`scripts/manageRoles.mjs`, 10 tests); verified confidential Drive URL exclusion from public DTOs (`publicProjector.test.ts`, 5 tests); restructured activation plan into Part 1 (10 sequential gates 0–9) and Part 2 (Disaster Recovery maintenance lockdown); updated runbooks and checklist; documented finite Spark daily quotas (50k reads/day) and HTTP 429 modal behavior; paused at P02-A Review Checkpoint. 214 Vitest tests (62 on real emulator) + 79 browser scenarios passing (100%). |
-| **Milestone P02-A Final Handoff** | Final Preflight Sign-Off & Handoff Guide | **Completed** | 2026-11-05 | Pending Commit | Clarified password-setup link terminal printing and disclosure safeguards; corrected Spark password reset email quota to 150/day; aligned GO/NO-GO checklist with sequential deployment commands; documented published rules content verification protocol (SHA-256 `444b48ba...` & semantic diff); physically verified absence of client-side Admin login/recovery interface in production build and documented as P02-B blocker; authored `docs/P02_A_FINAL_HANDOFF.md`; paused at P02-A Final Handoff Checkpoint. |
+| **Milestone P02-A Final Handoff** | Final Preflight Sign-Off & Handoff Guide | **Completed** | 2026-11-05 | `2e74d78` | Clarified password-setup link terminal printing and disclosure safeguards; corrected Spark password reset email quota to 150/day; aligned GO/NO-GO checklist with sequential deployment commands; documented published rules content verification protocol (SHA-256 `444b48ba...` & semantic diff); physically verified absence of client-side Admin login/recovery interface in production build and documented as P02-B blocker; authored `docs/P02_A_FINAL_HANDOFF.md`. |
+| **Milestone A01** | Admin Authentication UI, Protected Application Bootstrap & Local Security Verification | **Completed** | 2026-11-05 | Pending Commit | Implemented deterministic 6-state RBAC machine (`authService.ts`); zero private Firestore reads prior to authentication; Batam civic login interface (`renderLoginPage`), password show/hide toggle, password recovery view (`renderPasswordRecoveryPage`) with anti-enumeration defense, and access denied isolation (`renderAccessDeniedPage`); topbar operator profile pill and dropdown with role badge (`Administrator` vs `Operator Agenda`) and functional logout; clean cache wiping on sign-out; verified across 233 Vitest tests (19 auth service integration tests) and 34 Playwright browser scenarios with 10 visual screenshots across 375px and 1440px viewports; authored `docs/A01_ADMIN_AUTH_IMPLEMENTATION.md`. |
 
 ---
 
-## 2. Test Totals at Latest Checkpoint (Milestone P02-A Final Corrections Verified)
+## 2. Test Totals at Latest Checkpoint (Milestone A01 Admin Auth UI Verified)
 
-- **Vitest Unit & Integration Suites:** 25 passed (25 total)
-- **Vitest Automated Tests:** **214 passed** (214 total, 100% pass rate)
+- **Vitest Unit & Integration Suites:** 26 passed (26 total)
+- **Vitest Automated Tests:** **233 passed** (233 total, 100% pass rate)
 - **Playwright Real-Browser Verification Suites:**
+  - Admin Authentication & RBAC Suite (`adminAuthVerification.mjs`): **34 / 34 passed**
   - V01-C Release Readiness Suite (`v01cReleaseReadinessVerification.mjs`): **27 / 27 passed**
   - V01-B Final Correction Pass Suite (`v01bFinalCorrectionVerification.mjs`): **23 / 23 passed**
   - Feature F01 Administrative Workflow Suite (`f01WorkflowVerification.mjs`): **13 / 13 passed**
   - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed**
   - Master Data Suite (`masterDataVerification.mjs`): **8 / 8 passed**
-- **Total Real-Browser Scenarios:** **79 verified browser executions** across current primary suites (100% pass rate)
-- **Total Automated Test Assertions:** **293+ passed** (214 Vitest + 79 Browser, 100% pass rate)
-- **Visual Artifacts:** 99 verified browser screenshots in `tests/e2e/screenshots/`
+- **Total Real-Browser Scenarios:** **113 verified browser executions** across current primary suites (100% pass rate)
+- **Total Automated Test Assertions:** **346+ passed** (233 Vitest + 113 Browser, 100% pass rate)
+- **Visual Artifacts:** 109 verified browser screenshots in `tests/e2e/screenshots/` (including 10 newly captured A01 screenshots across 375px and 1440px)
 - **Real Emulator vs In-Memory Mock Attribution:**
-  - **62 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
+  - **81 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
+    - **19 tests** in `tests/integration/adminAuthService.test.ts` (Admin & Editor login, claims, anti-enumeration, disabled accounts)
     - **10 tests** in `tests/integration/p01bSafetyVerification.test.ts` (10 mandatory safety scenarios)
     - **32 tests** in `tests/rules/firestore.rules.test.ts` (Live security rules enforcement)
     - **6 tests** in `tests/rules/maintenanceRules.test.ts` (Reversible maintenance lockdown rules)
     - **6 tests** in `tests/emulator/repository.emulator.test.ts` (Atomic transactions & versions)
     - **4 tests** in `tests/emulator/masterRepository.emulator.test.ts` (Master CRUD & integrity)
+    - **3 tests** in `tests/integration/publicPrivacyAudit.emulator.test.ts` (Public privacy isolation)
     - **1 test** in `tests/emulator/queryBenchmark.emulator.test.ts` (520-doc multi-month range query benchmark)
     - **3 tests** in `tests/integration/publicPrivacyAudit.emulator.test.ts` (Zero private leak audit)
   - **152 tests executed against fast in-memory mocks:**

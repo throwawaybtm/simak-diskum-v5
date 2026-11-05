@@ -33,18 +33,20 @@ All technical capabilities have been verified in the local development and emula
 
 | Capability Domain | Verification Harness | Metric / Result | Evidence Reference |
 |---|---|:---:|---|
-| **Domain Logic & Workflows** | Vitest Test Suite | **214 / 214 Passed (100%)** | 25 test files across shared schemas, time math, conflict engine, projector, and UI |
+| **Domain Logic & Workflows** | Vitest Test Suite | **233 / 233 Passed (100%)** | 26 test files across shared schemas, time math, conflict engine, projector, UI, and auth service |
 | **Firestore Security Rules** | Real Firestore Emulator (`8080`) | **32 / 32 Passed** | `tests/rules/firestore.rules.test.ts` (RBAC, optimistic version lockstep, immutable audit) |
 | **Maintenance Lockdown Rules** | Real Firestore Emulator (`8080`) | **6 / 6 Passed** | `tests/rules/maintenanceRules.test.ts` (write freeze & Admin SDK bypass) |
 | **Combined Security Rules** | Rules Test Harness | **38 / 38 Passed** | Production normal and disaster recovery lockdown rules verified |
+| **Admin Auth & RBAC State Machine** | Vitest & Real Auth Emulator | **19 / 19 Passed** | `tests/integration/adminAuthService.test.ts` (strict claims, anti-enumeration, disabled accounts) |
 | **Operational Safety Scenarios** | Real Firestore & Auth Emulators | **10 / 10 Passed** | `tests/integration/p01bSafetyVerification.test.ts` (round-trip restore, deep equality, collision safety) |
 | **Real-Browser Regression** | Playwright Chromium (`1280x800`) | **79 / 79 Passed** | 99 verified screenshots across V01-C, V01-B, F01, Reports, and Master Data suites |
+| **Admin Auth E2E & Multi-Viewport** | Playwright (`375px` & `1440px`) | **34 / 34 Passed** | `tests/e2e/adminAuthVerification.mjs` (10 verified screenshots for login, recovery, denied, dashboard) |
 | **Rules Preflight Verifier** | `scripts/verifyRulesSource.mjs` | **3 / 3 Passed** | `tests/unit/rulesSourceVerification.test.ts` (validates config, paths, and release identities) |
 | **Cryptographic Rules Hash** | SHA-256 Checksum Engine | **Verified** | SHA-256: `444b48ba8e9d5979b0845e997babe9a728fefc930e3f03bab35da91e11570678` (707 lines) |
 | **Private Document Isolation** | Public DTO Projector | **5 / 5 Passed** | `tests/unit/publicProjector.test.ts` (Google Drive URLs strictly stripped from public DTOs) |
 | **Passwordless Role CLI** | Admin SDK CLI (`manageRoles.mjs`) | **10 / 10 Passed** | `tests/unit/authRoleManagement.test.ts` (passwordless random entropy, setup links, custom claims) |
 | **Resumable DB Restore** | Checkpoint Ledger Engine | **Verified** | `restore-progress.json` bound to `manifestHash`, `targetProjectId`, and `operationId` |
-| **Production Vite Bundles** | Vite + Rollup Production Build | **Exit 0 (Clean)** | Public Shell: 13.67 kB gzip; Admin Shell: 4.70 kB gzip |
+| **Production Vite Bundles** | Vite + Rollup Production Build | **Exit 0 (Clean)** | Public Shell: 13.67 kB gzip; Admin Shell: 10.23 kB gzip |
 
 ---
 
@@ -165,9 +167,9 @@ Before live production activation can be scheduled or executed, the following **
 
 1. **Blocker 1: Official Civil Service Deliverables (Category 2 Approvals):**
    - The Dinas Koperasi dan Usaha Mikro Kota Batam must deliver the signed Head of Department Signatory decree (SK), the verified employee directory, and the official email roster for operator accounts.
-2. **Blocker 2: Client-Side Admin Login & Password Recovery UI Implementation:**
-   - Physical code inspection confirmed that `apps/admin/src/` currently loads the administrative console directly without a client-side authentication gate.
-   - An authenticated web login view (`signInWithEmailAndPassword`) and password reset interface (`sendPasswordResetEmail`) must be mounted in `apps/admin` prior to granting live operators web access.
+2. **Blocker 2: Client-Side Admin Login & Password Recovery UI Implementation [RESOLVED in Milestone A01]:**
+   - **RESOLVED & VERIFIED:** Implemented deterministic 6-state auth machine (`authService.ts`), Batam civic login interface (`renderLoginPage`), password show/hide toggle, password recovery view (`renderPasswordRecoveryPage`) with anti-enumeration protection, and access denied isolation (`renderAccessDeniedPage`).
+   - Verified via 233/233 Vitest tests (19 dedicated auth integration tests) and 34/34 Playwright browser scenarios with 10 visual screenshots across 375px and 1440px viewports. Documented in `docs/A01_ADMIN_AUTH_IMPLEMENTATION.md`.
 3. **Blocker 3: Formal Dual-Operator Stakeholder Authorization:**
    - Formal authorization from the Project Owner and Department Head to proceed with Gate 0 and Gate 1 in the live Firebase Console.
 

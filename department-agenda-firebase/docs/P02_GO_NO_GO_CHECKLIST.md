@@ -39,7 +39,7 @@ pie title Production Readiness Breakdown (Verification Categories)
 | Item # | Verification Check | Harness / Tool | Result | Evidence / Reference | Status |
 |:---:|---|---|:---:|---|:---:|
 | **1.1** | TypeScript compilation & linting | `tsc --noEmit` | Clean | Clean monorepo compile (`@department-agenda/shared`, `apps/*`) | **GO** |
-| **1.2** | Automated Vitest test suite | `vitest run` | 214 / 214 Passed (100%) | 25 test files passing across all domain & integration logic | **GO** |
+| **1.2** | Automated Vitest test suite | `vitest run` | 233 / 233 Passed (100%) | 26 test files passing across all domain, integration & auth logic | **GO** |
 | **1.3** | Live Firestore Security Rules | Real Firestore Emulator (`8080`) | 32 / 32 Passed | `tests/rules/firestore.rules.test.ts` (RBAC & lockstep) | **GO** |
 | **1.4** | Reversible Maintenance Lockdown Rules | Real Firestore Emulator (`8080`) | 6 / 6 Passed | `tests/rules/maintenanceRules.test.ts` (write freeze & Admin SDK bypass) | **GO** |
 | **1.5** | Real-Emulator Operational Safety Scenarios | Real Firestore (`8080`) & Auth (`9099`) | 10 / 10 Passed | `tests/integration/p01bSafetyVerification.test.ts` | **GO** |
@@ -53,12 +53,13 @@ pie title Production Readiness Breakdown (Verification Categories)
 | **1.13** | Audit History & Collision Immunity | `scripts/backupRestore.mjs` | Verified | Zero post-backup audit deletions; collision safe prefixing | **GO** |
 | **1.14** | Production Master Data Seeding Safeguard | `templates/productionMasterDataTemplate.json` | Verified | Rejects unapproved templates and placeholder markers | **GO** |
 | **1.15** | Zero Credential Logging Safeguard | `scripts/manageRoles.mjs` | Verified | Zero passwords or API keys printed to logs/stdout | **GO** |
-| **1.16** | Production Vite Build Bundles | Vite + Rollup | Exit 0 | Public Shell: 13.67 kB gzip; Admin Shell: 4.70 kB gzip | **GO** |
+| **1.16** | Production Vite Build Bundles | Vite + Rollup | Exit 0 | Public Shell: 13.67 kB gzip; Admin Shell: 10.23 kB gzip | **GO** |
+| **1.17** | Admin Authentication UI & RBAC Verification | Playwright & Real Auth Emulator | 34 / 34 Passed (100%) | `tests/e2e/adminAuthVerification.mjs` (10 verified screenshots) | **GO** |
 
 ---
 
-### Category 2: Requires Department Approval & Implementation Prerequisite
-*Status: PENDING DEPARTMENT EXECUTION & FRONTEND AUTH MOUNTING.*
+### Category 2: Requires Department Approval (Civil Service Deliverables)
+*Status: PENDING OFFICIAL DEPARTMENT DELIVERABLES (Item 2.7 Frontend Auth MOUNTED & VERIFIED).*
 
 | Item # | Approval Requirement | Required Deliverable / Action | Responsible Stakeholder | Gate Impact | Status |
 |:---:|---|---|---|---|:---:|
@@ -68,7 +69,7 @@ pie title Production Readiness Breakdown (Verification Categories)
 | **2.4** | Official Department Locations & Stakeholders | Approved list of official meeting rooms, external venues, and regular organizers | Sekretaris Dinas | Blocks Gate 5 Seeding | **PENDING** |
 | **2.5** | Google Drive Municipal Folder & IAM Policies | Municipal Google Drive folder created with **Restricted** access (authorized departmental group only; zero public links) | Administrator IT Dinas | Affects Letter Attachments | **PENDING** |
 | **2.6** | User Acceptance Testing (UAT) Sign-Off | Completed execution and signed acceptance of 11 formal business scenarios | Department Review Committee | Blocks Gate 9 Handover | **PENDING** |
-| **2.7** | Client-Side Admin Login & Password Recovery UI | Mount authenticated web login (`signInWithEmailAndPassword`) and password reset (`sendPasswordResetEmail`) in `apps/admin` | Lead Frontend Engineer | Blocks P02-B Operator Access | **PENDING** |
+| **2.7** | Client-Side Admin Login & Password Recovery UI | Mount authenticated web login (`signInWithEmailAndPassword`), recovery (`sendPasswordResetEmail`), and access denied views | Lead Frontend Engineer | Milestone A01 Completed | **GO** |
 
 ---
 
@@ -126,7 +127,7 @@ pie title Production Readiness Breakdown (Verification Categories)
 | **Gate 3** | Empty DB Access Restriction Verification | **READY FOR GO** | Live write freeze verified; public read clean | QA Engineer |
 | **Gate 4** | Operator Role Provisioning | **HOLD (PENDING DATA)** | Awaiting official operator email roster signed by Department Head | Department Head |
 | **Gate 5** | Master Data Seeding | **HOLD (PENDING DATA)** | Awaiting signed decree (SK) for Signatory, Employees, and Locations | Department Head |
-| **Gate 6** | Multi-Site Hosting Deployment | **HOLD (PENDING UI)** | Mount client-side Admin login view before granting live operator access | Lead Frontend Engineer |
+| **Gate 6** | Multi-Site Hosting Deployment | **READY FOR GO** | Admin login & recovery UI mounted; verified in Milestone A01 | Lead Frontend Engineer |
 | **Gate 7** | Live Post-Deployment Smoke Audit | **STANDBY** | To be executed immediately following Gate 6 deployment | QA Engineer |
 | **Gate 8** | Department UAT Execution | **STANDBY** | To be conducted with authorized department personnel (11 scenarios) | Department Stakeholders |
 | **Gate 9** | Production Handover | **STANDBY** | Final sign-off after successful UAT completion | Kepala Dinas Koperasi & UKM |

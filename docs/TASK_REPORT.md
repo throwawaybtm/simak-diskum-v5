@@ -1107,8 +1107,46 @@ Following the initial planning submission for Milestone P02-A, this correction p
 
 ---
 
+---
+
+# Milestone A01: Admin Authentication UI, Protected Application Bootstrap & Local Security Verification Report
+
+**Date:** 2026-11-05  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (233/233 Vitest Tests, 38 Rules Tests, 34/34 Admin Auth Browser Scenarios, 10 Verified Screenshots, 100% Pass Rate)  
+**Authority:** A01 Admin Authentication UI Implementation Directives  
+**Deliverable Document:** `docs/A01_ADMIN_AUTH_IMPLEMENTATION.md`  
+
+---
+
+## 1. Summary of Completed Implementation
+
+1. **Gap Remediation & Firebase Auth Client Integration:**
+   - Updated `apps/admin/src/firebase.ts` with `getAuth(app)`, `connectAuthEmulator(auth, 'http://127.0.0.1:9099')`, and `browserLocalPersistence`.
+   - Enabled local emulator connectivity for both browser localhost and Node test environments (`FIREBASE_AUTH_EMULATOR_HOST`).
+2. **Deterministic Six-State RBAC Machine (`authService.ts`):**
+   - Engineered state machine: `AUTH_LOADING`, `SIGNED_OUT`, `AUTHENTICATED_ADMIN`, `AUTHENTICATED_EDITOR`, `ACCESS_DENIED`, `AUTH_ERROR`.
+   - Strictly enforced lowercase custom claims (`role === 'admin'` and `role === 'editor'`), matching Gate 5A `firestore.rules`.
+   - Isolated unprivileged users to `ACCESS_DENIED` with zero administrative data fetched.
+3. **Protected Application Bootstrap (`main.ts`):**
+   - Eliminated eager `loadMasterData()` and `router()` execution on `DOMContentLoaded`.
+   - Initialized with zero-flicker loading screen (`.auth-loading-screen`); zero private Firestore queries dispatched prior to authentication.
+   - Cleared all in-memory master data, activity caches, and lookup maps on session termination.
+4. **Civic Authentication & Account Recovery UI (`AuthPages.ts` & `admin.css`):**
+   - **Operator Login:** Batam crest, application branding, email input, password input with interactive visibility toggle button (SVG eye open/closed, ARIA updates), and non-enumerating error alerts.
+   - **Password Recovery:** Single-input email form, neutral confirmation response preventing account enumeration (*“Jika alamat email terdaftar pada sistem SIMAK DISKUM...”*), Spark quota documentation (150 emails/day), and return-to-login navigation.
+   - **Access Denied:** Red lock icon, user email display, role indicator (`Tidak Memiliki Hak Akses`), contact guidance, and functional sign-out button.
+   - **Topbar Operator Dropdown:** Interactive profile pill displaying authenticated operator name, accessible dropdown menu with email, role badge (`Administrator` vs `Operator Agenda`), and functional logout button.
+5. **Multi-Viewport Visual & E2E Verification:**
+   - 10 verified screenshots captured across 375px and 1440px viewports in `tests/e2e/screenshots/`.
+   - 34/34 Playwright scenarios passed in `tests/e2e/adminAuthVerification.mjs`.
+   - Confirmed Public Portal (`http://localhost:3000`) remains completely unaffected.
+
+---
+
 ## 2. Checkpoint Status
 
-- **Checkpoint:** **Milestone P02-A Final Handoff Checkpoint**
-- **Status:** **COMPLETED & VERIFIED (PRODUCTION ACTIVATION ON HOLD)**
+- **Checkpoint:** **Milestone A01 Admin Authentication Review Checkpoint**
+- **Status:** **COMPLETED & LOCALLY VERIFIED (PRODUCTION ACTIVATION ON HOLD)**
 - **System State:** Clean, paused, zero live changes.
+
