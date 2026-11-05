@@ -1,12 +1,35 @@
 /**
- * Admin Application Entrypoint & Interactive Router
- * Implements route-based dynamic code-splitting for optimal initial load bundle performance.
+ * Admin Application Entrypoint & Protected Bootstrap Router
+ * SIMAK DISKUM Kota Batam v5.0
+ * 
+ * Implements strict RBAC state machine, route-based dynamic code-splitting,
+ * session lifecycle management, and zero private Firestore reads before authentication.
  */
 
 const SYSTEM_VERSION = '5.0.0';
 const TIMEZONE = 'Asia/Jakarta'; // WIB (UTC+7)
+
 import type { Location, Organizer, Category, Employee, Department, ActivityDocument } from '@department-agenda/shared';
 import { renderSidebar } from './components/Sidebar';
+import {
+  subscribeAuthState,
+  signInOperator,
+  requestPasswordReset,
+  signOutOperator,
+  isValidEmailFormat,
+  type AuthState,
+  type CurrentUserProfile
+} from './auth/authService';
+import {
+  renderLoginPage,
+  renderPasswordRecoveryPage,
+  renderAccessDeniedPage
+} from './pages/AuthPages';
+
+// State Machine & Session Variables
+let currentAuthState: AuthState = 'AUTH_LOADING';
+let currentUser: CurrentUserProfile | null = null;
+let currentAuthErrorMessage: string | undefined = undefined;
 
 // In-memory master data cache for administrative session
 let masterLocations: Location[] = [];
@@ -22,6 +45,23 @@ let currentLookups = {
   categories: new Map<string, Category>()
 };
 
+/**
+ * Resets all in-memory administrative caches upon sign-out or access denial
+ */
+function clearAdministrativeSession() {
+  masterLocations = [];
+  masterOrganizers = [];
+  masterCategories = [];
+  masterEmployees = [];
+  masterDepartments = [];
+  cachedActivities = [];
+  currentLookups = {
+    locations: new Map<string, Location>(),
+    organizers: new Map<string, Organizer>(),
+    categories: new Map<string, Category>()
+  };
+}
+
 async function getFirestoreModule() {
   const [{ db }, { collection, getDocs }] = await Promise.all([
     import('./firebase'),
@@ -30,7 +70,15 @@ async function getFirestoreModule() {
   return { db, collection, getDocs };
 }
 
+/**
+ * Loads master data only when user is authenticated with verified custom claims
+ */
 async function loadMasterData() {
+  if (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR') {
+    console.warn('[Admin] Skipped master data fetch: unauthenticated session.');
+    return;
+  }
+
   try {
     const { db, collection, getDocs } = await getFirestoreModule();
     const locSnap = await getDocs(collection(db, 'locations'));
@@ -102,6 +150,9 @@ async function loadMasterData() {
 }
 
 async function loadActivities(): Promise<ActivityDocument[]> {
+  if (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR') {
+    return cachedActivities;
+  }
   try {
     const { db, collection, getDocs } = await getFirestoreModule();
     const snap = await getDocs(collection(db, 'activities'));
@@ -113,8 +164,167 @@ async function loadActivities(): Promise<ActivityDocument[]> {
   }
 }
 
+/**
+ * Returns Admin Portal shell layout when authenticated
+ */
+function renderAdminShell(): string {
+  return `
+    <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+    <aside class="admin-sidebar" id="adminSidebar" aria-label="Navigasi Utama Admin" aria-hidden="false">
+      <!-- Injected by renderSidebar -->
+    </aside>
+    <div class="admin-body">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button type="button" id="adminMenuToggleBtn" class="btn-menu-toggle mobile-only" aria-label="Buka menu navigasi" aria-expanded="false" aria-controls="adminSidebar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="topbar-title-wrap">
+            <h1 class="topbar-portal-title">Admin Portal</h1>
+            <p class="topbar-portal-sub">Sistem Informasi Manajemen Agenda Kedinasan</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button type="button" class="btn-topbar-icon" title="Notifikasi" aria-label="Notifikasi">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+          </button>
+          <div class="operator-profile-wrapper">
+            <div class="operator-profile-pill" id="operatorProfilePill" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Menu profil operator">
+              <svg class="operator-avatar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="5"/>
+                <path d="M20 21a8 8 0 1 0-16 0"/>
+              </svg>
+              <span class="operator-name" id="operatorDisplayName">Operator</span>
+              <svg class="operator-chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+            <div class="operator-dropdown-menu hidden" id="operatorDropdownMenu" role="menu" aria-label="Opsi akun operator">
+              <div class="dropdown-user-info">
+                <p class="dropdown-user-name" id="dropdownUserName">Operator</p>
+                <p class="dropdown-user-email" id="dropdownUserEmail">operator@batam.go.id</p>
+                <span class="dropdown-role-badge role-admin" id="dropdownRoleBadge">Administrator</span>
+              </div>
+              <button type="button" id="btnLogout" class="dropdown-logout-btn" role="menuitem">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Keluar (Sign Out)
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main id="admin-main" class="admin-content">
+        <div class="loading-shell">Memuat konsol admin...</div>
+      </main>
+    </div>
+  `;
+}
+
+/**
+ * Updates topbar operator profile pill and dropdown menu with active user details
+ */
+function updateOperatorHeader(profile: CurrentUserProfile | null) {
+  const displayNameEl = document.getElementById('operatorDisplayName');
+  const dropdownNameEl = document.getElementById('dropdownUserName');
+  const dropdownEmailEl = document.getElementById('dropdownUserEmail');
+  const dropdownRoleBadgeEl = document.getElementById('dropdownRoleBadge');
+
+  const displayName = profile?.displayName || (profile?.role === 'admin' ? 'Administrator' : 'Operator Agenda');
+  const email = profile?.email || '';
+  const roleLabel = profile?.roleLabel || 'Operator';
+  const roleClass = profile?.role === 'admin' ? 'dropdown-role-badge role-admin' : 'dropdown-role-badge role-editor';
+
+  if (displayNameEl) displayNameEl.textContent = displayName;
+  if (dropdownNameEl) dropdownNameEl.textContent = displayName;
+  if (dropdownEmailEl) dropdownEmailEl.textContent = email;
+  if (dropdownRoleBadgeEl) {
+    dropdownRoleBadgeEl.textContent = roleLabel;
+    dropdownRoleBadgeEl.className = roleClass;
+  }
+}
+
+/**
+ * Configures operator profile dropdown toggle and sign-out action
+ */
+function setupOperatorDropdown() {
+  const pill = document.getElementById('operatorProfilePill');
+  const menu = document.getElementById('operatorDropdownMenu');
+  const logoutBtn = document.getElementById('btnLogout');
+
+  if (!pill || !menu) return;
+
+  const toggleMenu = (open?: boolean) => {
+    const isCurrentlyOpen = !menu.classList.contains('hidden');
+    const nextState = typeof open === 'boolean' ? open : !isCurrentlyOpen;
+    if (nextState) {
+      menu.classList.remove('hidden');
+      pill.setAttribute('aria-expanded', 'true');
+    } else {
+      menu.classList.add('hidden');
+      pill.setAttribute('aria-expanded', 'false');
+    }
+  };
+
+  pill.onclick = (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  };
+
+  pill.onkeydown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleMenu();
+    }
+  };
+
+  // Close on outside click
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (target && !pill.contains(target) && !menu.contains(target)) {
+      toggleMenu(false);
+    }
+  });
+
+  // Close on Escape
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
+      toggleMenu(false);
+      pill.focus();
+    }
+  });
+
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      try {
+        await signOutOperator();
+        clearAdministrativeSession();
+        currentAuthState = 'SIGNED_OUT';
+        currentUser = null;
+        renderCurrentState();
+      } catch (err) {
+        console.error('[Admin Auth] Error signing out:', err);
+      }
+    };
+  }
+}
+
 // Router and Dynamic View Renderer
 async function router() {
+  if (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR') {
+    return;
+  }
+
   const hash = window.location.hash.replace('#', '') || 'dashboard';
   const sidebarContainer = document.querySelector('.admin-sidebar');
   if (sidebarContainer) {
@@ -325,22 +535,240 @@ function setupAdminMobileDrawer() {
   });
 }
 
-// Bootstrap
-window.addEventListener('DOMContentLoaded', async () => {
-  const adminStartTime = performance.now();
-  console.log(`[Admin App] v${SYSTEM_VERSION} (${TIMEZONE}) loaded.`);
-  setupAdminMobileDrawer();
-  await loadMasterData();
-  const shellRenderMs = Math.round(performance.now() - adminStartTime);
-  await router();
-  const dataReadyMs = Math.round(performance.now() - adminStartTime);
+/**
+ * Renders the Login page and attaches form validation, submission, and password toggle handlers
+ */
+function showLoginView(error?: string, isSubmitting = false, initialEmail = '') {
+  const adminApp = document.getElementById('admin-app');
+  if (!adminApp) return;
 
-  (window as any).__ADMIN_PERF_TELEMETRY__ = {
-    shellRenderMs,
-    dataReadyMs,
-    activitiesCount: cachedActivities.length
+  adminApp.className = 'auth-layout';
+  adminApp.innerHTML = renderLoginPage(error, isSubmitting, initialEmail);
+
+  const form = document.getElementById('adminLoginForm') as HTMLFormElement | null;
+  const emailInput = document.getElementById('authEmail') as HTMLInputElement | null;
+  const passwordInput = document.getElementById('authPassword') as HTMLInputElement | null;
+  const toggleBtn = document.getElementById('btnTogglePassword') as HTMLButtonElement | null;
+  const forgotBtn = document.getElementById('btnForgotPwd') as HTMLButtonElement | null;
+
+  // Toggle password visibility
+  if (toggleBtn && passwordInput) {
+    toggleBtn.onclick = () => {
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+      const eyeOpen = document.getElementById('iconEyeOpen');
+      const eyeClosed = document.getElementById('iconEyeClosed');
+      if (eyeOpen && eyeClosed) {
+        eyeOpen.classList.toggle('hidden', isPassword);
+        eyeClosed.classList.toggle('hidden', !isPassword);
+      }
+      const newLabel = isPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi';
+      toggleBtn.setAttribute('aria-label', newLabel);
+      toggleBtn.setAttribute('title', newLabel);
+    };
+  }
+
+  // Switch to forgot password view
+  if (forgotBtn) {
+    forgotBtn.onclick = () => {
+      showRecoveryView(undefined, false, emailInput?.value || '');
+    };
+  }
+
+  // Handle Login submission
+  if (form) {
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const email = (emailInput?.value || '').trim();
+      const password = passwordInput?.value || '';
+
+      if (!email) {
+        showLoginView('Silakan masukkan alamat email kedinasan.', false, email);
+        return;
+      }
+      if (!isValidEmailFormat(email)) {
+        showLoginView('Format alamat email tidak valid.', false, email);
+        return;
+      }
+      if (!password) {
+        showLoginView('Silakan masukkan kata sandi Anda.', false, email);
+        return;
+      }
+
+      showLoginView(undefined, true, email);
+
+      try {
+        await signInOperator(email, password);
+        // On success, subscribeAuthState will fire and invoke renderCurrentState()
+      } catch (err: any) {
+        showLoginView(err.message || 'Gagal masuk ke sistem.', false, email);
+      }
+    };
+  }
+}
+
+/**
+ * Renders the Password Recovery page and attaches request handlers
+ */
+function showRecoveryView(message?: { type: 'success' | 'error'; text: string }, isSubmitting = false, initialEmail = '') {
+  const adminApp = document.getElementById('admin-app');
+  if (!adminApp) return;
+
+  adminApp.className = 'auth-layout';
+  adminApp.innerHTML = renderPasswordRecoveryPage(message, isSubmitting, initialEmail);
+
+  const form = document.getElementById('adminRecoveryForm') as HTMLFormElement | null;
+  const emailInput = document.getElementById('recoveryEmail') as HTMLInputElement | null;
+  const backBtn = document.getElementById('btnBackToLogin') as HTMLButtonElement | null;
+
+  if (backBtn) {
+    backBtn.onclick = () => {
+      showLoginView(undefined, false, emailInput?.value || '');
+    };
+  }
+
+  if (form) {
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const email = (emailInput?.value || '').trim();
+
+      if (!email) {
+        showRecoveryView({ type: 'error', text: 'Silakan masukkan alamat email kedinasan.' }, false, email);
+        return;
+      }
+      if (!isValidEmailFormat(email)) {
+        showRecoveryView({ type: 'error', text: 'Format alamat email tidak valid.' }, false, email);
+        return;
+      }
+
+      showRecoveryView(undefined, true, email);
+
+      try {
+        const res = await requestPasswordReset(email);
+        showRecoveryView({ type: 'success', text: res.message }, false, email);
+      } catch (err: any) {
+        showRecoveryView({ type: 'error', text: err.message || 'Gagal mengirim instruksi pemulihan.' }, false, email);
+      }
+    };
+  }
+}
+
+/**
+ * Renders the Access Denied page when an authenticated user lacks required claims
+ */
+function showAccessDeniedView(profile: CurrentUserProfile | null, customMsg?: string) {
+  const adminApp = document.getElementById('admin-app');
+  if (!adminApp) return;
+
+  adminApp.className = 'auth-layout';
+  adminApp.innerHTML = renderAccessDeniedPage(profile, customMsg);
+
+  const signOutBtn = document.getElementById('btnAccessDeniedSignOut') as HTMLButtonElement | null;
+  if (signOutBtn) {
+    signOutBtn.onclick = async () => {
+      try {
+        await signOutOperator();
+        clearAdministrativeSession();
+        currentAuthState = 'SIGNED_OUT';
+        currentUser = null;
+        renderCurrentState();
+      } catch (err) {
+        console.error('[Admin Auth] Error signing out from denied state:', err);
+      }
+    };
+  }
+}
+
+/**
+ * Renders the clean loading screen while verifying session
+ */
+function showLoadingScreen() {
+  const adminApp = document.getElementById('admin-app');
+  if (!adminApp) return;
+
+  adminApp.className = 'auth-layout';
+  adminApp.innerHTML = `
+    <div class="auth-loading-screen" role="status" aria-live="polite">
+      <div class="auth-loading-spinner" aria-hidden="true"></div>
+      <p class="auth-loading-text">Memverifikasi sesi operator...</p>
+    </div>
+  `;
+}
+
+/**
+ * Central State Machine View Dispatcher
+ */
+async function renderCurrentState() {
+  // Update global telemetry / test introspection hook
+  (window as any).__AUTH_STATE__ = {
+    state: currentAuthState,
+    profile: currentUser,
+    error: currentAuthErrorMessage
   };
-  console.log(`[Admin Telemetry] Shell: ${shellRenderMs}ms | Data Ready: ${dataReadyMs}ms | Activities: ${cachedActivities.length}`);
+
+  const adminApp = document.getElementById('admin-app');
+  if (!adminApp) return;
+
+  switch (currentAuthState) {
+    case 'AUTH_LOADING':
+      showLoadingScreen();
+      break;
+
+    case 'SIGNED_OUT':
+      showLoginView();
+      break;
+
+    case 'ACCESS_DENIED':
+      showAccessDeniedView(currentUser, currentAuthErrorMessage);
+      break;
+
+    case 'AUTH_ERROR':
+      showLoginView(currentAuthErrorMessage || 'Terjadi kesalahan autentikasi. Silakan masuk kembali.');
+      break;
+
+    case 'AUTHENTICATED_ADMIN':
+    case 'AUTHENTICATED_EDITOR': {
+      const adminStartTime = performance.now();
+      adminApp.className = 'admin-layout';
+      adminApp.innerHTML = renderAdminShell();
+
+      updateOperatorHeader(currentUser);
+      setupOperatorDropdown();
+      setupAdminMobileDrawer();
+
+      // Only load private Firestore master data once verified as authenticated
+      await loadMasterData();
+      const shellRenderMs = Math.round(performance.now() - adminStartTime);
+      await router();
+      const dataReadyMs = Math.round(performance.now() - adminStartTime);
+
+      (window as any).__ADMIN_PERF_TELEMETRY__ = {
+        shellRenderMs,
+        dataReadyMs,
+        activitiesCount: cachedActivities.length
+      };
+      console.log(`[Admin Telemetry] Shell: ${shellRenderMs}ms | Data Ready: ${dataReadyMs}ms | Activities: ${cachedActivities.length}`);
+      break;
+    }
+  }
+}
+
+// Router listener only reacts when authenticated
+window.addEventListener('hashchange', () => {
+  if (currentAuthState === 'AUTHENTICATED_ADMIN' || currentAuthState === 'AUTHENTICATED_EDITOR') {
+    router();
+  }
 });
 
-window.addEventListener('hashchange', router);
+// Protected Application Bootstrap
+window.addEventListener('DOMContentLoaded', () => {
+  console.log(`[Admin App] v${SYSTEM_VERSION} (${TIMEZONE}) initialized. Subscribing to auth state...`);
+
+  subscribeAuthState(async (state, profile, errorMessage) => {
+    console.log(`[Admin Auth] Transitioned to state: ${state} (${profile?.email || 'anonymous'})`);
+    currentAuthState = state;
+    currentUser = profile;
+    currentAuthErrorMessage = errorMessage;
+    await renderCurrentState();
+  });
+});

@@ -7,48 +7,10 @@
   <link rel="stylesheet" href="./src/styles/admin.css">
 </head>
 <body>
-  <div id="admin-app" class="admin-layout">
-    <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true"></div>
-    <aside class="admin-sidebar" id="adminSidebar" aria-label="Navigasi Utama Admin" aria-hidden="false">
-      <!-- Injected by renderSidebar -->
-    </aside>
-    <div class="admin-body">
-      <header class="topbar">
-        <div class="topbar-left">
-          <button type="button" id="adminMenuToggleBtn" class="btn-menu-toggle mobile-only" aria-label="Buka menu navigasi" aria-expanded="false" aria-controls="adminSidebar">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-          </button>
-          <div class="topbar-title-wrap">
-            <h1 class="topbar-portal-title">Admin Portal</h1>
-            <p class="topbar-portal-sub">Sistem Informasi Manajemen Agenda Kedinasan</p>
-          </div>
-        </div>
-        <div class="topbar-right">
-          <button type="button" class="btn-topbar-icon" title="Notifikasi" aria-label="Notifikasi">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-            </svg>
-          </button>
-          <div class="operator-profile-pill">
-            <svg class="operator-avatar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="8" r="5"/>
-              <path d="M20 21a8 8 0 1 0-16 0"/>
-            </svg>
-            <span class="operator-name">Operator</span>
-            <svg class="operator-chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </div>
-        </div>
-      </header>
-      <main id="admin-main" class="admin-content">
-        <div class="loading-shell">Memuat konsol admin...</div>
-      </main>
+  <div id="admin-app" class="auth-layout">
+    <div class="auth-loading-screen" role="status" aria-live="polite">
+      <div class="auth-loading-spinner" aria-hidden="true"></div>
+      <p class="auth-loading-text">Memverifikasi sesi operator...</p>
     </div>
   </div>
   <script type="module" src="./src/main.ts"></script>

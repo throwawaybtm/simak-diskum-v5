@@ -5,6 +5,7 @@
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
+import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_API_KEY) || 'demo-api-key',
@@ -17,10 +18,19 @@ const firebaseConfig = {
 
 export const app: FirebaseApp = initializeApp(firebaseConfig);
 export const db: Firestore = getFirestore(app);
+export const auth: Auth = getAuth(app);
 
-// Connect to local Firestore emulator (port 8080) strictly when running on localhost / loopback
-const isLocalDevHost = typeof window !== 'undefined' &&
-  (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+// Configure local session persistence
+if (typeof window !== 'undefined') {
+  setPersistence(auth, browserLocalPersistence).catch(err => {
+    console.warn('[Admin Auth] Session persistence warning:', err);
+  });
+}
+
+// Connect to local Firestore & Auth emulators strictly when running on localhost / loopback or test runner
+const isLocalDevHost = (typeof window !== 'undefined' &&
+  (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) ||
+  (typeof process !== 'undefined' && (Boolean(process.env?.FIREBASE_AUTH_EMULATOR_HOST) || Boolean(process.env?.FIRESTORE_EMULATOR_HOST) || process.env?.NODE_ENV === 'test'));
 
 if (isLocalDevHost) {
   try {
@@ -28,5 +38,12 @@ if (isLocalDevHost) {
     console.log('[Admin] Connected to Firestore Emulator on 127.0.0.1:8080');
   } catch (err) {
     console.warn('[Admin] Emulator connection warning:', err);
+  }
+
+  try {
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    console.log('[Admin] Connected to Auth Emulator on http://127.0.0.1:9099');
+  } catch (err) {
+    console.warn('[Admin] Auth emulator connection warning:', err);
   }
 }
