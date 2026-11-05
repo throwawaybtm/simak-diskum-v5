@@ -22,12 +22,20 @@ describe('Task 8: Staging Readiness & Deployment Configuration Verification', ()
 
     const rc = JSON.parse(fs.readFileSync(firebasercPath, 'utf-8'));
     expect(rc.projects.default).toBe('simakdiskum');
-    expect(rc.projects.staging).toBe('simakdiskum');
+    expect(rc.projects.production).toBe('simakdiskum');
+    expect(rc.projects.staging).toBe('simakdiskum-staging');
 
-    const targets = rc.targets?.simakdiskum?.hosting;
-    expect(targets).toBeDefined();
-    expect(targets.public).toContain('simakdiskum');
-    expect(targets.admin).toContain('simakdiskum-admin');
+    // Production targets
+    const prodTargets = rc.targets?.simakdiskum?.hosting;
+    expect(prodTargets).toBeDefined();
+    expect(prodTargets.public).toContain('simakdiskum');
+    expect(prodTargets.admin).toContain('simakdiskum-admin');
+
+    // Staging targets
+    const stagingTargets = rc.targets?.['simakdiskum-staging']?.hosting;
+    expect(stagingTargets).toBeDefined();
+    expect(stagingTargets.public).toContain('simakdiskum-staging');
+    expect(stagingTargets.admin).toContain('simakdiskum-staging-admin');
   });
 
   it('verifies firebase.json points exclusively to strict hosted firestore.rules', () => {
@@ -118,5 +126,55 @@ describe('Task 8: Staging Readiness & Deployment Configuration Verification', ()
     expect(template.templateVersion).toBe('1.0.0');
     expect(template.employees[0].name).toContain('[NAMA');
     expect(template.signatory.headOfDepartmentName).toContain('[NAMA');
+  });
+
+  it('verifies manageRoles and backupRestore guards strictly reject production project ID when targeting staging', async () => {
+    const { validateTargetEnvironment: validateAuthTarget } = await import('../../scripts/manageRoles.mjs');
+    const { validateTargetEnvironment: validateDbTarget } = await import('../../scripts/backupRestore.mjs');
+
+    const prevEmuAuth = process.env.FIREBASE_AUTH_EMULATOR_HOST;
+    const prevEmuFs = process.env.FIRESTORE_EMULATOR_HOST;
+    delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+    delete process.env.FIRESTORE_EMULATOR_HOST;
+
+    try {
+      // 1. Target staging with production project ID must be rejected by auth guard
+      process.env.GCLOUD_PROJECT = 'simakdiskum';
+      expect(() => validateAuthTarget({ target: 'staging' }))
+        .toThrow(/--target=staging was specified, but target project is "simakdiskum" \(PRODUCTION\)/);
+
+      // 2. Target staging with production project ID must be rejected by backup guard
+      expect(() => validateDbTarget({ target: 'staging' }))
+        .toThrow(/--target=staging was specified, but target project is "simakdiskum" \(PRODUCTION\)/);
+
+      // 3. Target prod with staging project ID must be rejected
+      process.env.GCLOUD_PROJECT = 'simakdiskum-staging';
+      expect(() => validateAuthTarget({ target: 'prod' }))
+        .toThrow(/--target=prod was specified, but target project is "simakdiskum-staging" \(STAGING\)/);
+      expect(() => validateDbTarget({ target: 'prod' }))
+        .toThrow(/--target=prod was specified, but target project is "simakdiskum-staging" \(STAGING\)/);
+
+      // 4. Valid staging target without project set defaults to simakdiskum-staging
+      delete process.env.GCLOUD_PROJECT;
+      const validAuthStaging = validateAuthTarget({ target: 'staging' });
+      expect(validAuthStaging.projectId).toBe('simakdiskum-staging');
+      const validDbStaging = validateDbTarget({ target: 'staging' });
+      expect(validDbStaging.projectId).toBe('simakdiskum-staging');
+    } finally {
+      if (prevEmuAuth) process.env.FIREBASE_AUTH_EMULATOR_HOST = prevEmuAuth;
+      if (prevEmuFs) process.env.FIRESTORE_EMULATOR_HOST = prevEmuFs;
+      delete process.env.GCLOUD_PROJECT;
+    }
+  });
+
+  it('verifies client initializers configure simakdiskum-staging and disable emulator during staging mode', () => {
+    const publicFirebase = fs.readFileSync(path.join(rootDir, 'apps/public/src/firebase.ts'), 'utf-8');
+    const adminFirebase = fs.readFileSync(path.join(rootDir, 'apps/admin/src/firebase.ts'), 'utf-8');
+
+    for (const code of [publicFirebase, adminFirebase]) {
+      expect(code).toContain('simakdiskum-staging');
+      expect(code).toContain("import.meta.env?.MODE === 'staging'");
+      expect(code).toContain('isStagingOrProd');
+    }
   });
 });

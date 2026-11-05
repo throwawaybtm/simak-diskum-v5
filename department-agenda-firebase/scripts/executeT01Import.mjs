@@ -306,8 +306,13 @@ export async function runT01Import(options = { dryRun: false }) {
   console.log(`  - PPPK: ${pppkCount}`);
   console.log(`  - Non-ASN: ${nonAsnCount}`);
 
-  // Write temporary employee master JSON template
-  const masterJsonPath = path.resolve('templates/temporaryEmployeeMaster.json');
+  // Resolve paths robustly whether executed from D:/Temp or D:/Temp/department-agenda-firebase
+  const rootDir = fs.existsSync(path.resolve(process.cwd(), 'department-agenda-firebase'))
+    ? process.cwd()
+    : path.resolve(process.cwd(), '..');
+  const monorepoDir = path.resolve(rootDir, 'department-agenda-firebase');
+  const masterJsonPath = path.resolve(monorepoDir, 'templates/temporaryEmployeeMaster.json');
+
   fs.writeFileSync(masterJsonPath, JSON.stringify({
     metadata: {
       source: 'Roster Tenaga ASN dan Non-ASN Dinas Koperasi dan Usaha Mikro Kota Batam',
@@ -325,7 +330,7 @@ export async function runT01Import(options = { dryRun: false }) {
   console.log(`  ✓ Written temporary master template: ${masterJsonPath}`);
 
   // Step B: Parse October 2026 Spreadsheet
-  const xlsxPath = path.resolve('../temp_october_2026.xlsx');
+  const xlsxPath = path.resolve(rootDir, 'temp_october_2026.xlsx');
   console.log(`\n[Spreadsheet] Reading workbook: ${xlsxPath}`);
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(xlsxPath);
@@ -676,8 +681,8 @@ export async function runT01Import(options = { dryRun: false }) {
   console.log(`  - Total Source Mapping Rows: ${sourceMapping.length}`);
 
   // Step C: Write Source Mapping Document
-  const mappingDocPath = path.resolve('../docs/T01_SOURCE_MAPPING.md');
-  const mappingMonorepoPath = path.resolve('docs/T01_SOURCE_MAPPING.md');
+  const mappingDocPath = path.resolve(rootDir, 'docs/T01_SOURCE_MAPPING.md');
+  const mappingMonorepoPath = path.resolve(monorepoDir, 'docs/T01_SOURCE_MAPPING.md');
 
   let mappingMd = `# SIMAK DISKUM Kota Batam v5.0 — T01 Source-to-Import Traceability Matrix\n\n`;
   mappingMd += `**Date:** ${new Date().toISOString()}  \n`;

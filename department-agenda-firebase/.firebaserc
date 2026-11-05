@@ -1,8 +1,8 @@
 {
   "projects": {
     "default": "simakdiskum",
-    "staging": "simakdiskum",
-    "production": "simakdiskum"
+    "production": "simakdiskum",
+    "staging": "simakdiskum-staging"
   },
   "targets": {
     "simakdiskum": {
@@ -12,6 +12,16 @@
         ],
         "admin": [
           "simakdiskum-admin"
+        ]
+      }
+    },
+    "simakdiskum-staging": {
+      "hosting": {
+        "public": [
+          "simakdiskum-staging"
+        ],
+        "admin": [
+          "simakdiskum-staging-admin"
         ]
       }
     }

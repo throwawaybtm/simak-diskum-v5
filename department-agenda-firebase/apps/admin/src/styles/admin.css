@@ -377,6 +377,20 @@ body {
 
 .operator-avatar-icon {
   stroke: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.operator-chevron-icon {
+  flex-shrink: 0;
+}
+
+.operator-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .operator-chevron-icon {
@@ -986,12 +1000,45 @@ body {
 }
 
 @media (max-width: 480px) {
+  .topbar {
+    padding: 0 0.5rem;
+  }
+  .topbar-right {
+    gap: 0.35rem;
+  }
+  .operator-name {
+    max-width: 80px;
+  }
+  .operator-profile-pill {
+    padding: 0.3rem 0.5rem;
+  }
   .stage-summary-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 360px) {
+  .topbar {
+    padding: 0 0.35rem;
+  }
+  .topbar-right {
+    gap: 0.25rem;
+  }
+  .btn-topbar-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .operator-profile-pill {
+    padding: 0.25rem 0.4rem;
+    gap: 0.35rem;
+  }
+  .operator-name {
+    max-width: 48px;
+    font-size: 0.8rem;
+  }
+  .topbar-portal-title {
+    font-size: 0.95rem;
+  }
   .admin-content {
     padding: 0.65rem 0.5rem;
   }

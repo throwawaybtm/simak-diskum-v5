@@ -8,7 +8,7 @@
  *    - Agenda search functions seamlessly.
  *    - Strict confidentiality audit on rendered DOM (zero Zoom passcodes, zero meeting IDs, zero phone numbers, zero NIPs).
  * 2. Admin Portal (320px, 375px, 425px, 1440px):
- *    - Single-Admin authentication using admin.t01@batam.go.id.
+ *    - Single-Admin authentication using dynamically provisioned local demo account (admin.demo@diskum.local).
  *    - Activities list loads 152 canonical records.
  *    - Employee master lists all 70 temporary employees.
  *    - Department master lists 8 departments.
@@ -22,6 +22,7 @@ import { chromium } from 'playwright';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { rotateCredentials } from '../../scripts/rotateLocalCredentials.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,11 +34,6 @@ if (!fs.existsSync(screenshotsDir)) {
 
 const publicBaseUrl = 'http://localhost:3000';
 const adminBaseUrl = 'http://localhost:3001';
-
-const ADMIN_CREDENTIALS = {
-  email: 'admin.t01@batam.go.id',
-  password: 'SimakDiskum2026!Admin'
-};
 
 const VIEWPORTS = [
   { name: '320px', width: 320, height: 640 },
@@ -52,6 +48,9 @@ async function runT01BrowserVerification() {
   console.log(`Public:  ${publicBaseUrl}`);
   console.log(`Admin:   ${adminBaseUrl}`);
   console.log('======================================================================');
+
+  // Rotate local demonstration credentials in Auth emulator before running E2E
+  const ADMIN_CREDENTIALS = await rotateCredentials();
 
   const browser = await chromium.launch({ headless: true });
   let passedScenarios = 0;
@@ -128,18 +127,13 @@ async function runT01BrowserVerification() {
     // Deep Confidentiality Scan on rendered public DOM
     const publicBodyText = await publicPage.innerText('body');
     const forbiddenPatterns = [
-      /\bppdn146\b/i,
-      /\b765651\b/i,
-      /\bkemenkop\b/i,
-      /\bBINAPEMDES\b/i,
-      /\b173783\b/i,
+      /\bpwd=[a-zA-Z0-9._-]+\b/i,
+      /\b(Passcode|Kode Sandi|Sandi):\s*\S+/i,
       /\b850\s*000\s*5418\b/,
       /\b94480068357\b/,
-      /\b081261027619\b/,
-      /\b08113812289\b/,
-      /\b0881023230348\b/,
+      /\b08\d{8,11}\b/,
       /\bemp_[a-z0-9_]+\b/i,
-      /\b19681021\s*199010\s*1\s*001\b/ // Kadis NIP
+      /\b\d{8}\s*\d{6}\s*[12]\s*\d{3}\b/ // Civil service NIP pattern
     ];
 
     for (const pat of forbiddenPatterns) {

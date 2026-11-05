@@ -36,16 +36,18 @@ import crypto from 'node:crypto';
 
 // Allowed department roles matching firestore.rules
 export const ALLOWED_ROLES = ['admin', 'editor'];
-export const REQUIRED_PROJECT_ID = 'simakdiskum';
+export const PRODUCTION_PROJECT_ID = 'simakdiskum';
+export const STAGING_PROJECT_ID = 'simakdiskum-staging';
+export const REQUIRED_PROJECT_ID = PRODUCTION_PROJECT_ID; // Backward-compatible alias
 
 /**
  * Validates target environment, preventing accidental execution against production
- * when emulator is intended, and enforcing project ID safeguards.
+ * when emulator or staging is intended, and enforcing project ID safeguards.
  */
 export function validateTargetEnvironment(options = {}) {
   const isEmulatorHost = Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST);
   const requestedTarget = options.target || (isEmulatorHost ? 'emulator' : 'prod');
-  const targetProjectId = process.env.GCLOUD_PROJECT || (isEmulatorHost ? 'demo-department-agenda' : REQUIRED_PROJECT_ID);
+  const targetProjectId = process.env.GCLOUD_PROJECT || (isEmulatorHost ? 'demo-department-agenda' : (requestedTarget === 'staging' ? STAGING_PROJECT_ID : PRODUCTION_PROJECT_ID));
 
   if (requestedTarget === 'emulator' && !isEmulatorHost) {
     throw new Error(
@@ -54,18 +56,43 @@ export function validateTargetEnvironment(options = {}) {
     );
   }
 
-  if (requestedTarget === 'prod' && isEmulatorHost) {
+  if ((requestedTarget === 'prod' || requestedTarget === 'staging') && isEmulatorHost) {
     throw new Error(
-      `[manageRoles Safeguard] Execution blocked: --target=prod was specified but FIREBASE_AUTH_EMULATOR_HOST (${process.env.FIREBASE_AUTH_EMULATOR_HOST}) is active. ` +
-      `Unset emulator environment variables before executing against production.`
+      `[manageRoles Safeguard] Execution blocked: --target=${requestedTarget} was specified but FIREBASE_AUTH_EMULATOR_HOST (${process.env.FIREBASE_AUTH_EMULATOR_HOST}) is active. ` +
+      `Unset emulator environment variables before executing against cloud.`
     );
   }
 
-  if (!isEmulatorHost && targetProjectId !== REQUIRED_PROJECT_ID && !process.env.ALLOW_ANY_PROJECT) {
-    throw new Error(
-      `[manageRoles Safeguard] Execution blocked: Target project "${targetProjectId}" does not match required project "${REQUIRED_PROJECT_ID}". ` +
-      `Set GCLOUD_PROJECT=${REQUIRED_PROJECT_ID} or set ALLOW_ANY_PROJECT=true to override.`
-    );
+  // Staging Target Protection: MUST reject production project ID
+  if (requestedTarget === 'staging') {
+    if (targetProjectId === PRODUCTION_PROJECT_ID) {
+      throw new Error(
+        `[manageRoles Safeguard] Execution blocked: --target=staging was specified, but target project is "${targetProjectId}" (PRODUCTION). ` +
+        `Refusing to run staging operations against production project!`
+      );
+    }
+    if (targetProjectId !== STAGING_PROJECT_ID && !process.env.ALLOW_ANY_PROJECT) {
+      throw new Error(
+        `[manageRoles Safeguard] Execution blocked: Target project "${targetProjectId}" does not match required staging project "${STAGING_PROJECT_ID}". ` +
+        `Set GCLOUD_PROJECT=${STAGING_PROJECT_ID} or set ALLOW_ANY_PROJECT=true.`
+      );
+    }
+  }
+
+  // Production Target Protection: MUST reject staging or foreign project IDs
+  if (requestedTarget === 'prod') {
+    if (targetProjectId === STAGING_PROJECT_ID) {
+      throw new Error(
+        `[manageRoles Safeguard] Execution blocked: --target=prod was specified, but target project is "${targetProjectId}" (STAGING). ` +
+        `Refusing to run production operations against staging project!`
+      );
+    }
+    if (targetProjectId !== PRODUCTION_PROJECT_ID && !process.env.ALLOW_ANY_PROJECT) {
+      throw new Error(
+        `[manageRoles Safeguard] Execution blocked: Target project "${targetProjectId}" does not match required project "${PRODUCTION_PROJECT_ID}". ` +
+        `Set GCLOUD_PROJECT=${PRODUCTION_PROJECT_ID} or set ALLOW_ANY_PROJECT=true to override.`
+      );
+    }
   }
 
   const authMethod = isEmulatorHost

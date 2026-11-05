@@ -7,13 +7,19 @@ import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence, type Auth } from 'firebase/auth';
 
+const isStagingMode = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
+
 const firebaseConfig = {
   apiKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_API_KEY) || 'demo-api-key',
-  authDomain: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN) || 'simakdiskum.firebaseapp.com',
-  projectId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_PROJECT_ID) || 'simakdiskum',
-  storageBucket: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET) || 'simakdiskum.appspot.com',
+  authDomain: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN) ||
+    (isStagingMode ? 'simakdiskum-staging.firebaseapp.com' : 'simakdiskum.firebaseapp.com'),
+  projectId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_PROJECT_ID) ||
+    (isStagingMode ? 'simakdiskum-staging' : 'simakdiskum'),
+  storageBucket: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET) ||
+    (isStagingMode ? 'simakdiskum-staging.appspot.com' : 'simakdiskum.appspot.com'),
   messagingSenderId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID) || '123456789',
-  appId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_APP_ID) || '1:123456789:web:simakdiskum-admin'
+  appId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_APP_ID) ||
+    (isStagingMode ? '1:123456789:web:simakdiskum-staging-admin' : '1:123456789:web:simakdiskum-admin')
 };
 
 export const app: FirebaseApp = initializeApp(firebaseConfig);
@@ -27,12 +33,18 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Connect to local Firestore & Auth emulators strictly when running on localhost / loopback or test runner
-const isLocalDevHost = (typeof window !== 'undefined' &&
-  (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) ||
-  (typeof process !== 'undefined' && (Boolean(process.env?.FIREBASE_AUTH_EMULATOR_HOST) || Boolean(process.env?.FIRESTORE_EMULATOR_HOST) || process.env?.NODE_ENV === 'test'));
+// Connect to local Firestore & Auth emulators strictly during local development.
+// Invariant: Staging and production builds (MODE=staging / MODE=production) NEVER connect to emulator endpoints.
+const isLocalDev = typeof import.meta !== 'undefined' && Boolean(import.meta.env?.DEV);
+const isStagingOrProd = typeof import.meta !== 'undefined' && (import.meta.env?.MODE === 'staging' || import.meta.env?.MODE === 'production');
+const isEmulatorDisabled = typeof import.meta !== 'undefined' && import.meta.env?.VITE_USE_EMULATOR === 'false';
 
-if (isLocalDevHost) {
+const shouldConnectEmulator = !isStagingOrProd && !isEmulatorDisabled && (
+  (typeof window !== 'undefined' && isLocalDev && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) ||
+  (typeof process !== 'undefined' && (Boolean(process.env?.FIREBASE_AUTH_EMULATOR_HOST) || Boolean(process.env?.FIRESTORE_EMULATOR_HOST) || process.env?.NODE_ENV === 'test'))
+);
+
+if (shouldConnectEmulator) {
   try {
     connectFirestoreEmulator(db, '127.0.0.1', 8080);
     console.log('[Admin] Connected to Firestore Emulator on 127.0.0.1:8080');

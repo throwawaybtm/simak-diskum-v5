@@ -26,6 +26,7 @@ import {
   signOut
 } from 'firebase/auth';
 import { runT01Import } from '../../scripts/executeT01Import.mjs';
+import { rotateCredentials } from '../../scripts/rotateLocalCredentials.mjs';
 
 const PROJECT_ID = 'demo-department-agenda';
 const app = getApps().length === 0 ? initializeApp({ projectId: PROJECT_ID, apiKey: 'fake-api-key' }) : getApps()[0];
@@ -45,10 +46,16 @@ try {
 }
 
 describe('T01 Privacy Projection & Public Document Audit (Real Emulator)', () => {
+  let testAdminEmail = '';
+  let testAdminPassword = '';
 
   beforeAll(async () => {
     // Ensure data is imported in case prior integration tests cleared the emulator
     await runT01Import({ dryRun: false });
+    // Rotate and provision secure demonstration credentials in Auth emulator
+    const rotated = await rotateCredentials();
+    testAdminEmail = rotated.email;
+    testAdminPassword = rotated.password;
     // Ensure signed out initially
     await signOut(auth).catch(() => {});
   });
@@ -114,13 +121,13 @@ describe('T01 Privacy Projection & Public Document Audit (Real Emulator)', () =>
     const privData = privDoc.data()!;
 
     expect(privData.privateMeetingUrl).toContain('zoom.us');
-    expect(privData.privateNotes).toContain('Passcode: ppdn146');
+    expect(privData.privateNotes).toMatch(/Passcode:\s*\S+/i);
 
     // Verify public counterpart has zero leak
     const pubDoc = await getDoc(doc(db, 'publicActivities', 'act_20261001_02'));
     expect(pubDoc.exists()).toBe(true);
     const pubData = pubDoc.data()!;
-    expect(pubData.publicNotes).not.toContain('ppdn146');
+    expect(pubData.publicNotes).not.toMatch(/Passcode:\s*\S+/i);
     expect(pubData.publicNotes).not.toContain('zoom.us');
     expect(pubData.publicNotes).toContain('[TAUTAN VIRTUAL DIAMANKAN]');
   });
@@ -182,8 +189,9 @@ describe('T01 Privacy Projection & Public Document Audit (Real Emulator)', () =>
   });
 
   it('verifies single Admin test account exists on Auth emulator with admin claim', async () => {
-    const userCred = await signInWithEmailAndPassword(auth, 'admin.t01@batam.go.id', 'SimakDiskum2026!Admin');
-    expect(userCred.user.email).toBe('admin.t01@batam.go.id');
+    const userCred = await signInWithEmailAndPassword(auth, testAdminEmail, testAdminPassword);
+    expect(userCred.user.email).toBe(testAdminEmail);
+    expect(userCred.user.email).not.toMatch(/@batam\.go\.id$/); // Invariant: must not use real municipal domain
     const idTokenResult = await userCred.user.getIdTokenResult();
     expect(idTokenResult.claims.role).toBe('admin');
     await signOut(auth);

@@ -385,8 +385,15 @@ async function runAudit() {
   }
 
   if (auditReport.privacyLeaksDetected.length > 0) {
-    console.log('\n--- PRIVACY LEAKS ---');
-    console.log(JSON.stringify(auditReport.privacyLeaksDetected, null, 2));
+    console.log('\n--- PRIVACY LEAKS (SANITIZED LOG) ---');
+    const sanitizedLeaks = auditReport.privacyLeaksDetected.map(l => ({
+      ...l,
+      value: String(l.value || '')
+        .replace(/pwd=[a-zA-Z0-9._-]+/gi, 'pwd=[REDACTED]')
+        .replace(/(Passcode|Kode Sandi|Sandi):\s*\S+/gi, '$1: [REDACTED]')
+        .replace(/08\d{8,11}/g, '0812-****-****')
+    }));
+    console.log(JSON.stringify(sanitizedLeaks, null, 2));
   }
 
   if (auditReport.multiDayCandidates.length > 0) {
