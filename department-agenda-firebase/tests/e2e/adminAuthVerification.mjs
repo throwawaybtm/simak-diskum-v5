@@ -4,19 +4,21 @@
  * Verifies:
  * 1. Anonymous Access Isolation: Visiting http://localhost:3001 without credentials mounts Login View;
  *    zero private Firestore reads or data leaks.
- * 2. Login Form Validation: Empty fields and invalid email format handled with inline alerts.
- * 3. Password Visibility Toggle: Eye icon button toggles password masking and ARIA attributes.
- * 4. Invalid Credentials Handling: Non-enumerating Indonesian alert message displayed on bad password.
+ * 2. Login Form Validation & Keyboard Submit: Empty fields, invalid email format, Enter-key submit,
+ *    and aria-busy state transitions.
+ * 3. Password Visibility Toggle: Eye icon button toggles password masking and accessible ARIA attributes.
+ * 4. Invalid Credentials Handling: Non-enumerating Indonesian alert message and automatic password focus.
  * 5. Password Recovery Interface: Navigation to recovery form, email submission, and neutral success
  *    confirmation without user enumeration. Return navigation back to login form.
  * 6. Access Denied Enforcement: User authenticated in Firebase Auth but missing custom claims is
  *    isolated to the Access Denied view with red lock indicator and sign-out action.
- * 7. Admin Authentication: Valid login as Administrator mounts admin shell with "Administrator" badge,
- *    loads master data, and displays admin dashboard.
+ * 7. Admin Authentication & Keyboard Menu: Valid login as Administrator mounts admin shell with "Administrator" badge,
+ *    loads master data, ArrowDown/Escape keyboard navigation on profile pill.
  * 8. Session Termination: Profile dropdown opens and displays user info; sign-out wipes session caches
- *    and unmounts admin shell back to Login view.
+ *    and unmounts admin shell back to Login view; hash navigation blocked.
  * 9. Editor Authentication: Valid login as Operator Agenda mounts admin shell with "Operator Agenda" badge.
- * 10. Multi-Viewport Visual Evidence: Captures required 375px and 1440px screenshots for all views.
+ * 10. Multi-Viewport Geometry & Anti-Collision Verification (Defects A & B): Checks 320px, 375px, 425px, 1440px
+ *     for 0px document overflow, upcoming title wrapping + title tooltip, and status legend anti-collision gap >= 8px.
  * 11. Public Portal Integrity: Confirms http://localhost:3000 remains completely functional.
  */
 
@@ -168,15 +170,20 @@ async function runA01Verification() {
     record(1.5, fs.existsSync(login375Path), `Captured Mobile Login screenshot: ${login375Path}`);
 
     // ----------------------------------------------------
-    // Scenario 2: Form Validation & Password Toggle
+    // Scenario 2: Form Validation, Keyboard Submit & Password Toggle
     // ----------------------------------------------------
-    console.log('\n--- Scenario 2: Form Validation & Password Visibility Toggle ---');
+    console.log('\n--- Scenario 2: Form Validation, Keyboard Submit & Password Visibility Toggle ---');
     
-    // Empty submission
-    await page.click('#btnSubmitLogin');
+    // Check initial aria-busy
+    const initialBusy = await page.$eval('#adminLoginForm', el => el.getAttribute('aria-busy'));
+    record(2.1, initialBusy === 'false', 'Login form initial aria-busy is "false"');
+
+    // Empty submission via Enter key
+    await page.focus('#authEmail');
+    await page.keyboard.press('Enter');
     await page.waitForSelector('.auth-alert-error');
     const emptyErr = await page.$eval('.auth-alert-error', el => el.textContent?.trim());
-    record(2.1, emptyErr.includes('alamat email kedinasan'), `Empty email error: "${emptyErr}"`);
+    record(2.2, emptyErr.includes('alamat email kedinasan'), `Enter key on empty form triggers validation alert: "${emptyErr}"`);
 
     // Invalid email format
     await page.fill('#authEmail', 'notanemail');
@@ -184,24 +191,24 @@ async function runA01Verification() {
     await page.click('#btnSubmitLogin');
     await page.waitForSelector('.auth-alert-error');
     const formatErr = await page.$eval('.auth-alert-error', el => el.textContent?.trim());
-    record(2.2, formatErr.includes('Format alamat email tidak valid'), `Invalid email error: "${formatErr}"`);
+    record(2.3, formatErr.includes('Format alamat email tidak valid'), `Invalid email format alert: "${formatErr}"`);
 
     // Password show/hide toggle
     const pwdInput = await page.$('#authPassword');
     const initialType = await pwdInput.getAttribute('type');
-    record(2.3, initialType === 'password', 'Password input defaults to type="password"');
+    record(2.4, initialType === 'password', 'Password input defaults to type="password"');
 
     await page.click('#btnTogglePassword');
     const visibleType = await pwdInput.getAttribute('type');
     const toggleAria = await page.$eval('#btnTogglePassword', el => el.getAttribute('aria-label'));
-    record(2.4, visibleType === 'text' && toggleAria === 'Sembunyikan kata sandi', 'Toggle button switches to type="text" with updated aria-label');
+    record(2.5, visibleType === 'text' && toggleAria === 'Sembunyikan kata sandi', 'Toggle button switches to type="text" with updated aria-label');
 
     await page.click('#btnTogglePassword');
     const hiddenType = await pwdInput.getAttribute('type');
-    record(2.5, hiddenType === 'password', 'Toggle button switches back to type="password"');
+    record(2.6, hiddenType === 'password', 'Toggle button switches back to type="password"');
 
     // ----------------------------------------------------
-    // Scenario 3: Invalid Credentials (Non-Enumerating Error)
+    // Scenario 3: Invalid Credentials (Non-Enumerating Error & Focus Handling)
     // ----------------------------------------------------
     console.log('\n--- Scenario 3: Invalid Credentials Handling & Screenshots ---');
     await page.fill('#authEmail', TEST_ACCOUNTS.admin.email);
@@ -212,10 +219,14 @@ async function runA01Verification() {
     const invalidCredsErr = await page.$eval('.auth-alert-error', el => el.textContent?.trim());
     record(3.1, invalidCredsErr.includes('Email atau kata sandi yang Anda masukkan salah'), `Non-enumerating error alert: "${invalidCredsErr}"`);
 
+    // Focus placed on password input after failed login
+    const activeElementId = await page.evaluate(() => document.activeElement?.id);
+    record(3.2, activeElementId === 'authPassword', `Focus automatically placed on password input after failed login (active: #${activeElementId})`);
+
     // Capture 1440px Invalid Credentials Screenshot
     const invalid1440Path = path.join(screenshotsDir, 'a01-invalid-creds-1440px.png');
     await page.screenshot({ path: invalid1440Path, fullPage: true });
-    record(3.2, fs.existsSync(invalid1440Path), `Captured Desktop Invalid Credentials screenshot: ${invalid1440Path}`);
+    record(3.3, fs.existsSync(invalid1440Path), `Captured Desktop Invalid Credentials screenshot: ${invalid1440Path}`);
 
     // Mobile Invalid Credentials Screenshot
     await mobilePage.fill('#authEmail', TEST_ACCOUNTS.admin.email);
@@ -224,7 +235,7 @@ async function runA01Verification() {
     await mobilePage.waitForSelector('.auth-alert-error');
     const invalid375Path = path.join(screenshotsDir, 'a01-invalid-creds-375px.png');
     await mobilePage.screenshot({ path: invalid375Path, fullPage: true });
-    record(3.3, fs.existsSync(invalid375Path), `Captured Mobile Invalid Credentials screenshot: ${invalid375Path}`);
+    record(3.4, fs.existsSync(invalid375Path), `Captured Mobile Invalid Credentials screenshot: ${invalid375Path}`);
 
     // ----------------------------------------------------
     // Scenario 4: Password Recovery Flow & Neutral Confirmation
@@ -317,22 +328,27 @@ async function runA01Verification() {
     const operatorName = await page.$eval('#operatorDisplayName', el => el.textContent?.trim());
     record(6.1, operatorName.includes('Hendri Arifin') || operatorName.includes('Administrator'), `Topbar operator name: "${operatorName}"`);
 
-    // Verify Dropdown and Role Badge
-    await page.click('#operatorProfilePill');
+    // Profile dropdown keyboard navigation: ArrowDown opens and focuses logout
+    await page.focus('#operatorProfilePill');
+    await page.keyboard.press('ArrowDown');
     await page.waitForSelector('#operatorDropdownMenu:not(.hidden)');
+    const activeInDropdown = await page.evaluate(() => document.activeElement?.id);
+    record(6.2, activeInDropdown === 'btnLogout', `ArrowDown on profile pill opens dropdown and focuses logout button (active: #${activeInDropdown})`);
+
     const roleBadgeText = await page.$eval('#dropdownRoleBadge', el => el.textContent?.trim());
     const isRoleAdmin = await page.$eval('#dropdownRoleBadge', el => el.classList.contains('role-admin'));
-    record(6.2, roleBadgeText === 'Administrator' && isRoleAdmin, 'Profile dropdown reflects Administrator role badge');
+    record(6.3, roleBadgeText === 'Administrator' && isRoleAdmin, 'Profile dropdown reflects Administrator role badge');
 
-    // Close dropdown
+    // Escape closes dropdown and restores focus to profile pill
     await page.keyboard.press('Escape');
     const isDropdownHidden = await page.$eval('#operatorDropdownMenu', el => el.classList.contains('hidden'));
-    record(6.3, isDropdownHidden, 'Profile dropdown closes on Escape key');
+    const activeAfterEscape = await page.evaluate(() => document.activeElement?.id);
+    record(6.4, isDropdownHidden && activeAfterEscape === 'operatorProfilePill', `Escape closes dropdown and restores focus to profile pill (active: #${activeAfterEscape})`);
 
     // Capture 1440px Dashboard Screenshot
     const dashboard1440Path = path.join(screenshotsDir, 'a01-dashboard-1440px.png');
     await page.screenshot({ path: dashboard1440Path, fullPage: true });
-    record(6.4, fs.existsSync(dashboard1440Path), `Captured Desktop Authenticated Dashboard screenshot: ${dashboard1440Path}`);
+    record(6.5, fs.existsSync(dashboard1440Path), `Captured Desktop Authenticated Dashboard screenshot: ${dashboard1440Path}`);
 
     // Mobile Authenticated Dashboard Screenshot
     await mobilePage.click('#btnAccessDeniedSignOut');
@@ -343,9 +359,12 @@ async function runA01Verification() {
     await mobilePage.waitForSelector('.admin-layout', { timeout: 10000 });
     await mobilePage.waitForSelector('.topbar');
     await mobilePage.waitForSelector('.dashboard-page');
+    await mobilePage.waitForSelector('.upcoming-agenda-list');
+    await mobilePage.waitForSelector('.status-legend-list');
+
     const dashboard375Path = path.join(screenshotsDir, 'a01-dashboard-375px.png');
     await mobilePage.screenshot({ path: dashboard375Path, fullPage: true });
-    record(6.5, fs.existsSync(dashboard375Path), `Captured Mobile Authenticated Dashboard screenshot: ${dashboard375Path}`);
+    record(6.6, fs.existsSync(dashboard375Path), `Captured Mobile Authenticated Dashboard screenshot: ${dashboard375Path}`);
 
     // ----------------------------------------------------
     // Scenario 7: Session Termination & Wiped Caches
@@ -366,9 +385,9 @@ async function runA01Verification() {
     record(7.2, stillLoggedOut !== null, 'Hash navigation while signed out remains blocked on Login view');
 
     // ----------------------------------------------------
-    // Scenario 8: Authenticated Editor Login & Role Badge
+    // Scenario 8: Authenticated Editor Login & Role Enforcement
     // ----------------------------------------------------
-    console.log('\n--- Scenario 8: Authenticated Editor Login ---');
+    console.log('\n--- Scenario 8: Authenticated Editor Login & Role Enforcement ---');
     await page.fill('#authEmail', TEST_ACCOUNTS.editor.email);
     await page.fill('#authPassword', TEST_ACCOUNTS.editor.password);
     await page.click('#btnSubmitLogin');
@@ -385,14 +404,93 @@ async function runA01Verification() {
     record(8.2, true, 'Editor sign-out clean');
 
     // ----------------------------------------------------
-    // Scenario 9: Public Portal Unaffected Verification
+    // Scenario 9: Multi-Viewport Geometry & Anti-Collision Verification (Defects A & B)
     // ----------------------------------------------------
-    console.log('\n--- Scenario 9: Public Portal Integrity Check ---');
+    console.log('\n--- Scenario 9: Multi-Viewport Geometry & Anti-Collision Verification ---');
+    
+    // Ensure mobilePage is on dashboard-page (already authenticated from Scenario 6)
+    const isDashboardPresent = await mobilePage.$('.dashboard-page');
+    if (!isDashboardPresent) {
+      await mobilePage.fill('#authEmail', TEST_ACCOUNTS.admin.email);
+      await mobilePage.fill('#authPassword', TEST_ACCOUNTS.admin.password);
+      await mobilePage.click('#btnSubmitLogin');
+      await mobilePage.waitForSelector('.dashboard-page', { timeout: 10000 });
+    }
+
+    const viewports = [
+      { name: 'Mobile Mini', width: 320, height: 568 },
+      { name: 'Mobile Standard', width: 375, height: 812 },
+      { name: 'Mobile Large', width: 425, height: 850 },
+      { name: 'Desktop Standard', width: 1440, height: 900 }
+    ];
+
+    for (let idx = 0; idx < viewports.length; idx++) {
+      const vp = viewports[idx];
+      await mobilePage.setViewportSize({ width: vp.width, height: vp.height });
+      await mobilePage.waitForTimeout(250);
+
+      // Check horizontal overflow
+      const overflow = await mobilePage.evaluate(() => {
+        return {
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+          innerWidth: window.innerWidth
+        };
+      });
+      const zeroOverflow = overflow.scrollWidth <= overflow.innerWidth;
+      record(`9.${idx * 3 + 1}`, zeroOverflow, `Viewport ${vp.width}px (${vp.name}): 0px document overflow (scrollWidth=${overflow.scrollWidth}, innerWidth=${overflow.innerWidth})`);
+
+      // Check Defect A: Agenda item row width and title attribute
+      const agendaCheck = await mobilePage.evaluate((vpWidth) => {
+        const row = document.querySelector('.agenda-item-row');
+        const titleEl = document.querySelector('.agenda-item-title');
+        if (!row || !titleEl) return null;
+        const rect = row.getBoundingClientRect();
+        return {
+          rowWidth: rect.width,
+          fitsViewport: rect.width <= vpWidth,
+          hasTitleAttr: Boolean(titleEl.getAttribute('title')),
+          titleText: titleEl.textContent?.trim()
+        };
+      }, vp.width);
+
+      if (agendaCheck) {
+        record(`9.${idx * 3 + 2}`, agendaCheck.fitsViewport && agendaCheck.hasTitleAttr, 
+          `Viewport ${vp.width}px: Agenda item row fits viewport (${agendaCheck.rowWidth.toFixed(1)}px <= ${vp.width}px) with accessible title attribute`);
+      }
+
+      // Check Defect B: Legend label/count gap (prevent collision)
+      const legendCheck = await mobilePage.evaluate(() => {
+        const items = Array.from(document.querySelectorAll('.legend-item'));
+        return items.map(item => {
+          const label = item.querySelector('.legend-name');
+          const count = item.querySelector('.legend-count');
+          if (!label || !count) return null;
+          const lRect = label.getBoundingClientRect();
+          const cRect = count.getBoundingClientRect();
+          return {
+            label: label.textContent?.trim(),
+            count: count.textContent?.trim(),
+            gap: cRect.left - lRect.right
+          };
+        }).filter(Boolean);
+      });
+
+      const minLegendGap = legendCheck.length > 0 ? Math.min(...legendCheck.map(l => l.gap)) : 0;
+      const noLegendCollision = minLegendGap >= 8;
+      record(`9.${idx * 3 + 3}`, noLegendCollision, 
+        `Viewport ${vp.width}px: Status legend label/count anti-collision verified (minimum gap: ${minLegendGap.toFixed(1)}px >= 8px)`);
+    }
+
+    // ----------------------------------------------------
+    // Scenario 10: Public Portal Unaffected Verification
+    // ----------------------------------------------------
+    console.log('\n--- Scenario 10: Public Portal Integrity Check ---');
     const pubPage = await desktopContext.newPage();
     await pubPage.goto(`${publicBaseUrl}/`);
     await pubPage.waitForSelector('.dashboard-view', { timeout: 10000 });
     const heroBrand = await pubPage.$eval('.hero-brand', el => el.textContent?.trim());
-    record(9.1, heroBrand === 'SIMAK DISKUM', `Public portal loaded normally: "${heroBrand}"`);
+    record(10.1, heroBrand === 'SIMAK DISKUM', `Public portal loaded normally: "${heroBrand}"`);
 
     // Clean up contexts
     await desktopContext.close();

@@ -6,19 +6,55 @@
 import { chromium } from 'playwright';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const screenshotsDir = path.resolve(__dirname, 'screenshots');
 const baseUrl = 'http://localhost:3001';
 
-async function resetEmulatorDatabase() {
+process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+process.env.GCLOUD_PROJECT = 'demo-department-agenda';
+
+let adminApp;
+if (getApps().length === 0) {
+  adminApp = initializeApp({ projectId: 'demo-department-agenda' }, 'run-verification-app');
+} else {
+  adminApp = getApps().find(a => a.name === 'run-verification-app') || initializeApp({ projectId: 'demo-department-agenda' }, 'run-verification-app');
+}
+const adminAuth = getAuth(adminApp);
+
+async function ensureAdminUser() {
+  const email = 'e2e.admin@batam.go.id';
   try {
-    const res = await fetch('http://127.0.0.1:8080/emulator/v1/projects/demo-department-agenda/databases/(default)/documents', {
-      method: 'DELETE'
+    const user = await adminAuth.getUserByEmail(email);
+    await adminAuth.setCustomUserClaims(user.uid, {
+      role: 'admin',
+      department: 'Dinas Koperasi dan Usaha Mikro Kota Batam'
     });
-    console.log(`[Setup] Reset Firestore Emulator: ${res.status} ${res.statusText}`);
-  } catch (err) {
-    console.warn('[Setup] Warning: Could not reset emulator database:', err.message);
+  } catch {
+    const created = await adminAuth.createUser({
+      email,
+      password: 'AdminPassword!2026',
+      displayName: 'Drs. Hendri Arifin, M.Si'
+    });
+    await adminAuth.setCustomUserClaims(created.uid, {
+      role: 'admin',
+      department: 'Dinas Koperasi dan Usaha Mikro Kota Batam'
+    });
+  }
+}
+
+async function resetEmulatorDatabase() {
+  for (const proj of ['demo-department-agenda', 'simakdiskum']) {
+    try {
+      const res = await fetch(`http://127.0.0.1:8080/emulator/v1/projects/${proj}/databases/(default)/documents`, {
+        method: 'DELETE'
+      });
+      console.log(`[Setup] Reset Firestore Emulator (${proj}): ${res.status} ${res.statusText}`);
+    } catch (err) {
+      console.warn(`[Setup] Warning: Could not reset emulator database (${proj}):`, err.message);
+    }
   }
 }
 
@@ -29,6 +65,7 @@ async function runVerification() {
   console.log(`Screenshots dir: ${screenshotsDir}`);
   console.log('====================================================\n');
 
+  await ensureAdminUser();
   await resetEmulatorDatabase();
 
   const browser = await chromium.launch({ headless: true });
@@ -53,6 +90,15 @@ async function runVerification() {
   }
 
   try {
+    // Authenticate as Admin if protected login screen is shown
+    await page.goto(`${baseUrl}/#dashboard`);
+    const isLoginScreen = await page.$('#adminLoginForm');
+    if (isLoginScreen) {
+      await page.fill('#authEmail', 'e2e.admin@batam.go.id');
+      await page.fill('#authPassword', 'AdminPassword!2026');
+      await page.click('#btnSubmitLogin');
+      await page.waitForSelector('.admin-layout', { timeout: 10000 });
+    }
     // ----------------------------------------------------
     // Scenario 1: Admin Dashboard and Sidebar Navigation
     // ----------------------------------------------------
@@ -352,13 +398,23 @@ async function runVerification() {
     const activityId = currentHash.split('/').pop();
     console.log(`  Bumping version in Firestore emulator for activity ${activityId} to 99...`);
 
-    // Directly simulate concurrent modification via Firestore Emulator REST API
-    const patchRes = await fetch(`http://127.0.0.1:8080/v1/projects/demo-department-agenda/databases/(default)/documents/activities/${activityId}?updateMask.fieldPaths=version`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: { version: { integerValue: '99' } } })
-    });
-    console.log(`  Firestore Emulator PATCH status: ${patchRes.status}`);
+    // Directly simulate concurrent modification via Firestore Emulator REST API across both potential namespaces
+    const patchUrls = [
+      `http://127.0.0.1:8080/v1/projects/simakdiskum/databases/(default)/documents/activities/${activityId}?updateMask.fieldPaths=version`,
+      `http://127.0.0.1:8080/v1/projects/demo-department-agenda/databases/(default)/documents/activities/${activityId}?updateMask.fieldPaths=version`
+    ];
+    for (const url of patchUrls) {
+      try {
+        const patchRes = await fetch(url, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { version: { integerValue: '99' } } })
+        });
+        console.log(`  Firestore Emulator PATCH status (${url.includes('simakdiskum') ? 'simakdiskum' : 'demo'}): ${patchRes.status}`);
+      } catch (err) {
+        console.warn('  Firestore Emulator PATCH warning:', err.message);
+      }
+    }
 
     // Attempt to save -> triggers VERSION_CONFLICT
     await page.click('#btnSaveActivity');

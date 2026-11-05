@@ -31,6 +31,16 @@ let currentAuthState: AuthState = 'AUTH_LOADING';
 let currentUser: CurrentUserProfile | null = null;
 let currentAuthErrorMessage: string | undefined = undefined;
 
+// Session epoch token to discard in-flight async operations after logout/switch
+let activeSessionEpoch = 0;
+
+// Registry for active Firestore real-time listeners
+const activeFirestoreListeners: Array<() => void> = [];
+
+export function registerFirestoreListener(unsub: () => void) {
+  activeFirestoreListeners.push(unsub);
+}
+
 // In-memory master data cache for administrative session
 let masterLocations: Location[] = [];
 let masterOrganizers: Organizer[] = [];
@@ -46,9 +56,22 @@ let currentLookups = {
 };
 
 /**
- * Resets all in-memory administrative caches upon sign-out or access denial
+ * Resets all in-memory administrative caches upon sign-out or access denial.
+ * Unsubscribes all registered Firestore listeners and invalidates pending in-flight async tasks.
  */
 function clearAdministrativeSession() {
+  activeSessionEpoch++;
+
+  // Unsubscribe all registered real-time listeners immediately
+  for (const unsub of activeFirestoreListeners) {
+    try {
+      unsub();
+    } catch (err) {
+      console.warn('[Admin] Error cleaning listener:', err);
+    }
+  }
+  activeFirestoreListeners.length = 0;
+
   masterLocations = [];
   masterOrganizers = [];
   masterCategories = [];
@@ -71,9 +94,11 @@ async function getFirestoreModule() {
 }
 
 /**
- * Loads master data only when user is authenticated with verified custom claims
+ * Loads master data only when user is authenticated with verified custom claims.
+ * Bound to activeSessionEpoch to discard in-flight data if session terminates.
  */
 async function loadMasterData() {
+  const sessionToken = activeSessionEpoch;
   if (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR') {
     console.warn('[Admin] Skipped master data fetch: unauthenticated session.');
     return;
@@ -81,23 +106,31 @@ async function loadMasterData() {
 
   try {
     const { db, collection, getDocs } = await getFirestoreModule();
-    const locSnap = await getDocs(collection(db, 'locations'));
+    const [locSnap, orgSnap, catSnap, empSnap, deptSnap] = await Promise.all([
+      getDocs(collection(db, 'locations')),
+      getDocs(collection(db, 'organizers')),
+      getDocs(collection(db, 'categories')),
+      getDocs(collection(db, 'employees')),
+      getDocs(collection(db, 'departments'))
+    ]);
+
+    // Check if session changed or logged out during fetch
+    if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) {
+      console.log('[Admin] Discarded in-flight master data fetch: session invalidated.');
+      return;
+    }
+
     masterLocations = locSnap.docs.map(d => ({ id: d.id, ...d.data() } as Location));
-
-    const orgSnap = await getDocs(collection(db, 'organizers'));
     masterOrganizers = orgSnap.docs.map(d => ({ id: d.id, ...d.data() } as Organizer));
-
-    const catSnap = await getDocs(collection(db, 'categories'));
     masterCategories = catSnap.docs.map(d => ({ id: d.id, ...d.data() } as Category));
-
-    const empSnap = await getDocs(collection(db, 'employees'));
     masterEmployees = empSnap.docs.map(d => ({ id: d.id, ...d.data() } as Employee));
-
-    const deptSnap = await getDocs(collection(db, 'departments'));
     masterDepartments = deptSnap.docs.map(d => ({ id: d.id, ...d.data() } as Department));
   } catch (err) {
+    if (sessionToken !== activeSessionEpoch) return;
     console.warn('[Admin] Could not load master data from Firestore, using fallback fixtures:', err);
   }
+
+  if (sessionToken !== activeSessionEpoch) return;
 
   // Ensure default fallback data if collections are empty (e.g. freshly initialized emulator)
   if (masterLocations.length === 0) {
@@ -150,15 +183,21 @@ async function loadMasterData() {
 }
 
 async function loadActivities(): Promise<ActivityDocument[]> {
+  const sessionToken = activeSessionEpoch;
   if (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR') {
-    return cachedActivities;
+    return [];
   }
   try {
     const { db, collection, getDocs } = await getFirestoreModule();
     const snap = await getDocs(collection(db, 'activities'));
+    if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) {
+      console.log('[Admin] Discarded in-flight activities fetch: session invalidated.');
+      return [];
+    }
     cachedActivities = snap.docs.map(d => ({ id: d.id, ...d.data() } as ActivityDocument));
     return cachedActivities;
   } catch (err) {
+    if (sessionToken !== activeSessionEpoch) return [];
     console.warn('[Admin] Could not fetch activities from Firestore, using in-memory cache:', err);
     return cachedActivities;
   }
@@ -285,8 +324,22 @@ function setupOperatorDropdown() {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       toggleMenu();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      toggleMenu(true);
+      logoutBtn?.focus();
     }
   };
+
+  if (logoutBtn) {
+    logoutBtn.onkeydown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        toggleMenu(false);
+        pill.focus();
+      }
+    };
+  }
 
   // Close on outside click
   document.addEventListener('click', (e) => {
@@ -321,6 +374,7 @@ function setupOperatorDropdown() {
 
 // Router and Dynamic View Renderer
 async function router() {
+  const sessionToken = activeSessionEpoch;
   if (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR') {
     return;
   }
@@ -339,21 +393,25 @@ async function router() {
       import('./pages/DashboardPage'),
       loadActivities()
     ]);
+    if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) return;
     contentContainer.innerHTML = renderDashboardPage(activities, currentLookups.locations);
   } else if (hash === 'activities') {
     const [{ renderActivitiesPage }, activities] = await Promise.all([
       import('./pages/ActivitiesPage'),
       loadActivities()
     ]);
+    if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) return;
     contentContainer.innerHTML = renderActivitiesPage(activities);
     bindActivitiesListEvents();
   } else if (hash === 'activities/new' || hash.startsWith('activities/edit/') || hash.startsWith('activities/duplicate/')) {
     await loadMasterData();
+    if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) return;
     const [{ handleEditRoute }, { db }, activities] = await Promise.all([
       import('./pages/ActivityEditWorkflow'),
       import('./firebase'),
       loadActivities()
     ]);
+    if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) return;
     await handleEditRoute(hash, contentContainer, {
       db,
       masterLocations,
@@ -369,6 +427,7 @@ async function router() {
       import('./pages/MasterDataPage'),
       import('./firebase')
     ]);
+    if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) return;
     await mountMasterDataPage(contentContainer, {
       db,
       onDataChanged: async () => {
@@ -377,10 +436,12 @@ async function router() {
     });
   } else if (hash === 'reports') {
     await loadMasterData();
+    if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) return;
     const [{ mountReportsPage }, { db }] = await Promise.all([
       import('./pages/ReportsPage'),
       import('./firebase')
     ]);
+    if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) return;
     await mountReportsPage(contentContainer, {
       db,
       masterLocations,
@@ -394,6 +455,7 @@ async function router() {
       import('./pages/SettingsPage'),
       import('./firebase')
     ]);
+    if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) return;
     await mountSettingsPage(contentContainer, {
       db,
       onSettingsSaved: async () => {
@@ -605,6 +667,22 @@ function showLoginView(error?: string, isSubmitting = false, initialEmail = '') 
       }
     };
   }
+
+  // Focus management for accessible keyboard workflow
+  if (!isSubmitting) {
+    if (error) {
+      if (emailInput && !emailInput.value.trim()) {
+        emailInput.focus();
+      } else if (passwordInput) {
+        passwordInput.focus();
+        passwordInput.select();
+      }
+    } else if (initialEmail && passwordInput) {
+      passwordInput.focus();
+    } else if (emailInput) {
+      emailInput.focus();
+    }
+  }
 }
 
 /**
@@ -650,6 +728,13 @@ function showRecoveryView(message?: { type: 'success' | 'error'; text: string },
         showRecoveryView({ type: 'error', text: err.message || 'Gagal mengirim instruksi pemulihan.' }, false, email);
       }
     };
+  }
+
+  if (!isSubmitting && emailInput) {
+    emailInput.focus();
+    if (initialEmail) {
+      emailInput.select();
+    }
   }
 }
 

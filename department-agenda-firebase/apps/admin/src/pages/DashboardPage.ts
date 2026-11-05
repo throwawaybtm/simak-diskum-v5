@@ -88,15 +88,17 @@ export function renderDashboardPage(
     ? upcomingList.map(a => {
         const { day, month } = formatShortDateBadge(a.startDate);
         const timeStr = formatTimeDisplay(a.startTime, a.endTime, a.openEnded);
+        const safeTitle = (a.title || '').replace(/"/g, '&quot;');
+        const locationName = resolveAdminLocationName(a, locationsMap);
         return `
-          <div class="agenda-item-row">
+          <div class="agenda-item-row" title="${safeTitle}">
             <div class="agenda-date-badge">
               <span class="badge-day">${day}</span>
               <span class="badge-month">${month}</span>
             </div>
             <div class="agenda-item-info">
-              <h4 class="agenda-item-title">${a.title}</h4>
-              <p class="agenda-item-location">${resolveAdminLocationName(a, locationsMap)}</p>
+              <h4 class="agenda-item-title" title="${safeTitle}">${a.title}</h4>
+              <p class="agenda-item-location">${locationName}</p>
             </div>
             <div class="agenda-item-time">
               ${timeStr}

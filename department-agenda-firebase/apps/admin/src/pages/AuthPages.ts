@@ -35,7 +35,7 @@ export function renderLoginPage(error?: string, isSubmitting = false, initialEma
           </div>
         ` : ''}
 
-        <form id="adminLoginForm" class="auth-form" novalidate>
+        <form id="adminLoginForm" class="auth-form" aria-busy="${isSubmitting ? 'true' : 'false'}" novalidate>
           <div class="form-group">
             <label for="authEmail" class="auth-label">Alamat Email Kedinasan</label>
             <div class="input-with-icon">
@@ -142,7 +142,7 @@ export function renderPasswordRecoveryPage(
           </div>
         ` : ''}
 
-        <form id="adminRecoveryForm" class="auth-form" novalidate>
+        <form id="adminRecoveryForm" class="auth-form" aria-busy="${isSubmitting ? 'true' : 'false'}" novalidate>
           <div class="form-group">
             <label for="recoveryEmail" class="auth-label">Alamat Email Kedinasan</label>
             <input 
