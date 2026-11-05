@@ -1,7 +1,7 @@
 # SIMAK DISKUM v5.0 — Production Deployment & Rollback Runbook (Hardened)
 
 **Dinas Koperasi dan Usaha Mikro Kota Batam**  
-**Document Version:** 3.1 (Milestone P02-A Controlled Production Activation Planning)  
+**Document Version:** 3.2 (Milestone P02-A Controlled Production Activation Planning - Corrected)  
 **Effective Date:** November 2026  
 **Infrastructure Target:** Firebase Multi-Site Hosting & Cloud Firestore Standard Edition on Firebase Spark (No-Cost) Plan  
 **Target Project:** `simakdiskum`  
@@ -15,8 +15,8 @@
 SIMAK DISKUM v5.0 is designed to operate 100% within the free **Firebase Spark Plan**:
 - **Hosting:** 2 Sites (`simakdiskum` for Public Portal, `simakdiskum-admin` for Admin Portal).
 - **Database:** Cloud Firestore Standard Edition.
-- **Authentication:** Firebase Authentication with Email/Password and custom claims (`admin`, `editor`).
-- **Storage for Attachments:** External Google Drive links managed under official municipal accounts.
+- **Authentication:** Firebase Authentication with Email/Password and custom claims (`admin`, `editor`). Public self-registration is permanently disabled.
+- **Storage for Attachments:** External Google Drive links configured with **Restricted** access for authorized municipal accounts / Google Group. Zero Drive URLs are exposed to the Public Portal.
 - **Cost:** **$0.00/month** (Zero cloud infrastructure cost).
 
 ---
@@ -42,68 +42,106 @@ Before deploying to production, the Release Manager and Lead Engineer must verif
 - [ ] **Dual-Operator Authorization:** Written sign-off from Department Head and IT Administrator.
 - [ ] **Target Project Safeguard:** Active Firebase CLI project is strictly confirmed as `simakdiskum` (`firebase use simakdiskum`).
 - [ ] **Release Tag Checked Out:** Repository is on approved Git release tag (e.g. `v5.0.0-rc1`).
-- [ ] **Automated Test Suite 100% Pass:** `npx vitest run` passes all **202 automated tests across 23 test files** with 0 failures.
-- [ ] **Firestore Security Rules Suite:** `npx vitest run tests/rules/firestore.rules.test.ts` passes **32 / 32 tests**.
+- [ ] **Automated Test Suite 100% Pass:** `npx vitest run` passes all **214 automated tests across 25 test files** with 0 failures (62 tests against real emulators, 152 in-memory unit tests).
+- [ ] **Firestore Security Rules Suite:** `npx vitest run tests/rules/firestore.rules.test.ts tests/rules/maintenanceRules.test.ts` passes **38 / 38 rules tests**.
 - [ ] **Browser E2E Verification Suites:** Playwright suites pass all **79 / 79 scenarios** (100% pass rate).
+- [ ] **Rules Source Preflight Verifier:** `node scripts/verifyRulesSource.mjs --target=prod` validates `firebase.json` points to normal rules (`SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5`).
 - [ ] **Pre-Deployment Database Backup:** Run `cd department-agenda-firebase; node scripts/backupRestore.mjs export ./backups/pre_deploy_$(Get-Date -Format 'yyyyMMdd_HHmm') --target=prod`.
-- [ ] **Production Build Clean:** `npm run build` generates `apps/public/dist` and `apps/admin/dist` with 0 warnings/errors.
+- [ ] **Production Build Clean:** `npm run build` generates `apps/public/dist` (13.67 kB gzip shell) and `apps/admin/dist` (4.70 kB gzip shell) with 0 warnings/errors.
 
 ---
 
-## 4. Safe Step-by-Step Deployment Sequence
+## 4. Safe Step-by-Step Initial Deployment Sequence
 
-To avoid inconsistent intermediate states, deployments must occur in the following explicit sequence:
+Deployments must follow the strict initial activation order:
 
 ```mermaid
 flowchart TD
-    G1[Gate 1: Preflight & Backup] --> D1[Step 1: Deploy Firestore Security Rules]
-    D1 --> V1{Verify Rules via Smoke Test?}
-    V1 -- Failed --> R1[Rollback Rules Immediately]
-    V1 -- Passed --> D2[Step 2: Deploy Firestore Indexes]
-    D2 --> V2{Verify Index Status?}
-    V2 -- Building / Ready --> D3[Step 3: Deploy Hosting Targets]
-    D3 --> V3{Verify Live Web Endpoints?}
-    V3 -- Failed --> R2[1-Click Hosting Rollback]
-    V3 -- Passed --> S1[Post-Deployment Smoke Tests Approved]
+    G1[Step 0: Preflight Rules & Build Audit] --> D1[Step 1: Deploy Production Security Rules]
+    D1 --> D2[Step 2: Deploy Firestore Compound Indexes]
+    D2 --> V1{Indexes Status Enabled?}
+    V1 -- Building --> W1[Wait 2-10 Minutes]
+    W1 --> V1
+    V1 -- Enabled --> D3[Step 3: Verify Empty DB Access Restrictions]
+    D3 --> D4[Step 4: Provision Operators via Admin SDK CLI]
+    D4 --> D5[Step 5: Seed Approved Master Data via Admin SDK]
+    D5 --> D6[Step 6: Deploy Hosting Portals]
+    D6 --> V2{Verify Live Web Endpoints?}
+    V2 -- Failed --> R2[1-Click Hosting Rollback]
+    V2 -- Passed --> S1[Post-Deployment Smoke Tests Approved]
+```
+
+---
+
+### Step 0: Preflight Rules & Build Audit
+Verify that `firebase.json` is configured for normal production rules and that the build artifacts are up-to-date:
+```bash
+cd department-agenda-firebase
+node scripts/verifyRulesSource.mjs --target=prod
+npm run build
 ```
 
 ---
 
 ### Step 1: Deploy Firestore Security Rules
-Always deploy and verify security rules first so data is protected before frontend code arrives:
+Deploy and verify security rules first so data is protected before any client queries or documents arrive:
 ```bash
-firebase deploy --project simakdiskum --only firestore:rules
+firebase deploy --only firestore:rules --project simakdiskum
 ```
 *Verification:*
 - Open [Firebase Console Rules Editor](https://console.firebase.google.com/project/simakdiskum/firestore/rules).
-- Verify the active version timestamp.
-- Attempt unauthorized unauthenticated write to `publicActivities` from DevTools console; verify `PERMISSION_DENIED`.
+- Verify the active version timestamp and release identity `SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5`.
 
-*Stop Condition:* If rules fail to deploy or cause legitimate reads to fail, halt immediately and restore previous rules version.
+*Stop Condition:* If rules fail to deploy or fail preflight verification, halt immediately.
 
 ---
 
 ### Step 2: Deploy Firestore Indexes
 ```bash
-firebase deploy --project simakdiskum --only firestore:indexes
+firebase deploy --only firestore:indexes --project simakdiskum
 ```
 *Verification:*
 - Open [Firebase Console Indexes Tab](https://console.firebase.google.com/project/simakdiskum/firestore/indexes).
-- Verify `activities` and `publicActivities` compound indexes (`startDate ASC, endDate ASC`, `isPublic ASC, startDate ASC`) show status **Enabled** (not Building or Error).
+- Verify `activities` and `publicActivities` compound indexes (`startDate ASC, endDate ASC`, `isPublic ASC, startDate ASC`) show status **`Enabled`** (not `Building` or `Error`).
 
 ---
 
-### Step 3: Deploy Hosting Portals
-Once database security and indexing are operational, deploy the web application shells:
+### Step 3: Verify Empty DB Access Restrictions
+Before creating users or inserting data:
+- Verify unauthenticated writes to `publicActivities` or `activities` are rejected with `PERMISSION_DENIED`.
+- Verify unauthenticated reads to `publicActivities` return empty collection cleanly.
+- Verify private collections (`activities`, `employees`, `settings`, `auditLogs`) return `PERMISSION_DENIED`.
+
+---
+
+### Step 4: Provision Initial Operator Accounts via Admin SDK CLI
 ```bash
-firebase deploy --project simakdiskum --only hosting:public,hosting:admin
+# Passwordless provisioning: auto-generates high-entropy credential and setup link
+node scripts/manageRoles.mjs provision "<APPROVED_ADMIN_EMAIL>" "Administrator DISKUM" admin --target=prod
+node scripts/manageRoles.mjs provision "<APPROVED_OPERATOR_EMAIL>" "Operator Agenda" editor --target=prod
+```
+- Deliver generated password-setup links via official municipal communications.
+
+---
+
+### Step 5: Seed Client-Approved Master Data via Admin SDK
+```bash
+node scripts/backupRestore.mjs seed --env=prod --template=templates/productionMasterDataTemplate.json --target=prod
+```
+- Confirm `clientApproved: true` and official SK decree reference in template.
+
+---
+
+### Step 6: Deploy Hosting Portals
+Once database security, indexing, and data foundations are operational, deploy the web application shells:
+```bash
+firebase deploy --only hosting:public,hosting:admin --project simakdiskum
 ```
 *Verification:*
-- Open `https://simakdiskum.web.app` in an incognito window.
-- Verify civic branding, Barelang Bridge banner, and 4 summary cards.
-- Check DevTools console: 0 JavaScript exceptions.
-- Open `https://simakdiskum-admin.web.app`.
-- Verify admin login screen renders cleanly.
+- Allow **1 to 5 minutes** for edge CDN propagation.
+- Open `https://simakdiskum.web.app` in an incognito window: verify civic branding, Barelang Bridge banner, and 4 summary cards.
+- DevTools console: 0 JavaScript exceptions.
+- Open `https://simakdiskum-admin.web.app`: verify admin login screen renders cleanly.
 
 ---
 
@@ -128,8 +166,8 @@ If newly published rules inadvertently block legitimate operations:
 3. Select previous working version and click **Restore version** -> **Publish**.
 4. Or via CLI:
    ```bash
-   git checkout tags/v5.0.0-rc1 -- firebase/firestore.rules
-   firebase deploy --project simakdiskum --only firestore:rules
+   node scripts/verifyRulesSource.mjs --target=prod
+   firebase deploy --only firestore:rules --project simakdiskum
    ```
 
 ### 5.3 Procedure C: Database State Rollback
@@ -151,16 +189,38 @@ If bad data was committed during deployment rehearsal:
 
 ---
 
-## 6. Firebase Spark Plan Quota Modeling & Reset Schedule
+## 6. Disaster Recovery Maintenance Lockdown
 
-### 6.1 Daily Quota Reset Times (Pacific Time to WIB Conversion)
+When disaster recovery or database restoration is required:
+1. **Preflight Verification:**
+   ```bash
+   node scripts/verifyRulesSource.mjs --config=firebase.maintenance.json --target=prod
+   ```
+2. **Deploy Maintenance Lockdown:**
+   ```bash
+   firebase deploy --config firebase.maintenance.json --only firestore:rules --project simakdiskum
+   ```
+3. **Execute Full Restore (see Section 5.3).**
+4. **Restore Production Rules:**
+   ```bash
+   node scripts/verifyRulesSource.mjs --target=prod
+   firebase deploy --only firestore:rules --project simakdiskum
+   ```
+   *(Or manual 1-click restore in Firebase Console Rules History).*
+
+---
+
+## 7. Firebase Spark Plan Quota Modeling & Reset Schedule
+
+### 7.1 Daily Quota Reset Times (Pacific Time to WIB Conversion)
 Firestore daily free quotas (50,000 reads/day, 20,000 writes/day) reset every 24 hours at **Midnight Pacific Time (00:00 PT)**:
 - **During Pacific Standard Time (PST / UTC-8, ~November to March):**  
   Midnight PST (00:00 PST) corresponds to **15:00 WIB (3:00 PM WIB)**.
 - **During Pacific Daylight Time (PDT / UTC-7, ~March to November):**  
   Midnight PDT (00:00 PDT) corresponds to **14:00 WIB (2:00 PM WIB)**.
+- If quota is exceeded, applications display an Indonesian HTTP 429 quota notice modal without crashing.
 
-### 6.2 Monthly Bandwidth Quota
+### 7.2 Monthly Bandwidth Quota
 - Firebase Hosting provides **10 GB/month** transfer on Spark.
 - Resets on the **1st day of every calendar month at 00:00 UTC (07:00 WIB)**.
 - Public cold load transfer is ~388.11 kB; warm visits are < 3 kB (HTTP 304). At 200 daily visitors, monthly bandwidth consumption is ~0.84 GB (<8.4% of limit).

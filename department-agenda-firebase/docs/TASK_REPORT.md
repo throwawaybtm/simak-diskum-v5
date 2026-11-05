@@ -967,3 +967,107 @@ Milestone P02-A delivers the complete operational preflight and controlled activ
   - Zero production Firestore rules or database documents modified.
   - Zero Blaze billing upgrades activated ($0.00/month Spark target preserved).
   - System paused and awaiting review.
+
+
+---
+
+# Milestone P02-A: Final Activation Plan Corrections Report
+
+**Date:** 2026-11-05  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (214/214 Vitest Tests, 38 Rules Tests, 79 Browser Scenarios, 100% Pass Rate)  
+**Authority:** P02-A Final Activation Plan Corrections Directives, `docs/P02_ACTIVATION_PLAN.md`, `docs/P02_GO_NO_GO_CHECKLIST.md`, `docs/DEPLOYMENT_RUNBOOK.md` (v3.2), and `docs/BACKUP_RECOVERY_RUNBOOK.md` (v3.2)  
+**Implementation Commit:** `b933ce2`  
+
+---
+
+## 1. Executive Summary
+
+Following the initial planning submission for Milestone P02-A, this correction pass resolved all identified operational ambiguities, security risks, and activation order discrepancies. All technical implementations, scripts, configurations, and runbooks have been updated, verified through automated tests, and confirmed to preserve zero live cloud changes.
+
+### Key Corrections Implemented:
+
+1. **Deterministic Maintenance-Rules Deployment:**
+   - Authored `department-agenda-firebase/firebase.maintenance.json` pointing directly to `"rules": "firebase/firestore.maintenance.rules"`.
+   - Embedded explicit release identity tags:
+     - `firebase/firestore.rules`: `// RELEASE_IDENTITY: SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5` (Mode: `PRODUCTION_NORMAL`).
+     - `firebase/firestore.maintenance.rules`: `// RELEASE_IDENTITY: SIMAK_DISKUM_MAINTENANCE_LOCKDOWN_RULES_V5` (Mode: `MAINTENANCE_LOCKDOWN`).
+   - Implemented `department-agenda-firebase/scripts/verifyRulesSource.mjs` to validate CLI configuration, rules file target, release identity, and target project before any deployment command runs.
+   - De-coupled deployment commands completely:
+     - Routine production rules: `firebase deploy --only firestore:rules --project simakdiskum` (uses default `firebase.json`).
+     - Maintenance lockdown: `firebase deploy --config firebase.maintenance.json --only firestore:rules --project simakdiskum`.
+   - `firebase.json` is **NEVER** modified temporarily.
+   - Clarified that console rollback is a manual administrator action via Firebase Console Rules History (not an automatic background reversion).
+   - Verified by dedicated unit tests in `tests/unit/rulesSourceVerification.test.ts` (3 / 3 passed).
+
+2. **Confidentiality of Departmental Documents (Google Drive):**
+   - Corrected item 2.5 in `docs/P02_GO_NO_GO_CHECKLIST.md`: Municipal Google Drive attachments require **Restricted** access, shared strictly with authorized departmental accounts / municipal Google Group (removed all references to "Anyone with the link can view").
+   - Added automated unit test in `tests/unit/publicProjector.test.ts` verifying that `invitationLetter.driveUrl` and letter metadata are strictly stripped from all public DTOs and public JSON serialization (5 / 5 passed).
+
+3. **Elimination of Hardcoded Passwords & Invented Emails:**
+   - Removed all literal passwords (`"InitialComplexP@ss2026!"`) and invented email addresses (`admin.diskum@batam.go.id`) from all documentation and runbooks.
+   - Replaced all credentials with generic municipal placeholders (`<APPROVED_ADMIN_EMAIL>`, `<APPROVED_OPERATOR_EMAIL>`).
+   - Enhanced `department-agenda-firebase/scripts/manageRoles.mjs` to support passwordless provisioning (`node scripts/manageRoles.mjs provision "<EMAIL>" "<NAME>" <ROLE> --target=prod`), generating 24-byte secure random entropy and an out-of-band password-setup link via the Firebase Admin SDK.
+   - Verified by unit tests in `tests/unit/authRoleManagement.test.ts` (10 / 10 passed).
+
+4. **Realignment of Initial Production Activation Order:**
+   - Restructured `docs/P02_ACTIVATION_PLAN.md` into two distinct sections:
+     - **Part 1: Initial Production Activation Sequence (Gates 0–9):**
+       - *Gate 0:* Pre-Activation Administrative Verification & Spark Plan Audit ($0.00/mo).
+       - *Gate 1:* Firebase Authentication Setup & Permanent Disabling of Public Sign-Up.
+       - *Gate 2:* Initial Production Firestore Security Rules & Compound Indexes Deployment (confirming status `Enabled` before data or clients are introduced).
+       - *Gate 3:* Live Access Restriction & Public/Private Isolation Verification on empty database.
+       - *Gate 4:* Approved Operator Account Provisioning via Admin SDK (passwordless CLI).
+       - *Gate 5:* Client-Approved Master Data Seeding (under protected access, verifying SK decree).
+       - *Gate 6:* Multi-Site Hosting Targets Deployment (`public` and `admin`, edge CDN 1–5+ min propagation).
+       - *Gate 7:* Live Post-Deployment Smoke Testing & RBAC Least-Privilege Audit.
+       - *Gate 8:* Department User Acceptance Testing (11 formal business scenarios).
+       - *Gate 9:* Production Handover & Ongoing Operational Support Schedule.
+     - **Part 2: Disaster Recovery & Scheduled Maintenance Lockdown Procedure:** Quarantines maintenance lockdown strictly to emergency database recovery and major structural migrations.
+
+5. **Correction of Firebase Password-Reset Claims:**
+   - Corrected documentation to confirm that Firebase Authentication natively supports password reset emails on the free Spark plan (~100 emails/day quota) via Firebase's built-in mailer.
+   - Administrative CLI link generation remains an available secondary fallback for government networks with aggressive spam filters.
+
+6. **Reconciliation of Verification Metrics & Readiness Claims:**
+   - Reconciled automated test suite counts: **214 Vitest automated tests across 25 test files** (100% pass rate).
+   - Execution breakdown: **62 tests executed against REAL Firestore & Auth Emulators**, 152 in-memory unit tests.
+   - Security rules: **38 tests passed** (32 normal rules + 6 maintenance rules).
+   - Playwright browser scenarios: **79 passed** (100% pass rate).
+   - Total automated assertions: **293+ passed**.
+   - Overall status marked honestly: **CONDITIONAL PREFLIGHT APPROVED — PRODUCTION ACTIVATION ON HOLD** awaiting official civil service decree (SK) and employee directory.
+   - Documented finite Spark daily quotas (50,000 reads/day) and graceful Indonesian HTTP 429 quota notice modal.
+
+---
+
+## 2. Updated Test Suite Summary & Attribution
+
+- **Vitest Automated Test Suites:** **25 passed** (25 total, 100% pass rate).
+- **Vitest Automated Tests:** **214 passed** (214 total, 100% pass rate).
+- **Execution Harness Attribution:**
+  - **62 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
+    - 10 in `tests/integration/p01bSafetyVerification.test.ts`
+    - 32 in `tests/rules/firestore.rules.test.ts`
+    - 6 in `tests/rules/maintenanceRules.test.ts`
+    - 6 in `tests/emulator/repository.emulator.test.ts`
+    - 4 in `tests/emulator/masterRepository.emulator.test.ts`
+    - 1 in `tests/emulator/queryBenchmark.emulator.test.ts`
+    - 3 in `tests/integration/publicPrivacyAudit.emulator.test.ts`
+  - **152 tests executed against fast in-memory mocks:**
+    - Schemas, time math, validation, privacy scanner, conflict detector, UI controllers, Excel parser, staging guards, backup diff, checkpoint ledger, rules source verifier, and passwordless role management.
+- **Playwright Real-Browser Verification:** **79 / 79 browser scenarios passed** (100% pass rate).
+- **Total Automated Test Assertions:** **293+ passed** (214 Vitest + 79 Browser, 100% pass rate).
+- **Monorepo Production Build:** Clean exit code 0 (`@department-agenda/shared`, `public`, `admin`).
+
+---
+
+## 3. Milestone P02-A Final Review Checkpoint Status
+
+- **Checkpoint:** **Milestone P02-A Final Activation Plan Review Checkpoint**
+- **Status:** **COMPLETED & VERIFIED (PRODUCTION ACTIVATION ON HOLD)**
+- **Strict Invariants Preserved:**
+  - Zero live deployment commands executed.
+  - Zero real operator accounts created.
+  - Zero production Firestore rules or database documents modified.
+  - Zero Blaze billing upgrades activated ($0.00/month Spark target preserved).
+  - System paused and awaiting client Category 2 administrative authorizations.

@@ -1,7 +1,7 @@
 # SIMAK DISKUM v5.0 — Backup, Disaster Recovery & Seeding Runbook (Hardened)
 
 **Dinas Koperasi dan Usaha Mikro Kota Batam**  
-**Document Version:** 3.1 (Milestone P02-A Controlled Production Activation Planning)  
+**Document Version:** 3.2 (Milestone P02-A Controlled Production Activation Planning - Corrected)  
 **Effective Date:** November 2026  
 **Infrastructure Target:** Firebase Spark (No-Cost) Plan  
 **Primary Tool:** `scripts/backupRestore.mjs`
@@ -148,50 +148,24 @@ Every execution of `restore` or `seed` automatically writes an audit record dire
   "action": "MAINTENANCE_RESTORE",
   "entity": "DATABASE_BACKUP",
   "entityId": "2026-11-05",
-  "actorId": "SYSTEM_MAINTENANCE_CLI",
-  "actorLabel": "System Administrator (admin@diskum.batam.go.id)",
-  "identitySource": "ADMIN_CLI_PRIVILEGED",
-  "isPrivilegedMaintenance": true,
-  "operationId": "restore_op_1793859...",
-  "targetProject": "simakdiskum",
-  "mode": "full",
-  "details": "Restored 87 documents across collections (mode: full, dryRun: false, force: true)",
-  "performedAt": "2026-11-05T05:30:00.000Z",
-  "timestamp": "[Firestore.Timestamp]"
+  "actorId": "system-admin-adc",
+  "actorRole": "admin",
+  "details": {
+    "mode": "full",
+    "manifestHash": "a6b07a...",
+    "operationId": "op_1762320501"
+  }
 }
 ```
-
-> [!NOTE]
-> **TAMPER-RESISTANCE BOUNDARY:**  
-> Audit logs in Cloud Firestore are protected against client-side tampering by Firebase Security Rules (`allow update, delete: if false`). However, they reside in standard Cloud Firestore storage and are administered by Admin SDK credentials; they are **not** backed by external cryptographic WORM (Write Once Read Many) storage or immutable hardware ledgers.
 
 ---
 
-## 6. Batch Atomicity & Checkpoint Resumption Ledger
+## 6. Checkpoint Ledger & Resumable Restoration
 
-Firestore limits batched writes to 500 operations. `backupRestore.mjs` executes in chunks of **450 operations**.
-
-> [!WARNING]
-> **BATCH ATOMICITY BOUNDARY:**  
-> Each 450-document batch is atomic *within itself*. However, Firestore does **NOT** provide multi-batch atomicity across an entire database restore.  
-> If batch 2 of 5 fails due to network drop or quota exhaustion, batch 1 remains committed in Firestore.
-
-### 6.1 Checkpoint Ledger (`restore-progress.json`)
-The utility tracks restoration progress in a structured ledger bound to the operation:
-```json
-{
-  "operationId": "restore_op_1793859500_a1b2",
-  "targetProjectId": "simakdiskum",
-  "manifestHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "sourceDir": "D:\\Temp\\backups\\2026-11-05",
-  "mode": "full",
-  "startedAt": "2026-11-05T06:18:20.000Z",
-  "completedBatches": ["activities_batch_1", "employees_batch_1"],
-  "completedDeletions": ["activities_del_1"],
-  "failedBatch": null,
-  "status": "IN_PROGRESS"
-}
-```
+### 6.1 Cryptographically Bound Checkpoint Ledger (`restore-progress.json`)
+To safeguard against network failure during large multi-batch restorations, `backupRestore.mjs` records progress in `restore-progress.json`:
+- **Binding Safeguards:** Checkpoint records `targetProjectId`, `manifestHash`, `mode`, and `operationId`.
+- **Validation:** Attempting to resume with a different backup, target environment, or restore mode is rejected immediately.
 
 ### 6.2 Checking Progress, Resuming, or Restarting
 - **To inspect checkpoint status:**
@@ -211,31 +185,64 @@ The utility tracks restoration progress in a structured ledger bound to the oper
 
 ---
 
-## 7. Preventing Concurrent Application Writes During Full Restore
+## 7. Preventing Concurrent Application Writes During Full Restore (Disaster Recovery)
 
-To prevent race conditions or data inconsistency while a destructive restore is taking place:
+To prevent race conditions or data inconsistency while a destructive restore is taking place, shield Cloud Firestore with maintenance lockdown rules:
 
-### Maintenance Lockdown Procedure:
-1. **Deploy Maintenance Security Rules (`firebase/firestore.maintenance.rules`):**
-   Temporarily deploy lockdown rules that block all client writes while allowing public reads (ensuring zero visitor crashes):
+```mermaid
+flowchart TD
+    DR1[Incident Detected: DB Corruption] --> DR2[Preflight Verify Maintenance Config]
+    DR2 --> DR3[Deploy Maintenance Rules via firebase.maintenance.json]
+    DR3 --> DR4[Verify Lockdown: Public Read OK, Writes Blocked]
+    DR4 --> DR5[Execute Controlled Full Restoration via backupRestore.mjs]
+    DR5 --> DR6[Verify Restoration Integrity assertDeepFirestoreEquality]
+    DR6 --> DR7[Preflight Verify Normal Production Rules Config]
+    DR7 --> DR8[Deploy Normal Production Rules or 1-Click Console Restore]
+    DR8 --> DR9[Normal Operations Resumed]
+```
+
+### 7.1 Deterministic Maintenance Lockdown Procedure
+Never edit `firebase.json` directly. Use the dedicated maintenance configuration:
+
+1. **Preflight Verification:**
    ```bash
    cd department-agenda-firebase
-   firebase deploy --project simakdiskum --only firestore:rules
+   node scripts/verifyRulesSource.mjs --config=firebase.maintenance.json --target=prod
    ```
+   *Expected Output:*
+   ```text
+   [Rules Verification Passed]
+     Config:           firebase.maintenance.json
+     Rules File:       firebase/firestore.maintenance.rules
+     Expected Release: SIMAK_DISKUM_MAINTENANCE_LOCKDOWN_RULES_V5
+     Detected Mode:    MAINTENANCE_LOCKDOWN
+   ```
+
+2. **Deploy Maintenance Security Rules (`firebase/firestore.maintenance.rules`):**
+   ```bash
+   firebase deploy --config firebase.maintenance.json --only firestore:rules --project simakdiskum
+   ```
+   *Invariants Enforced:*
+   - **Public Reads:** Preserved (`allow read: if true`), ensuring citizens encounter zero UI crashes.
+   - **Client Writes:** Frozen across all collections (`allow write: if false`).
+   - **Admin SDK:** Completely unaffected (Admin SDK credentials bypass security rules).
    *(Verified by `tests/rules/maintenanceRules.test.ts` with 6/6 tests passing).*
-2. **Execute Controlled Full Restoration via Admin SDK:**
-   Admin SDK scripts connect via Google Cloud credentials and bypass security rules:
+
+3. **Execute Controlled Full Restoration via Admin SDK:**
    ```bash
    node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --force --dry-run-reviewed --target=prod
    ```
-3. **Run Deep Verification:**
+
+4. **Run Deep Verification:**
    Ensure `verifyRestoration()` completes with 100% matched documents.
-4. **Restore Production Security Rules:**
-   Deploy `firebase/firestore.rules` back to the live project:
+
+5. **Deterministic Restoration of Normal Production Security Rules:**
+   Verify `firebase.json` and deploy normal production rules:
    ```bash
-   firebase deploy --project simakdiskum --only firestore:rules
+   node scripts/verifyRulesSource.mjs --target=prod
+   firebase deploy --only firestore:rules --project simakdiskum
    ```
-   *Note: In the event of an operator network interruption during maintenance, rules can also be reverted in 1-click from Firebase Console under Firestore > Rules > Rules history > Restore version.*
+   *Note:* If network connectivity is lost during maintenance, an administrator can manually restore normal production rules in 1-click via **Firebase Console > Firestore > Rules > Rules history > Restore version > Publish**.
 
 ---
 

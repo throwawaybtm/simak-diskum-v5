@@ -6,21 +6,33 @@
 **Target Project:** `simakdiskum`  
 **Public Portal URL:** `https://simakdiskum.web.app`  
 **Admin Portal URL:** `https://simakdiskum-admin.web.app`  
-**Milestone:** **P02-A Controlled Production Activation Planning**  
-**Document Status:** P02-A PLANNING ONLY — NO LIVE DEPLOYMENT PERMITTED WITHOUT GATE SIGN-OFF  
+**Milestone:** **P02-A Controlled Production Activation Planning (Corrected)**  
+**Document Status:** CONDITIONAL PREFLIGHT APPROVED — PRODUCTION ACTIVATION ON HOLD (Awaiting Client Category 2 Approvals)  
 
 ---
 
 ## 1. Executive Summary & Activation Invariants
 
-This document establishes the precise, phase-by-phase production activation sequence for SIMAK DISKUM v5.0 on Google Cloud / Firebase project `simakdiskum`. 
+This document establishes the precise, phase-by-phase production activation sequence for SIMAK DISKUM v5.0 on Google Cloud / Firebase project `simakdiskum`.
+
+> [!CAUTION]
+> **HONEST PREFLIGHT READINESS BOUNDARY:**  
+> The SIMAK DISKUM v5.0 software artifacts, build pipelines, security rules, and administrative tooling are **100% verified locally** across **214 Vitest automated tests (25 test files)**, **38 Firestore Security Rules tests**, and **79 Playwright real-browser scenarios**.  
+> However, **NO LIVE DEPLOYMENT OR ACCOUNT CREATION MAY OCCUR** until the Dinas Koperasi dan Usaha Mikro Kota Batam delivers the required official administrative items (Category 2: Head of Department Signatory decree, employee directory, and authorized civil servant email roster).
 
 ### Strict Activation Invariants:
 1. **Zero Financial Cost ($0.00/month):** The production deployment operates strictly within the perpetual free tier of the **Firebase Spark Plan**. No Blaze billing account may be linked.
 2. **Explicit Stop/Go Decision Gates:** Every phase that introduces changes to Google Cloud or Firebase requires explicit, recorded stakeholder authorization before proceeding.
 3. **No Synthetic Data in Production:** All synthetic test data, `[DEMO]` markers, and sample records are strictly quarantined to local development emulators. Only client-approved civil service records may enter production.
-4. **Reversible Maintenance Shield:** A tested, reversible maintenance security ruleset protects Cloud Firestore from concurrent client mutations during restoration and setup.
-5. **Separation of Control Planes:** Deployments occur sequentially (Rules $\rightarrow$ Indexes $\rightarrow$ Hosting) to prevent race conditions where web clients query unindexed database collections.
+4. **Deterministic Security Rules Deployment:**
+   - Normal production rules are deployed deterministically using `firebase.json` (`firebase/firestore.rules`), tagged with release identity `SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5`.
+   - Emergency maintenance lockdown rules are deployed deterministically using `--config firebase.maintenance.json` (`firebase/firestore.maintenance.rules`), tagged with release identity `SIMAK_DISKUM_MAINTENANCE_LOCKDOWN_RULES_V5`.
+   - `firebase.json` is **NEVER** modified temporarily during operations.
+   - Every rules deployment must be preceded by automated preflight validation (`node scripts/verifyRulesSource.mjs`).
+5. **Separation of First-Time Setup vs Disaster Recovery:** First-time production activation deploys standard production rules to an empty database before operator accounts or master data are introduced. Maintenance lockdown is quarantined strictly to emergency disaster recovery and major structural migrations.
+6. **Confidentiality of Departmental Documents:** Google Drive storage for incoming invitation letters is configured with **Restricted** access, shared strictly with authorized municipal accounts / Google Group. Private Drive URLs and letter metadata are strictly excluded from `publicActivities`, public JSON payloads, and public DOM elements.
+7. **Zero Hardcoded Credentials:** Runbooks and administrative scripts use generic placeholders (`<APPROVED_ADMIN_EMAIL>`, `<APPROVED_OPERATOR_EMAIL>`). Operator provisioning generates cryptographically secure passwords and password-setup links via the Firebase Admin SDK without hardcoded credentials.
+8. **Finite Spark Quotas & Graceful Degradation:** Cloud Firestore daily free quotas (50,000 reads/day, 20,000 writes/day) reset daily at **15:00 WIB (PST) / 14:00 WIB (PDT)**. If client traffic exceeds 50,000 reads, the application degrades gracefully by displaying an informative Indonesian HTTP 429 quota notice modal without crashing the application shell.
 
 ---
 
@@ -33,58 +45,58 @@ flowchart TD
         ADM["Admin Portal (Staff / Operators)<br/>https://simakdiskum-admin.web.app"]
     end
 
-    subgraph Firebase Cloud [Firebase Production Platform - Project: simakdiskum]
+    subgraph Firebase Cloud [Firebase Production Platform - Project: simakdiskum (Spark $0/mo)]
         direction TB
         FHOST["Firebase Hosting (2 Sites)<br/>Global CDN (10 GB/month transfer)"]
-        FCONF["Firebase Auth (Spark Free)<br/>Email/Password (Public Sign-up DISABLED)"]
+        FCONF["Firebase Auth (Spark Free)<br/>Email/Password (Public Sign-up DISABLED)<br/>~100 reset emails/day"]
         FSTORE["Cloud Firestore Standard Edition<br/>50k reads/day | 20k writes/day | 1 GB storage"]
-        FINDEX["Compound Indexes<br/>activities & publicActivities"]
-        FRULES["Security Rules (RBAC)<br/>Admin & Editor custom claims"]
+        FINDEX["Compound Indexes<br/>activities & publicActivities (Enabled)"]
+        FRULES["Security Rules (RBAC)<br/>SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5"]
     end
 
     subgraph External Municipal [External Municipal Resources]
-        GDRIVE["Batam Municipal Google Drive<br/>Invitation Letter Attachments (PDF/DOCX)"]
-        ADMIN_CLI["System Maintenance CLI<br/>backupRestore.mjs & manageRoles.mjs (ADC)"]
+        GDRIVE["Batam Municipal Google Drive<br/>RESTRICTED Access (Authorized Department Group Only)<br/>ZERO links leaked to Public Portal"]
+        ADMIN_CLI["System Maintenance CLI (ADC)<br/>verifyRulesSource.mjs | manageRoles.mjs | backupRestore.mjs"]
     end
 
     PUB --> FHOST
+    PUB -->|Sanitized Read Only (Zero Drive URLs)| FSTORE
     ADM --> FHOST
-    PUB -->|Sanitized Public Read| FSTORE
     ADM -->|Authenticated RBAC| FCONF
-    ADM -->|CRUD with Version Lockstep| FSTORE
-    ADM -.->|External Document Links| GDRIVE
+    ADM -->|CRUD with Optimistic Version Lockstep| FSTORE
+    ADM -.->|Restricted Document Access| GDRIVE
     ADMIN_CLI ==>|Admin SDK Privileged Access| FSTORE
     ADMIN_CLI ==>|Admin SDK Role Provisioning| FCONF
-    FRULES -.->|Enforces Access & Lockstep| FSTORE
+    FRULES -.->|Enforces Access & Version Lockstep| FSTORE
     FINDEX -.->|Accelerates Multi-Month Queries| FSTORE
 ```
 
 ---
 
-## 3. Step-by-Step Production Activation Sequence
+## 3. Part 1 — Initial Production Activation Sequence
 
-The activation sequence consists of **10 sequential phases**. Each phase contains explicit verification criteria and an actionable **Stop/Go Decision Gate**.
+The initial activation sequence follows **10 sequential gates** executed in strict dependency order. Every gate has explicit preflight requirements, verification commands, and a **Stop/Go Decision Gate**.
 
 ```mermaid
 flowchart TD
-    P0[Gate 0: Administrative Verification & Spark Audit] --> P1[Gate 1: Firebase Auth Configuration & Sign-up Disabling]
-    P1 --> P2[Gate 2: Initial Operator Provisioning via Admin SDK]
-    P2 --> P3[Gate 3: Client-Approved Master Data Seeding]
-    P3 --> P4[Gate 4: Reversible Maintenance Lockdown Deployment]
-    P4 --> P5[Gate 5: Firestore Rules & Indexes Deployment]
-    P5 --> P6[Gate 6: Multi-Site Hosting Targets Deployment]
-    P6 --> P7[Gate 7: Live Smoke Testing & RBAC Audit]
-    P7 --> P8[Gate 8: Department User Acceptance Testing - UAT]
-    P8 --> P9[Gate 9: Production Sign-Off & Ongoing Operations]
+    G0[Gate 0: Admin Verification & Spark Plan Audit] --> G1[Gate 1: Firebase Auth Setup & Sign-Up Restriction]
+    G1 --> G2[Gate 2: Production Rules & Compound Indexes Deployment]
+    G2 --> G3[Gate 3: Live Access Restriction & Public/Private Isolation on Empty DB]
+    G3 --> G4[Gate 4: Approved Operator Account Provisioning via Admin SDK]
+    G4 --> G5[Gate 5: Client-Approved Master Data Seeding via Admin SDK]
+    G5 --> G6[Gate 6: Multi-Site Hosting Targets Deployment]
+    G6 --> G7[Gate 7: Live Post-Deployment Smoke Testing & RBAC Policy Audit]
+    G7 --> G8[Gate 8: Department User Acceptance Testing - UAT]
+    G8 --> G9[Gate 9: Production Handover & Ongoing Operational Schedule]
 ```
 
 ---
 
-### Phase 0 — Pre-Activation Administrative Verification & Spark Plan Audit
+### Gate 0 — Pre-Activation Administrative Verification & Spark Plan Audit
 
 | Field | Detail |
 |---|---|
-| **Objective** | Verify project ownership, confirm Spark billing limits, and validate build outputs. |
+| **Objective** | Verify GCP project ownership, confirm Spark billing limits ($0.00/mo), and validate build outputs. |
 | **Tooling** | Google Cloud Console, Firebase Console, Git, Local Shell. |
 | **Prerequisites** | Project administrator access to GCP project `simakdiskum`. |
 
@@ -95,7 +107,7 @@ flowchart TD
 2. **Audit Billing Plan (Spark Free Plan Enforcement):**
    - Open **Firebase Console > Project Settings > Usage and billing**.
    - **CONFIRM:** Plan is displayed as **Spark ($0.00 / month)**.
-   - Ensure no credit card or Google Cloud Billing Account is attached that could incur unexpected charges.
+   - Ensure no credit card or Google Cloud Billing Account is attached.
 3. **Verify Hosting Multi-Site Targets:**
    - Open **Firebase Console > Hosting**.
    - Verify that two distinct hosting sites exist:
@@ -117,7 +129,7 @@ flowchart TD
 
 ---
 
-### Phase 1 — Firebase Authentication Configuration & Sign-Up Restrictions
+### Gate 1 — Firebase Authentication Setup & Disabling of Public Sign-Up
 
 | Field | Detail |
 |---|---|
@@ -136,24 +148,100 @@ flowchart TD
    - **UNCHECK:** `Enable create (sign-up)`.
    - Click **Save**.
    - *Technical Impact:* This blocks all client-side calls to `createUserWithEmailAndPassword()` across both web apps with error `auth/admin-restricted-operation`. Only Admin SDK scripts using administrative service credentials can provision accounts.
-3. **Verify Password Reset Policy & Limitations:**
-   - On the Spark free plan, automated SMTP relay from Google is limited.
-   - Password reset links will be generated securely via CLI (`manageRoles.mjs reset-password`) and delivered out-of-band via official municipal channels (Government WhatsApp / Official Department Memo).
+3. **Verify Password Reset Capabilities on Spark Plan:**
+   - On the Firebase Spark plan, standard Firebase Auth password reset emails are fully supported via Firebase's built-in mailer (`noreply@simakdiskum.firebaseapp.com`), subject to a daily quota of ~100 emails/day.
+   - Operators can trigger password reset emails directly from the Admin Portal login page.
+   - Additionally, the administrative CLI (`node scripts/manageRoles.mjs reset-password <email> --target=prod`) generates out-of-band password-setup links as a secondary administrative fallback for government environments with aggressive email spam filtering.
 
 > [!IMPORTANT]
 > **STOP/GO DECISION GATE 1:**  
 > **Go Criteria:** Email/Password enabled; "Enable create (sign-up)" verified UNCHECKED; self-registration impossible from web clients.  
-> **No-Go Action:** Halt. Do not proceed to user creation until public signup is provably disabled.
+> **No-Go Action:** Halt. Do not proceed until public signup is provably disabled.
 
 ---
 
-### Phase 2 — Initial Operator Provisioning & Custom Role Claims
+### Gate 2 — Initial Production Firestore Security Rules & Compound Indexes Deployment
 
 | Field | Detail |
 |---|---|
-| **Objective** | Provision initial authorized Admin and Editor accounts using Admin SDK CLI with custom claims. |
-| **Tooling** | `department-agenda-firebase/scripts/manageRoles.mjs` (ADC or Service Account). |
-| **Prerequisites** | Gate 1 approval; written list of authorized civil servant email addresses signed by Department Head. |
+| **Objective** | Deploy approved production security rules and build compound indexes on the empty database before data or clients are introduced. |
+| **Tooling** | Firebase CLI, `scripts/verifyRulesSource.mjs`. |
+| **Prerequisites** | Gate 1 approval. |
+
+#### Procedure:
+1. **Preflight Rules Verification:**
+   Before running any Firebase CLI deployment command, verify the target rules configuration:
+   ```bash
+   cd department-agenda-firebase
+   node scripts/verifyRulesSource.mjs --target=prod
+   ```
+   *Expected Output:*
+   ```text
+   [Rules Verification Passed]
+     Config:           firebase.json
+     Rules File:       firebase/firestore.rules
+     Expected Release: SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5
+     Detected Mode:    PRODUCTION_NORMAL
+   ```
+2. **Deploy Production Security Rules:**
+   ```bash
+   firebase deploy --only firestore:rules --project simakdiskum
+   ```
+   - Open [Firebase Console Rules Tab](https://console.firebase.google.com/project/simakdiskum/firestore/rules).
+   - Verify deployment timestamp and confirm release identity `SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5`.
+3. **Deploy Firestore Compound Indexes:**
+   ```bash
+   firebase deploy --only firestore:indexes --project simakdiskum
+   ```
+   *Deployed Indexes (`firestore.indexes.json`):*
+   - `activities`: `startDate ASC, endDate ASC, __name__ ASC`
+   - `publicActivities`: `startDate ASC, endDate ASC, __name__ ASC`
+   - `publicActivities`: `isPublic ASC, startDate ASC, __name__ ASC`
+4. **Monitor Index Build Completion:**
+   - Open [Firebase Console Indexes Tab](https://console.firebase.google.com/project/simakdiskum/firestore/indexes).
+   - **WAIT:** Compound indexes will show status `Building` for 2–10 minutes.
+   - **DO NOT PROCEED** until all indexes transition to status **`Enabled`**.
+
+> [!IMPORTANT]
+> **STOP/GO DECISION GATE 2:**  
+> **Go Criteria:** Production rules verified and published; all compound indexes show status **`Enabled`**; 0 build errors.  
+> **No-Go Action:** Halt. Do NOT proceed to client deployment or data operations while indexes are `Building`; newly deployed clients will throw `FAILED_PRECONDITION: The query requires an index`.
+
+---
+
+### Gate 3 — Live Access Restriction & Public/Private Isolation Verification on Empty Database
+
+| Field | Detail |
+|---|---|
+| **Objective** | Verify that security rules actively protect the empty database before operator accounts or master records are created. |
+| **Tooling** | Browser DevTools Console / Postman / cURL. |
+| **Prerequisites** | Gate 2 approval (Rules and Indexes `Enabled`). |
+
+#### Procedure:
+1. **Test Unauthenticated Write Rejection:**
+   - Attempt an unauthenticated write to `publicActivities` or `activities` via REST/SDK.
+   - Verify that Cloud Firestore rejects the operation with `PERMISSION_DENIED`.
+2. **Test Public Read Cleanliness:**
+   - Execute an unauthenticated read against `publicActivities`.
+   - Verify that the query returns an empty collection cleanly with HTTP 200 / empty snapshot, with zero errors and zero leaked metadata.
+3. **Test Private Collection Shielding:**
+   - Attempt an unauthenticated read against `activities`, `employees`, `settings`, or `auditLogs`.
+   - Verify that all private collections return `PERMISSION_DENIED`.
+
+> [!IMPORTANT]
+> **STOP/GO DECISION GATE 3:**  
+> **Go Criteria:** Live database proves unauthenticated writes are blocked and private collections are completely inaccessible.  
+> **No-Go Action:** Halt immediately if any private collection permits unauthenticated access.
+
+---
+
+### Gate 4 — Approved Operator Account Provisioning via Admin SDK
+
+| Field | Detail |
+|---|---|
+| **Objective** | Provision initial authorized Admin and Editor accounts using Admin SDK CLI with passwordless link generation. |
+| **Tooling** | `department-agenda-firebase/scripts/manageRoles.mjs` (ADC). |
+| **Prerequisites** | Gate 3 approval; official civil service email roster approved in writing by Head of Department. |
 
 #### Procedure:
 1. **Set Environment Safeguards:**
@@ -163,48 +251,46 @@ flowchart TD
    unset FIREBASE_AUTH_EMULATOR_HOST
    export GCLOUD_PROJECT="simakdiskum"
    ```
-2. **Provision System Administrator (Kepala Dinas / Lead Admin):**
+2. **Provision System Administrator (Kepala Dinas / Lead IT Admin):**
    ```bash
-   # Provision Admin account (temporary password must meet civic complexity standards)
-   node scripts/manageRoles.mjs provision "admin.diskum@batam.go.id" "InitialComplexP@ss2026!" "Administrator DISKUM" admin --target=prod
+   # Passwordless provisioning: auto-generates high-entropy credential and setup link
+   node scripts/manageRoles.mjs provision "<APPROVED_ADMIN_EMAIL>" "Administrator DISKUM" admin --target=prod
    ```
 3. **Provision Agenda Operators (Editors):**
    ```bash
    # Provision Operator 1
-   node scripts/manageRoles.mjs provision "operator1.agenda@batam.go.id" "InitialComplexP@ss2026!" "Operator Agenda 1" editor --target=prod
+   node scripts/manageRoles.mjs provision "<APPROVED_OPERATOR_1_EMAIL>" "Operator Agenda 1" editor --target=prod
    
    # Provision Operator 2
-   node scripts/manageRoles.mjs provision "operator2.agenda@batam.go.id" "InitialComplexP@ss2026!" "Operator Agenda 2" editor --target=prod
+   node scripts/manageRoles.mjs provision "<APPROVED_OPERATOR_2_EMAIL>" "Operator Agenda 2" editor --target=prod
    ```
 4. **Verify Custom Claims Attachment:**
    ```bash
-   node scripts/manageRoles.mjs inspect "admin.diskum@batam.go.id" --target=prod
-   node scripts/manageRoles.mjs inspect "operator1.agenda@batam.go.id" --target=prod
+   node scripts/manageRoles.mjs inspect "<APPROVED_ADMIN_EMAIL>" --target=prod
+   node scripts/manageRoles.mjs inspect "<APPROVED_OPERATOR_1_EMAIL>" --target=prod
    ```
-   - Verify that output confirms:
+   - Verify output confirms:
      - `Custom Claims: { role: "admin", department: "Dinas Koperasi dan Usaha Mikro Kota Batam" }`
      - `Disabled: false`
-5. **Generate Secure Password Reset Links:**
-   ```bash
-   node scripts/manageRoles.mjs reset-password "admin.diskum@batam.go.id" --target=prod
-   node scripts/manageRoles.mjs reset-password "operator1.agenda@batam.go.id" --target=prod
-   ```
-   - Deliver generated URLs directly to authorized personnel via confidential municipal channels.
+5. **Deliver Password Setup Links:**
+   - The CLI outputs a secure one-time password-setup link for each provisioned account.
+   - Deliver links directly to authorized operators via confidential municipal channels.
+   - Operators set their private passwords upon first access.
 
 > [!IMPORTANT]
-> **STOP/GO DECISION GATE 2:**  
-> **Go Criteria:** Real accounts created; custom claims verified as `{ role: "admin" }` and `{ role: "editor" }`; zero passwords logged to disk or console.  
+> **STOP/GO DECISION GATE 4:**  
+> **Go Criteria:** Real operator accounts provisioned; custom claims verified as `{ role: "admin" }` and `{ role: "editor" }`; zero hardcoded passwords used or logged.  
 > **No-Go Action:** If claims fail to attach or wrong emails are used, disable accounts (`node scripts/manageRoles.mjs disable <email> --target=prod`) and halt.
 
 ---
 
-### Phase 3 — Client-Approved Master Data Seeding & Signatory Setup
+### Gate 5 — Client-Approved Master Data Seeding & Signatory Setup
 
 | Field | Detail |
 |---|---|
-| **Objective** | Seed verified municipal master data (employees, departments, locations, organizers, categories, signatory) into production Firestore. |
+| **Objective** | Seed verified municipal master data (employees, departments, locations, organizers, categories, signatory) into production Firestore under Admin SDK protection. |
 | **Tooling** | `department-agenda-firebase/scripts/backupRestore.mjs`. |
-| **Prerequisites** | Gate 2 approval; signed municipal decree (SK) approving official master data roster. |
+| **Prerequisites** | Gate 4 approval; signed municipal decree (SK) approving official master data roster. |
 
 #### Procedure:
 1. **Audit Production Master Data Template:**
@@ -240,87 +326,19 @@ flowchart TD
    - Verify document counts: `employees` (verified count), `departments` (verified count), `locations` (verified count), `settings` (1 signatory record).
 
 > [!IMPORTANT]
-> **STOP/GO DECISION GATE 3:**  
+> **STOP/GO DECISION GATE 5:**  
 > **Go Criteria:** Seeding utility validates `clientApproved: true`; zero placeholder markers present; signatory settings match official decree.  
 > **No-Go Action:** Halt if template contains unpopulated placeholders or lacks written approval reference.
 
 ---
 
-### Phase 4 — Reversible Maintenance Lockdown Activation
-
-| Field | Detail |
-|---|---|
-| **Objective** | Shield Firestore with reversible maintenance security rules before deploying web applications or database indexes. |
-| **Tooling** | Firebase CLI, `department-agenda-firebase/firebase/firestore.maintenance.rules`. |
-| **Prerequisites** | Gate 3 approval. |
-
-#### Procedure:
-1. **Deploy Maintenance Security Rules:**
-   ```bash
-   cd department-agenda-firebase
-   firebase deploy --project simakdiskum --only firestore:rules
-   ```
-   *(Note: Deploy using maintenance rules file by referencing `firestore.maintenance.rules` or setting rules file in `firebase.json`).*
-2. **Verify Maintenance Lockdown Invariants:**
-   - **Public Read Access:** Citizens navigating to public schedules receive live read data without errors (`allow read: if true`).
-   - **Client Write Freeze:** All client-side write operations across all collections are rejected with `PERMISSION_DENIED` (`allow write: if false`).
-   - **Admin SDK Exemption:** Administrative scripts (`backupRestore.mjs`) connect via Google Cloud credentials and bypass rules entirely.
-3. **Document Auto-Reversion & Emergency Rollback:**
-   - To immediately restore normal production rules at any point:
-     ```bash
-     firebase deploy --project simakdiskum --only firestore:rules
-     ```
-   - Rules can also be reverted in 1-click via **Firebase Console > Firestore > Rules > Rules history > Restore version**.
-
-> [!IMPORTANT]
-> **STOP/GO DECISION GATE 4:**  
-> **Go Criteria:** Maintenance rules active; client writes blocked; public reads preserved; emergency rollback command confirmed.  
-> **No-Go Action:** Halt if maintenance rules block Admin SDK operations or cause unhandled exceptions.
-
----
-
-### Phase 5 — Production Firestore Security Rules & Compound Indexes Deployment
-
-| Field | Detail |
-|---|---|
-| **Objective** | Deploy approved production security rules and build compound indexes prior to client activation. |
-| **Tooling** | Firebase CLI (`firebase deploy`). |
-| **Prerequisites** | Gate 4 approval; master data seeded. |
-
-#### Procedure:
-1. **Deploy Production Firestore Security Rules:**
-   ```bash
-   cd department-agenda-firebase
-   firebase deploy --project simakdiskum --only firestore:rules
-   ```
-   - *Verification:* Open [Firebase Console Rules Tab](https://console.firebase.google.com/project/simakdiskum/firestore/rules). Verify deployment timestamp matches current time.
-2. **Deploy Firestore Compound Indexes:**
-   ```bash
-   firebase deploy --project simakdiskum --only firestore:indexes
-   ```
-   - *Deployed Indexes (`firestore.indexes.json`):*
-     - `activities`: `startDate ASC, endDate ASC, __name__ ASC`
-     - `publicActivities`: `startDate ASC, endDate ASC, __name__ ASC`
-     - `publicActivities`: `isPublic ASC, startDate ASC, __name__ ASC`
-3. **Monitor Index Build Completion:**
-   - Open [Firebase Console Indexes Tab](https://console.firebase.google.com/project/simakdiskum/firestore/indexes).
-   - **WAIT:** Compound indexes will show status `Building` for 2–10 minutes.
-   - **DO NOT PROCEED** until all indexes transition to status **`Enabled`**.
-
-> [!IMPORTANT]
-> **STOP/GO DECISION GATE 5:**  
-> **Go Criteria:** Production rules published; all compound indexes show status **`Enabled`**; 0 index build errors.  
-> **No-Go Action:** Halt. Do NOT deploy hosting targets while indexes are `Building`; newly deployed clients will throw `FAILED_PRECONDITION: The query requires an index`.
-
----
-
-### Phase 6 — Multi-Site Hosting Targets Deployment
+### Gate 6 — Multi-Site Hosting Targets Deployment
 
 | Field | Detail |
 |---|---|
 | **Objective** | Deploy compiled web application bundles to their respective Firebase Hosting sites. |
 | **Tooling** | Firebase CLI (`firebase deploy`). |
-| **Prerequisites** | Gate 5 approval (all indexes `Enabled`). |
+| **Prerequisites** | Gate 5 approval (Indexes `Enabled`, master data seeded). |
 
 #### Procedure:
 1. **Verify `firebase.json` Multi-Site Targets:**
@@ -330,7 +348,7 @@ flowchart TD
 2. **Execute Multi-Site Hosting Deployment:**
    ```bash
    cd department-agenda-firebase
-   firebase deploy --project simakdiskum --only hosting:public,hosting:admin
+   firebase deploy --only hosting:public,hosting:admin --project simakdiskum
    ```
 3. **Edge CDN Propagation Window:**
    - Allow **1 to 5 minutes** for new static files to propagate across Google/Fastly global edge nodes.
@@ -345,7 +363,7 @@ flowchart TD
 
 ---
 
-### Phase 7 — Live Post-Deployment Smoke Testing & RBAC Policy Audit
+### Gate 7 — Live Post-Deployment Smoke Testing & RBAC Policy Audit
 
 | Field | Detail |
 |---|---|
@@ -357,7 +375,7 @@ flowchart TD
 1. **Public Privacy Audit (Live HTTP Inspection):**
    - Open `https://simakdiskum.web.app`.
    - Inspect Network tab for all Firestore requests.
-   - Verify that requests query `publicActivities` exclusively. Zero queries to `activities` or `auditLogs`.
+   - Verify requests query `publicActivities` exclusively. Zero queries to `activities` or `auditLogs`.
    - Inspect DOM elements: 0 raw database IDs (`act_xx`, `emp_xx`, `loc_xx`), 0 internal meeting URLs/passcodes, 0 invitation letter Google Drive links.
 2. **Editor Authentication & Administrative Pipeline Smoke Test:**
    - Open `https://simakdiskum-admin.web.app`.
@@ -381,7 +399,7 @@ flowchart TD
 
 ---
 
-### Phase 8 — Department User Acceptance Testing (UAT)
+### Gate 8 — Department User Acceptance Testing (UAT)
 
 | Field | Detail |
 |---|---|
@@ -410,7 +428,7 @@ flowchart TD
 
 ---
 
-### Phase 9 — Production Handover & Ongoing Operational Procedures
+### Gate 9 — Production Handover & Ongoing Operational Procedures
 
 | Field | Detail |
 |---|---|
@@ -433,25 +451,106 @@ flowchart TD
      ```bash
      node scripts/manageRoles.mjs disable <compromised_email> --target=prod
      ```
-   - If database corruption occurs, initiate reversible maintenance lockdown and execute controlled restoration:
-     ```bash
-     node scripts/backupRestore.mjs restore ./backups/<backup_folder> --mode=full --dry-run --target=prod
-     node scripts/backupRestore.mjs restore ./backups/<backup_folder> --mode=full --force --dry-run-reviewed --target=prod
-     ```
+   - If database corruption occurs, initiate disaster recovery maintenance lockdown and execute controlled restoration (see Part 2).
 
 ---
 
-## 4. Final Verification Summary Matrix
+## 4. Part 2 — Disaster Recovery & Scheduled Maintenance Lockdown Procedure
+
+Maintenance lockdown rules are **quarantined strictly to emergency disaster recovery, major structural migrations, and database restoration**. They are **NOT** used during normal day-to-day operations or initial setup.
+
+```mermaid
+flowchart TD
+    DR1[Incident Detected: DB Corruption / Migration] --> DR2[Preflight Verify Maintenance Rules Config]
+    DR2 --> DR3[Deploy Maintenance Lockdown Rules via firebase.maintenance.json]
+    DR3 --> DR4[Verify Lockdown: Public Read OK, Writes Blocked, Admin SDK Active]
+    DR4 --> DR5[Execute Controlled Full Restoration via backupRestore.mjs]
+    DR5 --> DR6[Verify Restoration Integrity assertDeepFirestoreEquality]
+    DR6 --> DR7[Preflight Verify Normal Production Rules Config]
+    DR7 --> DR8[Deploy Normal Production Rules or 1-Click Console Restore]
+    DR8 --> DR9[Normal Operations Resumed]
+```
+
+### 4.1 When to Activate Maintenance Lockdown
+Activate maintenance lockdown ONLY when:
+1. Cloud Firestore records have suffered data corruption, requiring a full rollback restoration.
+2. An unauthorized batch script has modified records outside normal RBAC channels.
+3. A major offline structural data migration is being executed by the IT Administrator.
+
+### 4.2 Deterministic Maintenance Rules Deployment
+Never edit `firebase.json` directly. Use the dedicated maintenance configuration:
+
+1. **Preflight Verification:**
+   ```bash
+   cd department-agenda-firebase
+   node scripts/verifyRulesSource.mjs --config=firebase.maintenance.json --target=prod
+   ```
+   *Expected Output:*
+   ```text
+   [Rules Verification Passed]
+     Config:           firebase.maintenance.json
+     Rules File:       firebase/firestore.maintenance.rules
+     Expected Release: SIMAK_DISKUM_MAINTENANCE_LOCKDOWN_RULES_V5
+     Detected Mode:    MAINTENANCE_LOCKDOWN
+   ```
+2. **Deploy Maintenance Lockdown:**
+   ```bash
+   firebase deploy --config firebase.maintenance.json --only firestore:rules --project simakdiskum
+   ```
+3. **Verify Lockdown Invariants:**
+   - **Public Read Access:** Citizens navigating to public schedules receive live read data without errors (`allow read: if true`).
+   - **Client Write Freeze:** All client-side write operations across all collections are rejected with `PERMISSION_DENIED` (`allow write: if false`).
+   - **Admin SDK Exemption:** Administrative scripts (`backupRestore.mjs`) connect via Google Cloud credentials and bypass rules entirely.
+
+### 4.3 Controlled Restoration Execution
+```bash
+# Step 1: Status check
+node scripts/backupRestore.mjs status ./backups/<backup_folder> --target=prod
+
+# Step 2: Dry-run diff analysis
+node scripts/backupRestore.mjs restore ./backups/<backup_folder> --mode=full --dry-run --target=prod
+
+# Step 3: Execute controlled full restoration with explicit review confirmation
+node scripts/backupRestore.mjs restore ./backups/<backup_folder> --mode=full --force --dry-run-reviewed --target=prod
+```
+
+### 4.4 Deterministic Return to Normal Production Rules
+Once restoration and verification are complete, return Firestore to normal production security rules:
+
+1. **Preflight Verification:**
+   ```bash
+   node scripts/verifyRulesSource.mjs --target=prod
+   ```
+   *Expected Output:*
+   ```text
+   [Rules Verification Passed]
+     Config:           firebase.json
+     Rules File:       firebase/firestore.rules
+     Expected Release: SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5
+     Detected Mode:    PRODUCTION_NORMAL
+   ```
+2. **Deploy Production Rules:**
+   ```bash
+   firebase deploy --only firestore:rules --project simakdiskum
+   ```
+3. **Manual Rollback Alternative via Firebase Console:**
+   If CLI access is unavailable, an administrator can manually restore normal production rules in **Firebase Console > Firestore > Rules > Rules history > Restore version > Publish**.  
+   *(Note: This is a manual action executed by an authorized administrator, not an automatic background reversion).*
+
+---
+
+## 5. Final Verification Summary Matrix
 
 | Phase | Milestone Action | Safety Guard | Reversible? | Authority Required |
 |:---:|---|---|:---:|---|
 | **0** | Pre-Activation Admin Verification | Spark Plan Audit ($0/mo) | N/A (Read-only) | Lead Engineer |
 | **1** | Auth Config & Signup Restriction | "Enable create" unchecked | Yes | Project Owner |
-| **2** | Operator Role Provisioning | Zero credentials logged | Yes (`disable`) | Department Head |
-| **3** | Master Data Seeding | Client approval flag gate | Yes (Rollback restore) | Department Head |
-| **4** | Maintenance Lockdown | Public reads preserved | Yes (Redeploy rules) | Lead Engineer |
-| **5** | Rules & Indexes Deployment | Indexes confirmed `Enabled` | Yes (Rules history) | Lead Engineer |
+| **2** | Rules & Indexes Deployment | Preflight verifier; Indexes `Enabled` | Yes (Rules history) | Lead Systems Architect |
+| **3** | Empty DB Access Restriction Verification | Live write freeze & empty read check | N/A (Read-only) | QA Engineer |
+| **4** | Operator Account Provisioning | Passwordless random entropy | Yes (`disable`) | Department Head |
+| **5** | Master Data Seeding | Client approval flag gate | Yes (Rollback restore) | Department Head |
 | **6** | Hosting Targets Deployment | Multi-site separation | Yes (1-click rollback) | Release Manager |
-| **7** | Post-Deployment Smoke Audit | Zero private leaks | N/A (Read/Test) | QA Engineer |
+| **7** | Post-Deployment Smoke Audit | Zero private leaks; 0 Drive URLs | N/A (Read/Test) | QA Engineer |
 | **8** | Department UAT Execution | 11 business scenarios | N/A (User testing) | Department Stakeholders |
 | **9** | Production Handover | Daily backup schedule | N/A (Handover) | Department Head & IT Head |
+| **DR** | Maintenance Lockdown | Public reads preserved; writes frozen | Yes (Redeploy normal rules) | Lead Systems Architect |
