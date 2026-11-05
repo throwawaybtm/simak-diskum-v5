@@ -18,7 +18,9 @@ import {
   setUserRole,
   disableUser,
   generatePasswordResetLink,
-  inspectUser
+  inspectUser,
+  validateTargetEnvironment,
+  printTargetBanner
 } from '../../scripts/manageRoles.mjs';
 
 describe('P01-A: Operator Role Management & Custom Claims Verification', () => {
@@ -168,5 +170,49 @@ describe('P01-A: Operator Role Management & Custom Claims Verification', () => {
     const inspected = await inspectUser(mockAuth, user.email);
     expect(inspected.uid).toBe(user.uid);
     expect(inspected.customClaims.role).toBe('admin');
+  });
+
+  it('safeguards target environment and rejects invalid projects or target mismatch', () => {
+    const prevEmu = process.env.FIREBASE_AUTH_EMULATOR_HOST;
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+
+    // Target prod when emulator is active must throw
+    expect(() => validateTargetEnvironment({ target: 'prod' })).toThrow(/FIREBASE_AUTH_EMULATOR_HOST .* is active/);
+
+    // Target emulator when emulator is inactive must throw
+    delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+    expect(() => validateTargetEnvironment({ target: 'emulator' })).toThrow(/FIREBASE_AUTH_EMULATOR_HOST is not set/);
+
+    // Live target with fake project must throw
+    delete process.env.ALLOW_ANY_PROJECT;
+    process.env.GCLOUD_PROJECT = 'fake-malicious-project';
+    expect(() => validateTargetEnvironment({ target: 'prod' })).toThrow(/does not match required project "simakdiskum"/);
+
+    // Restore
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = prevEmu || '127.0.0.1:9099';
+    delete process.env.GCLOUD_PROJECT;
+  });
+
+  it('prints target banner with zero credential or secret leaks', () => {
+    const consoleSpy = vi.spyOn(console, 'log');
+    const envInfo = {
+      target: 'emulator',
+      isEmulator: true,
+      projectId: 'demo-department-agenda',
+      host: '127.0.0.1:9099',
+      authMethod: 'EMULATOR'
+    };
+
+    printTargetBanner(envInfo, 'PROVISION_USER', true);
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('TARGET ENVIRONMENT: LOCAL EMULATOR'));
+
+    // Verify no password string appears in output
+    for (const call of consoleSpy.mock.calls) {
+      for (const arg of call) {
+        expect(String(arg)).not.toContain('P@ssword');
+        expect(String(arg)).not.toContain('private_key');
+      }
+    }
+    consoleSpy.mockRestore();
   });
 });

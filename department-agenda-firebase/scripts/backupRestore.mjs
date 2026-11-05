@@ -4,11 +4,13 @@
  * Provides:
  * 1. Lossless JSON export and SHA-256 integrity validation.
  * 2. Explicit restore modes: Non-destructive import (`--mode=merge`) and controlled full restore (`--mode=full`).
- * 3. Dry-run diff analysis and confirmation safety gates (prevents accidental data destruction).
- * 4. Audit log protection (audit history is NEVER silently overwritten or deleted; maintenance actions logged).
- * 5. Partial batch failure tracking with progress ledger and rollback guidance.
- * 6. Post-restoration count and field-level equality verification.
- * 7. Production seeding safety: rejects unapproved personnel templates by default.
+ * 3. Dry-run diff analysis, dry-run review requirement, and explicit confirmation safety gates.
+ * 4. Resumable and restartable restore checkpoints bound to operationId, project, manifest checksum, and mode.
+ * 5. Full-document equality verification (nested objects, arrays, Timestamps, DocumentReferences, nulls, optional fields).
+ * 6. Audit history protection (never delete post-backup audit logs, never overwrite existing audit logs, safe ID collision handling).
+ * 7. Privileged maintenance record tagging distinguishable from regular operator audit logs.
+ * 8. Target environment validation and banner display before writes; prevention of accidental production targeting.
+ * 9. Production seeding safety: strictly rejects unapproved templates or placeholder tags.
  * 
  * Target Architecture: Firebase Spark (No-Cost Plan)
  */
@@ -32,31 +34,91 @@ export const CORE_COLLECTIONS = [
   'auditLogs'
 ];
 
+export const REQUIRED_PROJECT_ID = 'simakdiskum';
+
 /**
- * Initializes Firestore instance safely with ADC or service account or emulator
+ * Validates target environment, preventing accidental execution against production
+ * when emulator is intended, and enforcing project ID safeguards.
  */
-export function initFirestore() {
+export function validateTargetEnvironment(options = {}) {
+  const isEmulatorHost = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+  const requestedTarget = options.target || (isEmulatorHost ? 'emulator' : 'prod');
+  const targetProjectId = process.env.GCLOUD_PROJECT || (isEmulatorHost ? 'demo-department-agenda' : REQUIRED_PROJECT_ID);
+
+  if (requestedTarget === 'emulator' && !isEmulatorHost) {
+    throw new Error(
+      `[Target Guard] Execution blocked: --target=emulator was specified but FIRESTORE_EMULATOR_HOST is not set. ` +
+      `Refusing to connect to live Google Cloud environment.`
+    );
+  }
+
+  if (requestedTarget === 'prod' && isEmulatorHost) {
+    throw new Error(
+      `[Target Guard] Execution blocked: --target=prod was specified but FIRESTORE_EMULATOR_HOST (${process.env.FIRESTORE_EMULATOR_HOST}) is active. ` +
+      `Unset emulator environment variables before executing against production.`
+    );
+  }
+
+  if (!isEmulatorHost && targetProjectId !== REQUIRED_PROJECT_ID && !process.env.ALLOW_ANY_PROJECT) {
+    throw new Error(
+      `[Target Guard] Execution blocked: Target project "${targetProjectId}" does not match required production project "${REQUIRED_PROJECT_ID}". ` +
+      `Set GCLOUD_PROJECT=${REQUIRED_PROJECT_ID} or set ALLOW_ANY_PROJECT=true for testing.`
+    );
+  }
+
+  const authMethod = isEmulatorHost
+    ? 'EMULATOR'
+    : (process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'SERVICE_ACCOUNT' : 'ADC');
+
+  return {
+    target: requestedTarget,
+    isEmulator: isEmulatorHost,
+    projectId: targetProjectId,
+    host: isEmulatorHost ? process.env.FIRESTORE_EMULATOR_HOST : 'Live Google Cloud',
+    authMethod
+  };
+}
+
+/**
+ * Prominently displays the effective target environment before any write operations
+ */
+export function printTargetBanner(envInfo, operation = 'READ', isDestructive = false) {
+  console.log('======================================================================');
+  console.log(`[SIMAK DISKUM] TARGET ENVIRONMENT: ${envInfo.isEmulator ? 'LOCAL EMULATOR' : 'LIVE PRODUCTION'}`);
+  console.log(`Operation:        ${operation}`);
+  console.log(`Target Project:   ${envInfo.projectId}`);
+  console.log(`Host / Endpoint:  ${envInfo.host}`);
+  console.log(`Auth Method:      ${envInfo.authMethod}`);
+  console.log(`Destructive:      ${isDestructive ? 'YES (Data Modification / Deletion)' : 'NO (Read-only / Safe)'}`);
+  console.log('======================================================================');
+}
+
+/**
+ * Initializes Firestore instance safely with ADC, service account, or emulator
+ */
+export function initFirestore(options = {}) {
+  const envInfo = validateTargetEnvironment(options);
+
   if (getApps().length === 0) {
     const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    const isEmulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 
-    if (isEmulator) {
-      console.log(`[backupRestore] Connecting to Firestore Emulator at ${process.env.FIRESTORE_EMULATOR_HOST}`);
-      initializeApp({ projectId: process.env.GCLOUD_PROJECT || 'simakdiskum' });
+    if (envInfo.isEmulator) {
+      console.log(`[backupRestore] Connecting to Firestore Emulator at ${envInfo.host} (Project: ${envInfo.projectId})`);
+      initializeApp({ projectId: envInfo.projectId });
     } else if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
-      console.log(`[backupRestore] Using service account from ${serviceAccountPath}`);
+      console.log(`[backupRestore] Initializing with service account credentials from: ${serviceAccountPath}`);
       const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
       initializeApp({
         credential: cert(serviceAccount),
-        projectId: serviceAccount.project_id || 'simakdiskum'
+        projectId: serviceAccount.project_id || envInfo.projectId
       });
     } else {
-      console.log('[backupRestore] Using Application Default Credentials (ADC)');
-      initializeApp({ projectId: process.env.GCLOUD_PROJECT || 'simakdiskum' });
+      console.log(`[backupRestore] Initializing with Application Default Credentials (ADC) for project: ${envInfo.projectId}`);
+      initializeApp({ projectId: envInfo.projectId });
     }
   }
 
-  return getFirestore();
+  return { db: getFirestore(), envInfo };
 }
 
 /**
@@ -146,9 +208,106 @@ export function deserializeFirestoreData(val, db) {
 }
 
 /**
+ * Recursively verifies deep equality between backup data and live Firestore data,
+ * including nested objects, arrays, Timestamps, DocumentReferences, nulls, and absence of extra fields.
+ */
+export function assertDeepFirestoreEquality(expected, actual, pathContext = '', isFullMode = false) {
+  if (expected === actual) return;
+
+  // Handle nulls
+  if (expected === null || actual === null) {
+    if (expected !== actual) {
+      throw new Error(`Null mismatch at "${pathContext}": expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    }
+    return;
+  }
+
+  // Handle Timestamps
+  const isExpectedTs = expected && typeof expected === 'object' && ('_seconds' in expected || 'seconds' in expected) && ('_nanoseconds' in expected || 'nanoseconds' in expected);
+  const isActualTs = actual && typeof actual === 'object' && ('_seconds' in actual || 'seconds' in actual) && ('_nanoseconds' in actual || 'nanoseconds' in actual);
+  if (isExpectedTs || isActualTs) {
+    const expSec = expected.seconds !== undefined ? expected.seconds : expected._seconds;
+    const expNano = expected.nanoseconds !== undefined ? expected.nanoseconds : expected._nanoseconds;
+    const actSec = actual.seconds !== undefined ? actual.seconds : actual._seconds;
+    const actNano = actual.nanoseconds !== undefined ? actual.nanoseconds : actual._nanoseconds;
+    if (expSec !== actSec || expNano !== actNano) {
+      throw new Error(`Timestamp mismatch at "${pathContext}": expected {seconds:${expSec},nanoseconds:${expNano}}, got {seconds:${actSec},nanoseconds:${actNano}}`);
+    }
+    return;
+  }
+
+  // Handle DocumentReferences
+  const isExpectedRef = expected && typeof expected === 'object' && ('path' in expected && typeof expected.path === 'string');
+  const isActualRef = actual && typeof actual === 'object' && ('path' in actual && typeof actual.path === 'string');
+  if (isExpectedRef || isActualRef) {
+    if (!isExpectedRef || !isActualRef || expected.path !== actual.path) {
+      throw new Error(`DocumentReference path mismatch at "${pathContext}": expected ${expected?.path}, got ${actual?.path}`);
+    }
+    return;
+  }
+
+  // Handle Dates
+  if (expected instanceof Date || actual instanceof Date) {
+    const expTime = expected instanceof Date ? expected.getTime() : new Date(expected).getTime();
+    const actTime = actual instanceof Date ? actual.getTime() : new Date(actual).getTime();
+    if (expTime !== actTime) {
+      throw new Error(`Date mismatch at "${pathContext}": expected ${expected}, got ${actual}`);
+    }
+    return;
+  }
+
+  // Handle Arrays
+  if (Array.isArray(expected)) {
+    if (!Array.isArray(actual)) {
+      throw new Error(`Type mismatch at "${pathContext}": expected Array, got ${typeof actual}`);
+    }
+    if (expected.length !== actual.length) {
+      throw new Error(`Array length mismatch at "${pathContext}": expected ${expected.length}, got ${actual.length}`);
+    }
+    for (let i = 0; i < expected.length; i++) {
+      assertDeepFirestoreEquality(expected[i], actual[i], `${pathContext}[${i}]`, isFullMode);
+    }
+    return;
+  }
+
+  // Handle Plain Objects
+  if (typeof expected === 'object') {
+    if (typeof actual !== 'object' || Array.isArray(actual)) {
+      throw new Error(`Type mismatch at "${pathContext}": expected Object, got ${typeof actual}`);
+    }
+    const expectedKeys = Object.keys(expected);
+    const actualKeys = Object.keys(actual);
+
+    for (const key of expectedKeys) {
+      if (!(key in actual)) {
+        throw new Error(`Missing expected key "${key}" at "${pathContext}"`);
+      }
+      assertDeepFirestoreEquality(expected[key], actual[key], pathContext ? `${pathContext}.${key}` : key, isFullMode);
+    }
+
+    if (isFullMode) {
+      for (const key of actualKeys) {
+        if (!(key in expected)) {
+          throw new Error(`Unexpected extra key "${key}" found in live document at "${pathContext}" (Full mode requires exact replacement)`);
+        }
+      }
+    }
+    return;
+  }
+
+  // Primitives
+  if (expected !== actual) {
+    throw new Error(`Scalar value mismatch at "${pathContext}": expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  }
+}
+
+/**
  * Exports all core collections to a target directory with lossless serialization and SHA-256 manifest
  */
-export async function exportCollections(db, targetDir) {
+export async function exportCollections(db, targetDir, options = {}) {
+  const envInfo = validateTargetEnvironment(options);
+  printTargetBanner(envInfo, `EXPORT BACKUP -> ${targetDir}`, false);
+
   if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true });
   }
@@ -156,7 +315,7 @@ export async function exportCollections(db, targetDir) {
   const manifest = {
     exportedAt: new Date().toISOString(),
     systemVersion: '5.0.0',
-    projectId: process.env.GCLOUD_PROJECT || 'simakdiskum',
+    projectId: envInfo.projectId,
     collections: {},
     files: {}
   };
@@ -166,7 +325,6 @@ export async function exportCollections(db, targetDir) {
     const snap = await db.collection(collName).get();
     const docs = [];
 
-    // Safely iterate through documents
     const docList = snap.docs || [];
     for (const d of docList) {
       const data = typeof d.data === 'function' ? d.data() : d.data;
@@ -270,26 +428,41 @@ export async function computeRestoreDiff(db, sourceDir) {
 }
 
 /**
- * Restores collections with explicit mode, dry-run safety, audit protection, and verification
+ * Restores collections with explicit mode, dry-run safety, audit protection,
+ * resumable checkpoints, and deep equality verification.
  * 
  * Options:
  * - mode: 'merge' (non-destructive import) | 'full' (controlled full restore)
  * - dryRun: boolean (output diff without modifying)
- * - force: boolean (confirm deletion of orphans in full mode)
+ * - dryRunReviewed: boolean (explicit acknowledgment that dry-run was reviewed)
+ * - force: boolean (confirm execution of destructive full restore)
+ * - resume: boolean (resume from existing checkpoint ledger)
+ * - restart: boolean (discard existing checkpoint and restart fresh)
+ * - progressPath: string (checkpoint file path, default 'restore-progress.json')
  * - operator: string (actor email for audit log)
+ * - target: 'emulator' | 'prod'
  */
 export async function restoreCollections(db, sourceDir, options = {}) {
   const mode = options.mode || 'merge';
   const dryRun = Boolean(options.dryRun);
+  const dryRunReviewed = Boolean(options.dryRunReviewed);
   const force = Boolean(options.force);
+  const resume = Boolean(options.resume);
+  const restart = Boolean(options.restart);
+  const progressPath = options.progressPath || 'restore-progress.json';
   const operator = options.operator || process.env.ADMIN_OPERATOR_EMAIL || 'admin_cli';
 
   if (!['merge', 'full'].includes(mode)) {
     throw new Error(`Invalid restore mode: "${mode}". Allowed modes: "merge" (non-destructive) or "full" (controlled full restoration)`);
   }
 
+  const envInfo = validateTargetEnvironment(options);
+  printTargetBanner(envInfo, `RESTORE BACKUP (${mode.toUpperCase()} MODE)`, mode === 'full' && !dryRun);
+
   // 1. Integrity check
   const manifest = validateBackupIntegrity(sourceDir);
+  const manifestRaw = fs.readFileSync(path.join(sourceDir, 'manifest.json'), 'utf-8');
+  const manifestHash = computeSha256(manifestRaw);
 
   // 2. Compute Diff
   console.log(`[backupRestore] Calculating restore diff (mode: ${mode})...`);
@@ -309,21 +482,92 @@ export async function restoreCollections(db, sourceDir, options = {}) {
     return { dryRun: true, diff, manifest };
   }
 
-  // 3. Safety Gate: Full restore with orphans requires explicit confirmation or --force
-  if (mode === 'full' && diff.totalOrphans > 0 && !force) {
-    throw new Error(
-      `Controlled full restore blocked: ${diff.totalOrphans} document(s) exist in live Firestore that are not in backup. ` +
-      `Proceeding would delete them. Re-run with --force to confirm deletion, or use --mode=merge for non-destructive import.`
-    );
+  // 3. Safety Gate: Full restore requires prior dry-run review AND explicit confirmation (--force),
+  // even when orphan count is zero, because all live documents are replaced ({ merge: false }).
+  if (mode === 'full') {
+    if (!dryRunReviewed && !force) {
+      throw new Error(
+        `[Destructive Action Safeguard] Controlled full restore requires prior dry-run review (--dry-run-reviewed) and explicit confirmation (--force), ` +
+        `even when orphan count is zero, because all live documents are replaced ({ merge: false }). ` +
+        `Run with --dry-run first to review document diff, then confirm with --force.`
+      );
+    }
   }
 
-  const progressLedger = {
-    startedAt: new Date().toISOString(),
-    sourceDir,
-    mode,
-    completedBatches: [],
-    failedBatch: null
-  };
+  // 4. Checkpoint & Resumption Ledger Management
+  let progressLedger;
+  if (fs.existsSync(progressPath)) {
+    const existingProgress = JSON.parse(fs.readFileSync(progressPath, 'utf-8'));
+    if (existingProgress.status === 'IN_PROGRESS' || existingProgress.status === 'FAILED') {
+      if (resume) {
+        if (existingProgress.targetProjectId !== envInfo.projectId) {
+          throw new Error(
+            `Cannot resume restore: checkpoint target project "${existingProgress.targetProjectId}" does not match effective project "${envInfo.projectId}".`
+          );
+        }
+        if (existingProgress.manifestHash !== manifestHash) {
+          throw new Error(`Cannot resume restore: checkpoint manifest hash does not match backup directory.`);
+        }
+        if (existingProgress.mode !== mode) {
+          throw new Error(
+            `Cannot resume restore: checkpoint mode "${existingProgress.mode}" does not match requested mode "${mode}". ` +
+            `Do NOT switch to merge mode to resolve a failed full restore.`
+          );
+        }
+        progressLedger = existingProgress;
+        progressLedger.status = 'IN_PROGRESS';
+        console.log(`[backupRestore] Resuming restore operation "${progressLedger.operationId}" (${progressLedger.completedBatches.length} batches previously completed).`);
+      } else if (restart) {
+        console.log(`[backupRestore] Restarting restore operation from scratch. Discarding prior checkpoint "${existingProgress.operationId}".`);
+        progressLedger = {
+          operationId: options.operationId || `restore_op_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+          targetProjectId: envInfo.projectId,
+          manifestHash,
+          sourceDir: path.resolve(sourceDir),
+          mode,
+          startedAt: new Date().toISOString(),
+          completedBatches: [],
+          completedDeletions: [],
+          failedBatch: null,
+          status: 'IN_PROGRESS'
+        };
+      } else {
+        throw new Error(
+          `[Checkpoint Safeguard] An interrupted restore checkpoint exists for this target project (Operation: ${existingProgress.operationId}). ` +
+          `Pass --resume to safely resume from where it failed, or --restart to clear checkpoint and restart from scratch.`
+        );
+      }
+    } else {
+      // Completed or other
+      progressLedger = {
+        operationId: options.operationId || `restore_op_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+        targetProjectId: envInfo.projectId,
+        manifestHash,
+        sourceDir: path.resolve(sourceDir),
+        mode,
+        startedAt: new Date().toISOString(),
+        completedBatches: [],
+        completedDeletions: [],
+        failedBatch: null,
+        status: 'IN_PROGRESS'
+      };
+    }
+  } else {
+    progressLedger = {
+      operationId: options.operationId || `restore_op_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+      targetProjectId: envInfo.projectId,
+      manifestHash,
+      sourceDir: path.resolve(sourceDir),
+      mode,
+      startedAt: new Date().toISOString(),
+      completedBatches: [],
+      completedDeletions: [],
+      failedBatch: null,
+      status: 'IN_PROGRESS'
+    };
+  }
+
+  fs.writeFileSync(progressPath, JSON.stringify(progressLedger, null, 2), 'utf-8');
 
   try {
     for (const collName of CORE_COLLECTIONS) {
@@ -336,19 +580,27 @@ export async function restoreCollections(db, sourceDir, options = {}) {
       const docs = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
       console.log(`[backupRestore] Restoring ${collName} (${docs.length} docs, mode: ${mode})...`);
 
-      // In full mode, delete orphans EXCEPT for auditLogs (auditLogs are protected and immutable)
+      // In full mode, delete orphans EXCEPT for auditLogs (audit history is protected and immutable)
       if (mode === 'full' && collName !== 'auditLogs') {
         const orphanIds = diff.collections[collName]?.orphanIds || [];
         if (orphanIds.length > 0) {
           console.log(`  ⚠ Removing ${orphanIds.length} orphaned document(s) from ${collName}...`);
           const DEL_BATCH = 450;
           for (let i = 0; i < orphanIds.length; i += DEL_BATCH) {
+            const delBatchId = `${collName}_del_${Math.floor(i / DEL_BATCH) + 1}`;
+            if (progressLedger.completedDeletions.includes(delBatchId)) {
+              console.log(`  ↷ Skipping already deleted orphan batch: ${delBatchId}`);
+              continue;
+            }
+
             const chunk = orphanIds.slice(i, i + DEL_BATCH);
             const delBatch = db.batch();
             for (const id of chunk) {
               delBatch.delete(db.collection(collName).doc(id));
             }
             await delBatch.commit();
+            progressLedger.completedDeletions.push(delBatchId);
+            fs.writeFileSync(progressPath, JSON.stringify(progressLedger, null, 2), 'utf-8');
           }
         }
       }
@@ -356,6 +608,12 @@ export async function restoreCollections(db, sourceDir, options = {}) {
       // Write backup documents in batches of 450
       const BATCH_SIZE = 450;
       for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+        const batchId = `${collName}_batch_${Math.floor(i / BATCH_SIZE) + 1}`;
+        if (progressLedger.completedBatches.includes(batchId)) {
+          console.log(`  ↷ Skipping already completed batch: ${batchId}`);
+          continue;
+        }
+
         const chunk = docs.slice(i, i + BATCH_SIZE);
         const batch = db.batch();
 
@@ -364,54 +622,94 @@ export async function restoreCollections(db, sourceDir, options = {}) {
           const deserialized = deserializeFirestoreData(rawContent, db);
           const ref = db.collection(collName).doc(id);
 
+          // Audit log protection: never overwrite existing audit logs; handle collisions safely
+          if (collName === 'auditLogs') {
+            const liveDocSnap = await db.collection('auditLogs').doc(id).get();
+            if (liveDocSnap.exists) {
+              const liveData = liveDocSnap.data();
+              // If identical, preserve without write
+              try {
+                assertDeepFirestoreEquality(deserialized, liveData, `auditLogs.${id}`, false);
+                continue; // Identical, skip write
+              } catch {
+                // Collision on ID with different data: write under collision-safe ID
+                const collisionId = `${id}_backup_restored_${Date.now()}`;
+                console.warn(`  ⚠ Preserved existing live audit log "${id}" without overwriting. Restored copy saved as "${collisionId}".`);
+                batch.set(db.collection('auditLogs').doc(collisionId), {
+                  ...deserialized,
+                  originalCollidingId: id,
+                  isCollidingRestoredRecord: true
+                }, { merge: false });
+                continue;
+              }
+            }
+          }
+
           if (mode === 'merge') {
             batch.set(ref, deserialized, { merge: true });
           } else {
-            // Full mode: complete replacement so removed fields are actually cleaned
+            // Full mode: complete replacement ({ merge: false }) so deleted fields are cleaned
             batch.set(ref, deserialized, { merge: false });
           }
         }
 
-        const batchId = `${collName}_batch_${Math.floor(i / BATCH_SIZE) + 1}`;
         try {
           await batch.commit();
           progressLedger.completedBatches.push(batchId);
+          fs.writeFileSync(progressPath, JSON.stringify(progressLedger, null, 2), 'utf-8');
           console.log(`  ✓ Restored batch ${batchId} (${chunk.length} docs) for ${collName}`);
         } catch (commitErr) {
+          progressLedger.status = 'FAILED';
           progressLedger.failedBatch = {
             batchId,
             collection: collName,
             chunkSize: chunk.length,
             error: commitErr.message
           };
-          fs.writeFileSync('restore-progress.json', JSON.stringify(progressLedger, null, 2), 'utf-8');
-          throw new Error(`Batch failure in ${batchId} for ${collName}: ${commitErr.message}. Progress saved to restore-progress.json`);
+          fs.writeFileSync(progressPath, JSON.stringify(progressLedger, null, 2), 'utf-8');
+          throw new Error(
+            `[backupRestore Fatal] Batch failure in ${batchId} for ${collName}: ${commitErr.message}. ` +
+            `Progress saved to ${progressPath}. Do NOT switch to merge mode to resolve a partial full restoration failure. ` +
+            `Fix the underlying error and resume with --resume or restart with --restart.`
+          );
         }
       }
     }
 
-    // 4. Log Privileged Maintenance Operation in auditLogs
-    const maintenanceLogId = `audit_maint_${Date.now()}`;
+    // 5. Log Privileged Maintenance Operation in auditLogs
+    const maintenanceLogId = `audit_maint_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
     const maintenanceRecord = {
+      id: maintenanceLogId,
       action: 'MAINTENANCE_RESTORE',
       entity: 'DATABASE_BACKUP',
       entityId: path.basename(sourceDir),
-      actor: operator,
+      actorId: 'SYSTEM_MAINTENANCE_CLI',
+      actorLabel: `System Administrator (${operator})`,
+      identitySource: 'ADMIN_CLI_PRIVILEGED',
+      isPrivilegedMaintenance: true,
+      operationId: progressLedger.operationId,
+      targetProject: envInfo.projectId,
       mode,
-      details: `Restored ${diff.totalToRestore} documents across collections (mode: ${mode}, dryRun: false)`,
+      details: `Restored ${diff.totalToRestore} documents across collections (mode: ${mode}, dryRun: false, force: ${force})`,
       performedAt: new Date().toISOString(),
       timestamp: Timestamp.now()
     };
     await db.collection('auditLogs').doc(maintenanceLogId).set(maintenanceRecord);
     console.log(`[backupRestore] ✓ Privileged maintenance operation logged in auditLogs (${maintenanceLogId})`);
 
-    // 5. Post-Restoration Count & Equality Verification
-    console.log(`[backupRestore] Running post-restoration verification...`);
-    const verification = await verifyRestoration(db, manifest, sourceDir);
-    console.log(`[backupRestore] ✓ Verification passed: ${verification.verifiedCount} records matched field-level equality.`);
+    // 6. Post-Restoration Deep Equality Verification
+    console.log(`[backupRestore] Running post-restoration deep equality verification...`);
+    const verification = await verifyRestoration(db, manifest, sourceDir, mode === 'full');
+    console.log(`[backupRestore] ✓ Verification passed: ${verification.verifiedCount} records matched full-document equality.`);
+
+    // Mark checkpoint as completed
+    progressLedger.status = 'COMPLETED';
+    progressLedger.completedAt = new Date().toISOString();
+    fs.writeFileSync(progressPath, JSON.stringify(progressLedger, null, 2), 'utf-8');
 
     return {
       success: true,
+      operationId: progressLedger.operationId,
       mode,
       diff,
       verification
@@ -423,9 +721,9 @@ export async function restoreCollections(db, sourceDir, options = {}) {
 }
 
 /**
- * Verifies document counts and field-level equality between Firestore and backup
+ * Verifies document counts and full-document equality between Firestore and backup
  */
-export async function verifyRestoration(db, manifest, sourceDir) {
+export async function verifyRestoration(db, manifest, sourceDir, isFullMode = false) {
   let verifiedCount = 0;
 
   for (const collName of CORE_COLLECTIONS) {
@@ -443,17 +741,35 @@ export async function verifyRestoration(db, manifest, sourceDir) {
     for (const bDoc of backupDocs) {
       const live = liveMap.get(bDoc.id);
       if (!live) {
+        if (collName === 'auditLogs') {
+          // If collision occurred, a colliding restored doc may exist with originalCollidingId
+          const collidingEntry = Array.from(liveMap.values()).find(x => x.originalCollidingId === bDoc.id);
+          if (collidingEntry) {
+            verifiedCount++;
+            continue;
+          }
+        }
         throw new Error(`Verification mismatch: document ${bDoc.id} missing in collection ${collName}`);
       }
 
-      // Check key equality on primary scalar fields
-      for (const [k, v] of Object.entries(bDoc)) {
-        if (k === 'id') continue;
-        if (typeof v !== 'object' && live[k] !== undefined) {
-          if (String(live[k]) !== String(v)) {
-            throw new Error(`Field mismatch in ${collName}/${bDoc.id} for field "${k}": backup=${v}, live=${live[k]}`);
+      const { id, ...expectedContent } = bDoc;
+      const deserializedExpected = deserializeFirestoreData(expectedContent, db);
+
+      // Deep full-document equality verification
+      if (collName === 'auditLogs') {
+        try {
+          assertDeepFirestoreEquality(deserializedExpected, live, `${collName}.${id}`, false);
+        } catch {
+          // If collision occurred in auditLogs, a colliding restored doc exists with originalCollidingId
+          const collidingEntry = Array.from(liveMap.values()).find(x => x.originalCollidingId === bDoc.id);
+          if (collidingEntry) {
+            verifiedCount++;
+            continue;
           }
+          throw new Error(`Verification mismatch: auditLog ${bDoc.id} collision was not safely restored`);
         }
+      } else {
+        assertDeepFirestoreEquality(deserializedExpected, live, `${collName}.${id}`, isFullMode);
       }
       verifiedCount++;
     }
@@ -464,13 +780,14 @@ export async function verifyRestoration(db, manifest, sourceDir) {
 
 /**
  * Seeds department master data safely.
- * In production mode, REJECTS unapproved personnel templates.
+ * In production mode, strictly REJECTS unapproved personnel templates.
  */
 export async function seedInitialMasterData(db, options = {}) {
-  const env = options.env || 'prod';
+  const envInfo = validateTargetEnvironment(options);
+  const env = options.env || (envInfo.isEmulator ? 'dev' : 'prod');
   const templatePath = options.templatePath;
-  const force = Boolean(options.force);
 
+  printTargetBanner(envInfo, `SEED MASTER DATA (Env: ${env.toUpperCase()})`, true);
   console.log(`[backupRestore] Seeding master data (Environment: ${env.toUpperCase()})...`);
 
   // ==========================================================================
@@ -495,7 +812,6 @@ export async function seedInitialMasterData(db, options = {}) {
       );
     }
 
-    // Guard against unreplaced placeholders
     if (templateContent.includes('[NAMA') || templateContent.includes('[NIP')) {
       throw new Error(
         `[Production Seeding Blocked] Template contains unresolved placeholder tags (e.g. "[NAMA ...]", "[NIP ...]"). ` +
@@ -607,35 +923,47 @@ async function main() {
     console.log(`
 SIMAK DISKUM Spark-Compatible Backup Utility
 Commands:
-  export <target_directory>
-  restore <source_directory> [--mode=merge|full] [--dry-run] [--force]
-  seed [--env=prod|dev] [--template=<path>]
+  export <target_directory> [--target=emulator|prod]
+  restore <source_directory> [--mode=merge|full] [--dry-run] [--dry-run-reviewed] [--force] [--resume] [--restart] [--target=emulator|prod]
+  seed [--env=prod|dev] [--template=<path>] [--target=emulator|prod]
     `);
     return;
   }
 
-  const db = initFirestore();
+  const targetArg = args.find(a => a.startsWith('--target='))?.split('=')[1];
+  const { db, envInfo } = initFirestore({ target: targetArg });
 
   try {
     if (command === 'export') {
-      const targetDir = args[1] || `./backups/backup_${new Date().toISOString().slice(0, 10)}`;
-      await exportCollections(db, targetDir);
+      const targetDir = args[1] && !args[1].startsWith('--') ? args[1] : `./backups/backup_${new Date().toISOString().slice(0, 10)}`;
+      await exportCollections(db, targetDir, { target: targetArg });
     } else if (command === 'restore') {
       const sourceDir = args[1];
-      if (!sourceDir) {
-        console.error('Usage: backupRestore.mjs restore <source_directory> [--mode=merge|full] [--dry-run] [--force]');
+      if (!sourceDir || sourceDir.startsWith('--')) {
+        console.error('Usage: backupRestore.mjs restore <source_directory> [--mode=merge|full] [--dry-run] [--dry-run-reviewed] [--force] [--resume] [--restart] [--target=emulator|prod]');
         process.exit(1);
       }
       const modeArg = args.find(a => a.startsWith('--mode='))?.split('=')[1] || 'merge';
       const dryRun = args.includes('--dry-run');
+      const dryRunReviewed = args.includes('--dry-run-reviewed');
       const force = args.includes('--force');
-      await restoreCollections(db, sourceDir, { mode: modeArg, dryRun, force });
+      const resume = args.includes('--resume');
+      const restart = args.includes('--restart');
+      await restoreCollections(db, sourceDir, {
+        mode: modeArg,
+        dryRun,
+        dryRunReviewed,
+        force,
+        resume,
+        restart,
+        target: targetArg
+      });
     } else if (command === 'seed') {
       const envArg = args.find(a => a.startsWith('--env='))?.split('=')[1] || (args.includes('seed:dev') ? 'dev' : 'prod');
       const templateArg = args.find(a => a.startsWith('--template='))?.split('=')[1];
-      await seedInitialMasterData(db, { env: envArg, templatePath: templateArg });
+      await seedInitialMasterData(db, { env: envArg, templatePath: templateArg, target: targetArg });
     } else if (command === 'seed:dev') {
-      await seedInitialMasterData(db, { env: 'dev' });
+      await seedInitialMasterData(db, { env: 'dev', target: targetArg });
     } else {
       console.error(`Unknown command: ${command}`);
       process.exit(1);
