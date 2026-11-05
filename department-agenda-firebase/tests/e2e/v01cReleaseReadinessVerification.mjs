@@ -512,11 +512,19 @@ async function runV01CVerification() {
 
       // Simulate concurrent modification via Firestore Emulator REST API
       console.log(`  Simulating concurrent modification in Firestore emulator for activity ${createdActivityId}...`);
-      await fetch(`http://127.0.0.1:8080/v1/projects/demo-department-agenda/databases/(default)/documents/activities/${createdActivityId}?updateMask.fieldPaths=version`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: { version: { integerValue: '99' } } })
-      });
+      const patchPayload = JSON.stringify({ fields: { version: { integerValue: '99' } } });
+      await Promise.allSettled([
+        fetch(`http://127.0.0.1:8080/v1/projects/simakdiskum/databases/(default)/documents/activities/${createdActivityId}?updateMask.fieldPaths=version`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: patchPayload
+        }),
+        fetch(`http://127.0.0.1:8080/v1/projects/demo-department-agenda/databases/(default)/documents/activities/${createdActivityId}?updateMask.fieldPaths=version`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: patchPayload
+        })
+      ]);
 
       await page.fill('#inputPublicNotes', 'Simulated conflict save attempt');
       await page.click('#btnSaveActivity');

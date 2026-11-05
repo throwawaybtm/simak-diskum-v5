@@ -7,4 +7,9 @@ firebase-debug.log*
 firestore-debug.log*
 ui-debug.log*
 .DS_Store
-*.env.local
+.env
+.env.local
+.env.*.local
+*.serviceAccountKey.json
+*service-account*.json
+*credentials*.json

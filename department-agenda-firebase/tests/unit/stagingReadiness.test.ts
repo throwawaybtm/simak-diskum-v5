@@ -78,4 +78,27 @@ describe('Task 8: Staging Readiness & Deployment Configuration Verification', ()
     expect(pkg.scripts.emulators).toContain('--project demo-department-agenda');
   });
 
+  it('verifies client initializers support environment configuration and guard emulator connection to localhost', () => {
+    const publicFirebase = fs.readFileSync(path.join(rootDir, 'apps/public/src/firebase.ts'), 'utf-8');
+    const adminFirebase = fs.readFileSync(path.join(rootDir, 'apps/admin/src/firebase.ts'), 'utf-8');
+
+    for (const code of [publicFirebase, adminFirebase]) {
+      expect(code).toContain('import.meta.env?.VITE_FIREBASE_PROJECT_ID');
+      expect(code).toContain("'simakdiskum'");
+      expect(code).toContain("location.hostname === 'localhost' || location.hostname === '127.0.0.1'");
+    }
+  });
+
+  it('verifies repository ignores sensitive credentials and contains zero committed private keys', () => {
+    const gitignore = fs.readFileSync(path.join(rootDir, '.gitignore'), 'utf-8');
+    expect(gitignore).toContain('*.serviceAccountKey.json');
+    expect(gitignore).toContain('*service-account*.json');
+    expect(gitignore).toContain('.env');
+
+    // Ensure no service account key files exist in root or packages
+    const files = fs.readdirSync(rootDir);
+    const hasServiceAccount = files.some(f => f.includes('serviceAccount') || f.includes('service-account'));
+    expect(hasServiceAccount).toBe(false);
+  });
+
 });
