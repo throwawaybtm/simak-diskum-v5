@@ -25,6 +25,8 @@ describe('Deterministic Rules Source Selection & Safety Guards', () => {
     expect(inspection.configFile).toBe('firebase.json');
     expect(inspection.rulesRelativePath).toBe('firebase/firestore.rules');
     expect(inspection.releaseIdentity).toBe(PROD_RULES_IDENTITY);
+    expect(inspection.rulesHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(inspection.linesCount).toBeGreaterThan(50);
     expect(inspection.mode).toBe('PRODUCTION_NORMAL');
     expect(inspection.isRoutineSafe).toBe(true);
     expect(inspection.exactCommand).toBe(`firebase deploy --only firestore:rules --project ${REQUIRED_PROJECT_ID}`);
@@ -35,6 +37,8 @@ describe('Deterministic Rules Source Selection & Safety Guards', () => {
     expect(inspection.configFile).toBe('firebase.maintenance.json');
     expect(inspection.rulesRelativePath).toBe('firebase/firestore.maintenance.rules');
     expect(inspection.releaseIdentity).toBe(MAINT_RULES_IDENTITY);
+    expect(inspection.rulesHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(inspection.linesCount).toBeGreaterThan(20);
     expect(inspection.mode).toBe('MAINTENANCE_LOCKDOWN');
     expect(inspection.isRoutineSafe).toBe(false);
     expect(inspection.exactCommand).toBe(

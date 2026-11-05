@@ -15,6 +15,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 export const REQUIRED_PROJECT_ID = 'simakdiskum';
 export const PROD_RULES_IDENTITY = 'SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5';
@@ -45,6 +46,8 @@ export function inspectRulesConfig(configPath = 'firebase.json', options = {}) {
   }
 
   const rulesContent = fs.readFileSync(resolvedRulesPath, 'utf-8');
+  const rulesHash = crypto.createHash('sha256').update(rulesContent).digest('hex');
+  const linesCount = rulesContent.split(/\r?\n/).length;
 
   // Extract RELEASE_IDENTITY from rules file
   const identityMatch = rulesContent.match(/\/\/\s*RELEASE_IDENTITY:\s*([A-Za-z0-9_-]+)/);
@@ -81,6 +84,8 @@ export function inspectRulesConfig(configPath = 'firebase.json', options = {}) {
     configFile: path.basename(resolvedConfigPath),
     rulesPath: resolvedRulesPath,
     rulesRelativePath,
+    rulesHash,
+    linesCount,
     releaseIdentity,
     mode,
     isMainConfig,
@@ -105,6 +110,8 @@ function main() {
     console.log(`Config File:        ${inspection.configFile}`);
     console.log(`Rules Source:       ${inspection.rulesRelativePath}`);
     console.log(`Release Identity:   ${inspection.releaseIdentity}`);
+    console.log(`Rules SHA-256:      ${inspection.rulesHash}`);
+    console.log(`Line Count:         ${inspection.linesCount} lines`);
     console.log(`Deployment Mode:    ${inspection.mode}`);
     console.log(`Target Project:     ${inspection.targetProject}`);
     console.log(`Routine Safe:       ${inspection.isRoutineSafe ? 'YES (Normal production writes)' : 'NO (Deliberate Maintenance Lockdown)'}`);

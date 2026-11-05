@@ -223,13 +223,15 @@ export async function disableUser(auth, identifier) {
 
 /**
  * Generates an out-of-band password reset link
+ * Note: Link is output to terminal for immediate out-of-band delivery.
+ * WARNING: Do not redirect stdout to shared/unencrypted logs or shell history.
  */
 export async function generatePasswordResetLink(auth, identifier) {
   const user = await resolveUser(auth, identifier);
   const link = await auth.generatePasswordResetLink(user.email);
   console.log(`[manageRoles] Password reset link generated for ${user.email}:`);
   console.log(`  ${link}`);
-  console.log(`[manageRoles Spark Note] Automated email sending is not available on Spark plan without external SMTP. Deliver this link securely to the operator via official municipal channels.`);
+  console.log(`[manageRoles Note] Firebase native password reset emails are supported on the Spark plan (up to 150 emails/day; quota subject to Google Cloud limits). Prefer having the operator use the web application password recovery interface. If using this CLI link as an out-of-band administrative fallback, deliver it directly to the operator via confidential municipal channels. DO NOT redirect or persist this output into shared logs, shell history, or unapproved communication channels.`);
   return link;
 }
 
@@ -295,6 +297,9 @@ Commands:
       await provisionUser(auth, email, password, displayName, role);
       if (!password) {
         console.log(`[manageRoles Security] Account provisioned with auto-generated secure entropy.`);
+        console.log(`[manageRoles Delivery Guidance] Recommended: Operator should receive or request a password reset via native email (150/day Spark quota).`);
+        console.log(`[manageRoles Terminal Notice] Generating one-time administrative setup link below for immediate interactive handoff.`);
+        console.log(`[manageRoles Disclosure Safeguard] DO NOT redirect this output to shared logs, shell history, or unapproved communication channels.`);
         await generatePasswordResetLink(auth, email);
       }
     } else if (command === 'set-role') {
