@@ -32,6 +32,10 @@ export function renderAgendaView(props: AgendaViewProps): string {
   const rowsHtml = activities.length > 0
     ? activities.map(act => {
         const isCancelled = act.status === 'CANCELLED';
+        const statusIndonesian = isCancelled ? 'Dibatalkan' : (act.status === 'COMPLETED' ? 'Selesai' : 'Terjadwal');
+        const locTypeIndonesian = act.locationType === 'OFFICE' ? 'Kantor Dinas'
+          : (act.locationType === 'ONLINE' ? 'Daring' : 'Luar Kantor');
+
         return `
           <div class="agenda-item-card ${isCancelled ? 'card-cancelled' : ''}" data-open-detail="${act.id}">
             <div class="agenda-item-left">
@@ -42,7 +46,7 @@ export function renderAgendaView(props: AgendaViewProps): string {
             <div class="agenda-item-main">
               <div class="agenda-badges-row">
                 <span class="badge badge-category">${act.categoryName}</span>
-                <span class="status-pill status-${act.status.toLowerCase()}">${act.status}</span>
+                <span class="status-pill status-${act.status.toLowerCase()}">${statusIndonesian}</span>
               </div>
 
               <h4 class="agenda-item-title ${isCancelled ? 'text-strikethrough' : ''}">${act.title}</h4>
@@ -54,7 +58,7 @@ export function renderAgendaView(props: AgendaViewProps): string {
               ` : ''}
 
               <div class="agenda-meta-info">
-                <span>📍 <strong>${act.locationName}</strong> (${act.locationType})</span>
+                <span>📍 <strong>${act.locationName}</strong> (${locTypeIndonesian})</span>
                 <span>🏛️ ${act.organizerName}</span>
                 ${act.attendeeLabels && act.attendeeLabels.length > 0
                   ? `<span>👥 ${act.attendeeLabels.join(', ')}</span>`

@@ -25,6 +25,9 @@ export function renderActivityDetailModal(act: PublicActivityDTO): string {
        </ul>`
     : '<p class="text-muted">Tidak ada pejabat atau staf dinas yang ditugaskan secara spesifik.</p>';
 
+  const locationTypeIndonesian = act.locationType === 'OFFICE' ? 'Kantor Dinas'
+    : (act.locationType === 'ONLINE' ? 'Daring' : 'Luar Kantor');
+
   const cancellationNoticeHtml = isCancelled && act.publicCancellationNotice
     ? `
       <div class="alert alert-danger cancellation-alert">
@@ -65,7 +68,7 @@ export function renderActivityDetailModal(act: PublicActivityDTO): string {
               <span class="detail-label">📍 Lokasi / Tempat:</span>
               <span class="detail-value">
                 <strong>${act.locationName}</strong>
-                <span class="location-tag tag-${act.locationType.toLowerCase()}">(${act.locationType})</span>
+                <span class="location-tag tag-${act.locationType.toLowerCase()}">(${locationTypeIndonesian})</span>
               </span>
             </div>
 
@@ -88,7 +91,7 @@ export function renderActivityDetailModal(act: PublicActivityDTO): string {
           ` : ''}
 
           <div class="modal-footer-meta">
-            <small class="text-muted">ID Kegiatan: <code>${act.id}</code> | Informasi resmi diperbarui pada: ${new Date(act.updatedAt).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB</small>
+            <small class="text-muted">Informasi resmi agenda diperbarui pada: ${new Date(act.updatedAt).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB</small>
           </div>
         </div>
 

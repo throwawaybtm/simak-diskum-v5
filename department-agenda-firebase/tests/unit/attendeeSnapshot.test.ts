@@ -89,4 +89,28 @@ describe('Historical Attendee Snapshot Immutability Engine', () => {
     );
     expect(updatedSnapshots[0].name).toBe('Pejabat Pengganti, SE');
   });
+
+  it('deduplicates identical employee IDs without duplicating snapshot entries', () => {
+    // If attendeeIds contains duplicate IDs for the same employee
+    const snapshots = captureAttendeeSnapshots(
+      ['emp_01', 'emp_01', 'emp_02', 'emp_02', 'emp_03'],
+      employeesDirectory
+    );
+
+    expect(snapshots).toHaveLength(3);
+    expect(snapshots.map(s => s.employeeId)).toEqual(['emp_01', 'emp_02', 'emp_03']);
+    expect(snapshots[0].label).toBe('1. Kadis (Drs. Hendri Arifin, M.Si)');
+    expect(snapshots[1].label).toBe('2. Sekretaris (Rini Marlina, S.Sos)');
+    expect(snapshots[2].label).toBe('3. Kabid Koperasi (Ahmad Fauzi, SE)');
+  });
+
+  it('never exposes raw employee IDs in snapshot labels even when employee is not in master directory', () => {
+    const unknownSnapshots = captureAttendeeSnapshots(['emp_unknown_999'], employeesDirectory);
+
+    expect(unknownSnapshots).toHaveLength(1);
+    expect(unknownSnapshots[0].name).toBe('Pegawai Dinas');
+    expect(unknownSnapshots[0].label).toBe('1. Pegawai Dinas');
+    expect(unknownSnapshots[0].label).not.toContain('emp_');
+    expect(unknownSnapshots[0].label).not.toContain('unknown_999');
+  });
 });

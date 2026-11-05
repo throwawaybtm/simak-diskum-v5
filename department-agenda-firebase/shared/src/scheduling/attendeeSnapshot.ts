@@ -32,10 +32,13 @@ export function captureAttendeeSnapshots(
   const snapshots: AttendeeSnapshot[] = [];
   const empMap = new Map<string, Employee>(employeeMasterList.map(emp => [emp.id, emp]));
 
+  // Deduplicate employee IDs while preserving input order
+  const uniqueAttendeeIds = [...new Set(attendeeIds.filter(Boolean))];
+
   let counter = 1;
 
   // 1. Process employee attendees
-  for (const empId of attendeeIds) {
+  for (const empId of uniqueAttendeeIds) {
     const emp = empMap.get(empId);
     if (emp) {
       const shortPos = abbreviatePosition(emp.position);
@@ -48,12 +51,12 @@ export function captureAttendeeSnapshots(
       });
       counter++;
     } else {
-      // Fallback if employee was not found in active master list
+      // Fallback if employee was not found in active master list (Strict Privacy: zero raw IDs exposed)
       snapshots.push({
         employeeId: empId,
-        name: `Pegawai (${empId})`,
+        name: 'Pegawai Dinas',
         position: 'Pegawai Dinas',
-        label: `${counter}. Pegawai (${empId})`
+        label: `${counter}. Pegawai Dinas`
       });
       counter++;
     }

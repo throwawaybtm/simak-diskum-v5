@@ -240,15 +240,19 @@ function renderDayView(selectedDate: string, activities: PublicActivityDTO[]): s
 
   const itemsHtml = activities.map(act => {
     const isCancelled = act.status === 'CANCELLED';
+    const statusIndonesian = isCancelled ? 'Dibatalkan' : (act.status === 'COMPLETED' ? 'Selesai' : 'Terjadwal');
+    const locTypeIndonesian = act.locationType === 'OFFICE' ? 'Kantor Dinas'
+      : (act.locationType === 'ONLINE' ? 'Daring' : 'Luar Kantor');
+
     return `
       <div class="day-view-item ${isCancelled ? 'day-item-cancelled' : ''}" data-open-detail="${act.id}">
         <div class="day-item-time">
           <strong>${act.timeDisplay}</strong>
-          <span class="status-pill status-${act.status.toLowerCase()}">${act.status}</span>
+          <span class="status-pill status-${act.status.toLowerCase()}">${statusIndonesian}</span>
         </div>
         <div class="day-item-content">
           <h4 class="${isCancelled ? 'text-strikethrough' : ''}">${act.title}</h4>
-          <p class="day-item-venue">📍 Tempat: <strong>${act.locationName}</strong> (${act.locationType})</p>
+          <p class="day-item-venue">📍 Tempat: <strong>${act.locationName}</strong> (${locTypeIndonesian})</p>
           <p class="day-item-org">🏛️ Penyelenggara: ${act.organizerName}</p>
           ${act.attendeeLabels && act.attendeeLabels.length > 0
             ? `<p class="day-item-attendees">👥 Dihadiri: ${act.attendeeLabels.join(', ')}</p>`
@@ -297,6 +301,7 @@ function renderListView(activities: PublicActivityDTO[], rangeStart: string, ran
 
   const cardsHtml = sorted.map(act => {
     const isCancelled = act.status === 'CANCELLED';
+    const statusIndonesian = isCancelled ? 'Dibatalkan' : (act.status === 'COMPLETED' ? 'Selesai' : 'Terjadwal');
     return `
       <div class="list-activity-row ${isCancelled ? 'row-cancelled' : ''}" data-open-detail="${act.id}">
         <div class="row-date-badge">
@@ -306,7 +311,7 @@ function renderListView(activities: PublicActivityDTO[], rangeStart: string, ran
         <div class="row-content">
           <div class="row-badges">
             <span class="badge badge-category">${act.categoryName}</span>
-            <span class="status-pill status-${act.status.toLowerCase()}">${act.status}</span>
+            <span class="status-pill status-${act.status.toLowerCase()}">${statusIndonesian}</span>
           </div>
           <h4 class="${isCancelled ? 'text-strikethrough' : ''}">${act.title}</h4>
           <p class="row-meta">📍 ${act.locationName} • 🏛️ ${act.organizerName}</p>

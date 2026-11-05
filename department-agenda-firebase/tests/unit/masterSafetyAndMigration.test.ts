@@ -168,6 +168,37 @@ describe('Task 8: Master Data Safety & Migration Isolation Tests', () => {
       expect(row1.publicNotes).not.toContain('https://zoom.us');
       expect(row1.publicNotes).toContain('Peserta wajib hadir tepat waktu.');
     });
+
+    it('correctly parses comma-separated employee names with academic titles without ID duplication', () => {
+      const employeesMap = new Map<string, Employee>([
+        ['emp_01', { id: 'emp_01', name: 'Drs. Hendri Arifin, M.Si', position: 'Kepala Dinas', departmentId: 'dept_01', active: true }],
+        ['emp_02', { id: 'emp_02', name: 'Rini Marlina, S.Sos', position: 'Sekretaris', departmentId: 'dept_01', active: true }],
+        ['emp_03', { id: 'emp_03', name: 'Ahmad Fauzi, SE', position: 'Kabid', departmentId: 'dept_01', active: true }]
+      ]);
+
+      const lookupsWithEmployees = {
+        ...lookups,
+        employees: employeesMap
+      };
+
+      const rowsWithTitles: LegacySpreadsheetRow[] = [
+        {
+          tanggal: '2026-10-02',
+          waktu: '08.00 - 10.00',
+          namaKegiatan: 'Rapat Koordinasi Evaluasi Triwulan',
+          lokasi: 'Ruang Rapat Kadis (Lantai 2)',
+          penyelenggara: 'Sekretariat Dinas',
+          peserta: 'Drs. Hendri Arifin, M.Si, Rini Marlina, S.Sos, Ahmad Fauzi, SE',
+          catatan: 'Hadir tepat waktu.'
+        }
+      ];
+
+      const res = parseLegacySpreadsheetData(rowsWithTitles, [], lookupsWithEmployees);
+      const rec = res.records[0];
+
+      expect(rec.attendeeIds).toEqual(['emp_01', 'emp_02', 'emp_03']);
+      expect(rec.guestAttendees).toHaveLength(0);
+    });
   });
 
 });

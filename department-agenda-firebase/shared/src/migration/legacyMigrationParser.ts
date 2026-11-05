@@ -181,23 +181,40 @@ export function parseLegacySpreadsheetData(
     const guestAttendees: string[] = [];
 
     if (raw.peserta) {
-      const parts = raw.peserta.split(/[,;\n]/).map(p => p.trim()).filter(Boolean);
-      for (const part of parts) {
-        attendeeNames.push(part);
-        let matchedEmp: Employee | undefined;
-        if (lookups.employees) {
-          for (const emp of lookups.employees.values()) {
-            if (emp.name.toLowerCase().includes(part.toLowerCase()) ||
-                part.toLowerCase().includes(emp.name.toLowerCase())) {
-              matchedEmp = emp;
-              break;
-            }
+      // First, find all matching employees from the directory whose name appears in raw.peserta
+      const matchedEmpMap = new Map<string, string>(); // empId -> empName
+
+      if (lookups.employees) {
+        for (const emp of lookups.employees.values()) {
+          const cleanEmpName = emp.name.toLowerCase();
+          const rawPesertaLower = raw.peserta.toLowerCase();
+          // Extract base name without title prefixes (e.g. "Hendri Arifin" from "Drs. Hendri Arifin, M.Si")
+          const baseName = emp.name.replace(/^(drs\.|dr\.|ir\.|dra\.)\s*/i, '').split(',')[0].trim().toLowerCase();
+
+          if (rawPesertaLower.includes(cleanEmpName) || (baseName.length > 4 && rawPesertaLower.includes(baseName))) {
+            matchedEmpMap.set(emp.id, emp.name);
           }
         }
-        if (matchedEmp) {
-          attendeeIds.push(matchedEmp.id);
-        } else {
-          guestAttendees.push(part);
+      }
+
+      for (const [id, name] of matchedEmpMap.entries()) {
+        attendeeIds.push(id);
+        attendeeNames.push(name);
+      }
+
+      // Check for any remaining guest attendees not matching employees
+      let remainder = raw.peserta;
+      for (const name of matchedEmpMap.values()) {
+        remainder = remainder.replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
+      }
+      const leftoverParts = remainder.split(/[,;\n]/)
+        .map(p => p.trim())
+        .filter(p => p.length > 2 && !/^(m\.si|s\.sos|se|s\.t|s\.kom|m\.m|s\.pd|s\.stp|m\.a)$/i.test(p));
+
+      for (const guest of leftoverParts) {
+        if (!guestAttendees.includes(guest)) {
+          guestAttendees.push(guest);
+          attendeeNames.push(guest);
         }
       }
     }

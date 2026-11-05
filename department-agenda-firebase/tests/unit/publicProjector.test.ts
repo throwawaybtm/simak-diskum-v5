@@ -99,4 +99,21 @@ describe('Public Projection & Privacy Isolation Engine', () => {
     expect(publicDto.publicNotes).not.toContain('rahasia');
     expect(publicDto.publicNotes).toContain('[TAUTAN DIHAPUS]');
   });
+
+  it('sanitizes and purges raw internal employee IDs from attendeeLabels as defense-in-depth', () => {
+    const activityWithRawIdsInSnapshots: ActivityDocument = {
+      ...samplePrivateActivity,
+      attendeeSnapshots: [
+        { employeeId: 'emp_01', name: 'Pegawai (emp_01)', position: 'Pegawai Dinas', label: '1. Pegawai (emp_01)' },
+        { employeeId: 'emp_02', name: 'Rini Marlina, S.Sos', position: 'Sekretaris', label: '2. Sekretaris (Rini Marlina, S.Sos)' }
+      ]
+    };
+
+    const publicDto = projectPublicActivity(activityWithRawIdsInSnapshots, lookups);
+
+    expect(publicDto.attendeeLabels).toHaveLength(2);
+    expect(publicDto.attendeeLabels[0]).toBe('1. Pegawai Dinas');
+    expect(publicDto.attendeeLabels[0]).not.toContain('emp_01');
+    expect(publicDto.attendeeLabels[1]).toBe('2. Sekretaris (Rini Marlina, S.Sos)');
+  });
 });

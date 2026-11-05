@@ -7,6 +7,8 @@ import type { PublicActivityDTO } from '@department-agenda/shared';
 
 export function renderPublicPreviewCard(dto: PublicActivityDTO): string {
   const isCancelled = dto.status === 'CANCELLED';
+  const locTypeIndonesian = dto.locationType === 'OFFICE' ? 'Kantor Dinas'
+    : (dto.locationType === 'ONLINE' ? 'Daring' : 'Luar Kantor');
 
   const attendeeListHtml = dto.attendeeLabels.length > 0
     ? dto.attendeeLabels.map(label => `<li class="preview-attendee-item">${label}</li>`).join('')
@@ -34,7 +36,7 @@ export function renderPublicPreviewCard(dto: PublicActivityDTO): string {
         </div>
         <div class="preview-meta-row">
           <span class="meta-label">📍 Lokasi:</span>
-          <span class="meta-value">${dto.locationName} (${dto.locationType})</span>
+          <span class="meta-value">${dto.locationName} (${locTypeIndonesian})</span>
         </div>
         <div class="preview-meta-row">
           <span class="meta-label">🏛️ Penyelenggara:</span>

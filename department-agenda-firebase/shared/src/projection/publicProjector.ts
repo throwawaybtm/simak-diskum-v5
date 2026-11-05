@@ -38,8 +38,14 @@ export function projectPublicActivity(
     privateRecord.openEnded
   );
 
-  // Extract public labels from immutable attendee snapshots
-  const attendeeLabels = (privateRecord.attendeeSnapshots || []).map(snap => snap.label);
+  // Extract public labels from immutable attendee snapshots (Defense-in-depth: strip any raw database IDs)
+  const attendeeLabels = (privateRecord.attendeeSnapshots || []).map(snap => {
+    let lbl = snap.label || '';
+    lbl = lbl.replace(/Pegawai\s*\(\s*emp_[a-zA-Z0-9_-]+\s*\)/gi, 'Pegawai Dinas');
+    lbl = lbl.replace(/\s*\(\s*emp_[a-zA-Z0-9_-]+\s*\)/gi, '');
+    lbl = lbl.replace(/emp_[a-zA-Z0-9_-]+/gi, 'Pegawai Dinas');
+    return lbl.trim();
+  });
 
   // Secondary defense-in-depth sanitization on public notes
   const safePublicNotes = sanitizePublicText(privateRecord.publicNotes || '');

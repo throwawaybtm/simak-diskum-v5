@@ -532,7 +532,8 @@ export async function mountReportsPage(
 
             await saveActivity(db, actDoc, lookups, {
               identitySource: 'UNVERIFIED',
-              actorLabel: 'migration_tool'
+              actorLabel: 'migration_tool',
+              employeesMasterList: Array.from(lookups.employees ? lookups.employees.values() : [])
             });
             imported++;
           }

@@ -22,6 +22,8 @@ export function renderActivitiesPage(activities: ActivityDocument[]): string {
         const stageInfo = stageMap[stage] || stageMap.INITIAL_ENTRY;
         const agendaNumber = act.invitationLetter?.agendaNumber || '';
 
+        const statusIndonesian = isCancelled ? 'Dibatalkan' : (act.status === 'COMPLETED' ? 'Selesai' : 'Terjadwal');
+
         return `
           <tr class="${isCancelled ? 'row-cancelled' : ''}" data-activity-row data-stage="${stage}" data-title="${act.title.toLowerCase()}" data-agenda="${agendaNumber.toLowerCase()}">
             <td><strong>${dateSpan}</strong></td>
@@ -35,7 +37,7 @@ export function renderActivitiesPage(activities: ActivityDocument[]): string {
               ${act.cancelReason ? `<span class="tag-cancel">Batal: ${act.cancelReason}</span>` : ''}
             </td>
             <td><span class="stage-badge stage-${stageInfo.cls}">${stageInfo.label}</span></td>
-            <td><span class="status-badge status-${act.status.toLowerCase()}">${act.status}</span></td>
+            <td><span class="status-badge status-${act.status.toLowerCase()}">${statusIndonesian}</span></td>
             <td>v${act.version}</td>
             <td class="action-cell">
               <a href="#activities/edit/${act.id}" class="btn-sm btn-edit">Edit</a>
