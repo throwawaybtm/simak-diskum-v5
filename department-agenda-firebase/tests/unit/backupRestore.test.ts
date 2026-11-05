@@ -29,7 +29,8 @@ import {
   verifyRestoration,
   seedInitialMasterData,
   assertDeepFirestoreEquality,
-  validateTargetEnvironment
+  validateTargetEnvironment,
+  getRestoreProgress
 } from '../../scripts/backupRestore.mjs';
 
 describe('P01-B: Hardened Backup, Restore & Seeding Operations', () => {
@@ -308,5 +309,27 @@ describe('P01-B: Hardened Backup, Restore & Seeding Operations', () => {
 
     // Restoring emulator
     process.env.FIRESTORE_EMULATOR_HOST = prevEmu || '127.0.0.1:8080';
+  });
+
+  it('correctly inspects restore progress ledger status', () => {
+    // Non-existent ledger returns null
+    expect(getRestoreProgress(tempDir)).toBeNull();
+
+    // Existing ledger is correctly read
+    const ledgerPath = path.join(tempDir, 'restore-progress.json');
+    const mockLedger = {
+      operationId: 'op_test_123',
+      targetProjectId: 'demo-department-agenda',
+      mode: 'full',
+      status: 'IN_PROGRESS',
+      completedBatches: ['batch_1']
+    };
+    fs.writeFileSync(ledgerPath, JSON.stringify(mockLedger), 'utf-8');
+
+    const result = getRestoreProgress(tempDir);
+    expect(result).not.toBeNull();
+    expect(result?.operationId).toBe('op_test_123');
+    expect(result?.status).toBe('IN_PROGRESS');
+    expect(result?.completedBatches).toContain('batch_1');
   });
 });

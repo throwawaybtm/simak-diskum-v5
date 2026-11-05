@@ -914,6 +914,23 @@ export async function seedInitialMasterData(db, options = {}) {
   console.log('[backupRestore] ✓ Synthetic development fixtures seeded successfully.');
 }
 
+/**
+ * Retrieves the current restore progress ledger if one exists
+ */
+export function getRestoreProgress(sourceDir = null) {
+  const progressPath = sourceDir
+    ? path.join(sourceDir, 'restore-progress.json')
+    : path.resolve('./restore-progress.json');
+  if (!fs.existsSync(progressPath)) {
+    return null;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(progressPath, 'utf-8'));
+  } catch {
+    return null;
+  }
+}
+
 // CLI Support
 async function main() {
   const args = process.argv.slice(2);
@@ -925,6 +942,7 @@ SIMAK DISKUM Spark-Compatible Backup Utility
 Commands:
   export <target_directory> [--target=emulator|prod]
   restore <source_directory> [--mode=merge|full] [--dry-run] [--dry-run-reviewed] [--force] [--resume] [--restart] [--target=emulator|prod]
+  status [source_directory] [--target=emulator|prod]
   seed [--env=prod|dev] [--template=<path>] [--target=emulator|prod]
     `);
     return;
@@ -958,6 +976,30 @@ Commands:
         restart,
         target: targetArg
       });
+    } else if (command === 'status') {
+      const sourceDir = args[1] && !args[1].startsWith('--') ? args[1] : null;
+      const progress = getRestoreProgress(sourceDir);
+      if (!progress) {
+        console.log('[backupRestore] No active restore progress ledger found.');
+      } else {
+        console.log('======================================================================');
+        console.log('[SIMAK DISKUM] RESTORE PROGRESS LEDGER STATUS');
+        console.log(`Operation ID:        ${progress.operationId}`);
+        console.log(`Target Project:      ${progress.targetProjectId}`);
+        console.log(`Mode:                ${progress.mode}`);
+        console.log(`Status:              ${progress.status}`);
+        console.log(`Started At:          ${progress.startedAt}`);
+        console.log(`Completed Batches:   ${progress.completedBatches ? progress.completedBatches.length : 0}`);
+        console.log(`Completed Deletions: ${progress.completedDeletions ? progress.completedDeletions.length : 0}`);
+        console.log(`Failed Batch:        ${progress.failedBatch || 'None'}`);
+        console.log('======================================================================');
+        if (progress.status === 'FAILED' || progress.status === 'IN_PROGRESS') {
+          console.log(`To resume this operation:`);
+          console.log(`  node scripts/backupRestore.mjs restore "${progress.sourceDir}" --mode=${progress.mode} --resume --force --dry-run-reviewed --target=${envInfo.target}`);
+          console.log(`To cancel and restart from scratch:`);
+          console.log(`  node scripts/backupRestore.mjs restore "${progress.sourceDir}" --mode=${progress.mode} --restart --force --dry-run-reviewed --target=${envInfo.target}`);
+        }
+      }
     } else if (command === 'seed') {
       const envArg = args.find(a => a.startsWith('--env='))?.split('=')[1] || (args.includes('seed:dev') ? 'dev' : 'prod');
       const templateArg = args.find(a => a.startsWith('--template='))?.split('=')[1];
