@@ -4,7 +4,7 @@
 **Target Architecture:** Firebase Hosting (Multi-site: `public` & `admin`), Cloud Firestore Standard Edition, Firebase Emulator Suite  
 **Development Tooling:** Vite, TypeScript, Vitest, Playwright, Firebase CLI, ExcelJS  
 **Last Updated:** 2026-11-05  
-**Overall Status:** Milestone A01 Admin Authentication UI & RBAC Verification Completed & Formally Verified (233/233 Vitest tests across 26 files, 38 Firestore Security Rules tests, 34/34 Admin Auth browser scenarios, 113 total browser scenarios, 100% pass rate); Deterministic 6-State RBAC Machine Implemented (`authService.ts`); Zero Private Firestore Reads Prior to Authentication; Batam Civic Login Interface, Password Show/Hide Toggle, Password Recovery with Anti-Enumeration Defense, and Access Denied Isolation Implemented; Topbar Operator Profile Pill with Dynamic Role Badge (`Administrator` vs `Operator Agenda`) and Functional Sign-Out; 10 Verified Multi-Viewport Screenshots Captured (375px & 1440px); P02-A Blocker 2 (Admin Auth UI) Completely Resolved; System Paused at A01 Admin Authentication Review Checkpoint (Zero Live Cloud Deployments; P02-B On Hold Awaiting Category 2 Stakeholder Approvals).  
+**Overall Status:** Milestone A01 Admin Authentication UI & RBAC Verification (Final Correction Pass) Completed & Formally Verified (233/233 Vitest tests across 26 files, 38 Firestore Security Rules tests, 49/49 Admin Auth browser scenarios, 13/13 functional regression scenarios, 100% pass rate); Deterministic 6-State RBAC Machine Implemented (`authService.ts`); Zero Private Firestore Reads Prior to Authentication; Batam Civic Login Interface, Password Show/Hide Toggle, Password Recovery with Anti-Enumeration Defense, and Access Denied Isolation Implemented; Topbar Operator Profile Pill with Dynamic Role Badge (`Administrator` vs `Operator Agenda`) and Functional Sign-Out; 10 Verified Multi-Viewport Screenshots Captured (375px & 1440px); Defect A (Upcoming agenda card title clipping) and Defect B (Status legend collision) Mathematically Corrected and Verified Across 320px, 375px, 425px, and 1440px; Async In-Flight Race Condition Defense (`activeSessionEpoch`) and Listener Registry Implemented; P02-A Blocker 2 (Admin Auth UI) Completely Resolved; System Paused at A01 Admin Authentication Review Checkpoint (Zero Live Cloud Deployments; P02-B On Hold Awaiting Category 2 Stakeholder Approvals).  
 
 ---
 
@@ -43,15 +43,16 @@
 - **Vitest Unit & Integration Suites:** 26 passed (26 total)
 - **Vitest Automated Tests:** **233 passed** (233 total, 100% pass rate)
 - **Playwright Real-Browser Verification Suites:**
-  - Admin Authentication & RBAC Suite (`adminAuthVerification.mjs`): **34 / 34 passed**
+  - Admin Authentication & RBAC Suite (`adminAuthVerification.mjs`): **49 / 49 passed** (including 4-viewport geometry & keyboard navigation)
+  - Core Functional Regression Suite (`runVerification.mjs`): **13 / 13 passed** (with protected admin login)
   - V01-C Release Readiness Suite (`v01cReleaseReadinessVerification.mjs`): **27 / 27 passed**
   - V01-B Final Correction Pass Suite (`v01bFinalCorrectionVerification.mjs`): **23 / 23 passed**
   - Feature F01 Administrative Workflow Suite (`f01WorkflowVerification.mjs`): **13 / 13 passed**
   - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed**
   - Master Data Suite (`masterDataVerification.mjs`): **8 / 8 passed**
-- **Total Real-Browser Scenarios:** **113 verified browser executions** across current primary suites (100% pass rate)
-- **Total Automated Test Assertions:** **346+ passed** (233 Vitest + 113 Browser, 100% pass rate)
-- **Visual Artifacts:** 109 verified browser screenshots in `tests/e2e/screenshots/` (including 10 newly captured A01 screenshots across 375px and 1440px)
+- **Total Real-Browser Scenarios:** **141 verified browser executions** across current primary suites (100% pass rate)
+- **Total Automated Test Assertions:** **374+ passed** (233 Vitest + 141 Browser, 100% pass rate)
+- **Visual Artifacts:** 109 verified browser screenshots in `tests/e2e/screenshots/` (including 10 verified A01 screenshots across 375px and 1440px)
 - **Real Emulator vs In-Memory Mock Attribution:**
   - **81 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
     - **19 tests** in `tests/integration/adminAuthService.test.ts` (Admin & Editor login, claims, anti-enumeration, disabled accounts)
@@ -196,3 +197,5 @@
     - *Status:* **ENFORCED & CODIFIED**. Established a 3-step verification protocol: (1) verify SHA-256 hash `444b48ba8e9d5979b0845e997babe9a728fefc930e3f03bab35da91e11570678` and exact 707 lines; (2) run semantic diff via `git diff --no-index firebase/firestore.rules <live_published_rules>`; (3) execute live endpoint permission probes (unauthenticated write rejection, empty public read).
 33. **Spark Password Reset Email Quota & Disclosure Safeguards:**
     - *Status:* **ALIGNED & CODIFIED**. Documented Spark quota as **150 emails/day** (subject to Google Cloud quota updates). Added disclosure safeguards to `scripts/manageRoles.mjs` alerting operators that terminal-generated setup links must never be redirected to shared log files, shell history, or unapproved communication channels. Prefer native web recovery emails where supported.
+34. **Milestone A01 Admin Authentication UI, Protected Bootstrap & Mobile Layout Correction:**
+    - *Status:* **IMPLEMENTED, HARDENED & VERIFIED**. Designed and verified deterministic 6-state RBAC machine (`authService.ts`) preventing private Firestore reads before login. Batam civic login interface (`renderLoginPage`), password show/hide toggle, password recovery view (`renderPasswordRecoveryPage`) with neutral anti-enumeration defense, and access denied view (`renderAccessDeniedPage`). Topbar operator profile pill and dropdown with role badges (`Administrator` vs `Operator Agenda`) and sign-out. Hardened against mobile defects at 375px viewport (Defect A upcoming agenda title wrap with tooltip, Defect B status legend collision with dedicated count column and gap >= 8px). Hardened auth state lifecycle with `activeSessionEpoch` session counter preventing in-flight async race conditions, and real-time Firestore listener cleanup registry. Usability & accessibility: Enter-key login submission, dynamic `aria-busy`, post-failure focus on password input with `.select()`, and profile dropdown keyboard navigation (`ArrowDown`/`Escape`). Verified by 233 Vitest tests, 49 A01 Playwright browser scenarios across 320px, 375px, 425px, and 1440px viewports, and 13 functional regression scenarios with 100% pass rate.

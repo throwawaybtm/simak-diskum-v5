@@ -3,8 +3,8 @@
 **Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
 **System Version:** 5.0.0  
 **Target Environment:** Local Development & Firebase Emulator Suite  
-**Milestone:** **A01 — Admin Authentication UI, Protected Application Bootstrap & Local Security Verification**  
-**Document Status:** COMPLETED, AUDITED & LOCALLY VERIFIED  
+**Milestone:** **A01 — Admin Authentication UI, Protected Application Bootstrap & Local Security Verification (Final Correction Pass)**  
+**Document Status:** FULLY VERIFIED & READY FOR HANDOFF  
 **Date:** November 5, 2026  
 
 ---
@@ -13,7 +13,7 @@
 
 Milestone A01 was authorized following the pre-production readiness audit of Milestone P02-A, which identified a critical architectural gap: the Admin Portal (`apps/admin/`) previously mounted the administrative dashboard shell directly upon page load without an interactive Firebase Authentication login gate or password recovery interface. Under Gate 5A production Cloud Firestore Security Rules, unauthenticated operations are strictly denied (`PERMISSION_DENIED`).
 
-In Milestone A01, a production-grade, secure, and accessible administrative authentication architecture was designed, implemented, and verified locally against real Firebase Auth (`127.0.0.1:9099`) and Cloud Firestore (`127.0.0.1:8080`) emulators.
+In Milestone A01 and its Final Correction Pass, a production-grade, secure, accessible, and mathematically responsive administrative authentication architecture was designed, implemented, and verified locally against real Firebase Auth (`127.0.0.1:9099`) and Cloud Firestore (`127.0.0.1:8080`) emulators.
 
 > [!IMPORTANT]
 > **LOCAL DEVELOPMENT & TESTING BOUNDARY:**  
@@ -27,7 +27,7 @@ In Milestone A01, a production-grade, secure, and accessible administrative auth
 
 ## 2. Architectural Gap Analysis & Root Cause
 
-Before Milestone A01, inspection of `apps/admin/src/main.ts` and `apps/admin/src/firebase.ts` revealed three fundamental authentication gaps:
+Before Milestone A01, inspection of `apps/admin/src/main.ts` and `apps/admin/src/firebase.ts` revealed fundamental authentication gaps:
 
 1. **Unprotected DOMContentLoaded Initialization:**  
    `main.ts` previously executed `await loadMasterData()` and `await router()` immediately upon DOM load. While permissible in permissive local emulator rules, this caused unauthenticated clients in production to attempt reads on private collections (`activities`, `locations`, `organizers`, `employees`, `departments`), triggering `PERMISSION_DENIED` errors and exposing empty dashboards.
@@ -42,7 +42,7 @@ Before Milestone A01, inspection of `apps/admin/src/main.ts` and `apps/admin/src
 
 ### 3.1 Six-State RBAC State Machine
 
-The client application bootstrap in `apps/admin/src/main.ts` now enforces a deterministic six-state machine driven by `subscribeAuthState` in `apps/admin/src/auth/authService.ts`:
+The client application bootstrap in `apps/admin/src/main.ts` enforces a deterministic six-state machine driven by `subscribeAuthState` in `apps/admin/src/auth/authService.ts`:
 
 ```
                [ Page Load / Bootstrap ]
@@ -88,123 +88,122 @@ The client application bootstrap in `apps/admin/src/main.ts` now enforces a dete
 
 ---
 
-## 4. Civic User Interfaces & Accessibility
+## 4. Final Correction Pass: Mobile Layout Geometry & Anti-Collision
 
-All authentication screens adhere strictly to the approved minimalist civic design system (`docs/VISUAL_DESIGN_SYSTEM.md` and `docs/design/reference-approved.png`):
+During the A01 Final Correction Pass, comprehensive geometric inspections and mathematical constraints were implemented to eliminate mobile dashboard clipping and collision defects:
 
-### 4.1 Operator Sign-In Interface
-- **Branding:** Displays the official Coat of Arms of Kota Batam (`/batam-emblem.png`), system title `SIMAK DISKUM Kota Batam`, and civic badge `Admin Portal — Masuk Operator`.
-- **Inputs:** Email address (`autocomplete="username"`) and Password (`autocomplete="current-password"`).
-- **Password Visibility Toggle:** Interactive eye icon button toggling `type="password"` and `type="text"`, complete with screen-reader friendly `aria-label` updates ("Tampilkan kata sandi" / "Sembunyikan kata sandi").
-- **Error Presentation:** Prominent alert banner (`.auth-alert-error`) with role alert semantics (`role="alert"`, `aria-live="assertive"`).
-- **Anti-Enumeration Protection:** Submitting invalid passwords or non-registered emails displays the exact same non-enumerating message:  
-  *“Email atau kata sandi yang Anda masukkan salah. Silakan periksa kembali.”*
-- **Regulatory Notice:** Explicit footer reminder stating that registration is restricted to official department personnel and self-signup is disabled.
+### 4.1 Defect A: Upcoming Agenda Card Clipping
+- **Root Cause:** In CSS Grid and Flexbox, tracks defaulting to `minmax(auto, 1fr)` expand to the `min-content` intrinsic width of unconstrained children (`white-space: nowrap`), causing `.agenda-item-row` to expand to 522px and blow out horizontally on a 375px viewport.
+- **Mathematical Layout Hardening:**
+  - Applied `min-width: 0; max-width: 100%;` across `.dashboard-panels-grid`, `.dashboard-card`, `.panel-upcoming`, `.upcoming-agenda-list`, and `.agenda-item-row`.
+  - Implemented responsive mobile 2-column grid layout for screen widths `<= 640px` (`grid-template-columns: 44px minmax(0, 1fr)` at `<= 640px` and `38px minmax(0, 1fr)` at `<= 360px`).
+  - Column 1 holds the calendar date badge; Column 2 holds the title, location, and time.
+  - Titles wrap smoothly up to 2 lines via `-webkit-line-clamp: 2` and `word-break: break-word`.
+  - Added full tooltip access via `title="${safeTitle}"` on both `.agenda-item-row` and `.agenda-item-title` elements.
+  - Preserved full visibility and readability for Date, Title, Location, and Time.
+  - Guaranteed strictly 0px document-level horizontal overflow across all tested viewports.
 
-### 4.2 Password Recovery Interface
-- **Access:** Direct text button `Lupa Kata Sandi?` on the login form.
-- **Workflow:** Clean single-input form requesting the operator's official email address.
-- **Anti-Enumeration Defense:** Regardless of whether the submitted email exists in Firebase Authentication, the UI returns an identical neutral success confirmation:  
-  *“Jika alamat email terdaftar pada sistem SIMAK DISKUM, instruksi dan tautan pemulihan kata sandi telah dikirimkan ke email tersebut.”*
-- **Navigation:** Prominent `← Kembali ke Halaman Masuk` secondary button returning cleanly to the login view.
-- **Spark Quota Documentation:** Informs the user that password reset emails are delivered via Firebase native mailer under the Spark tier quota (150 emails/day).
-
-### 4.3 Access Denied & Session Isolation Interface
-- **Isolation:** Triggered when an authenticated Google Identity user lacks valid role claims.
-- **Visual Presentation:** Red shield/lock icon, warning badge `Akun Tidak Memiliki Izin Operasional`, and metadata box showing the authenticated email, role status (`Tidak Memiliki Hak Akses`), and database authority (`Cloud Firestore Security Rules (Strict Deny)`).
-- **Action:** A prominent `Keluar dari Akun Ini (Sign Out)` button cleanly terminates the session and returns the browser to the login screen.
-
-### 4.4 Topbar Operator Profile Pill & Dropdown
-- **Trigger:** Interactive profile pill in the administrative topbar displaying the operator's name and chevron.
-- **Dropdown Menu:** Accessible popup menu (`role="menu"`, `aria-haspopup="true"`) displaying:
-  - Operator full name (`displayName` from Firebase Auth token).
-  - Operator email address.
-  - Role pill badge (`Administrator` in civic blue vs. `Operator Agenda` in emerald green).
-  - Action button: `Keluar (Sign Out)` with logout icon.
-- **Accessibility:** Closes automatically on `Escape` key press, clicking outside the menu, or keyboard navigation.
+### 4.2 Defect B: Administration Status Legend Collision
+- **Root Cause:** Previous layout used unconstrained flex items without explicit right-aligned count tracks, causing the label `"Administrasi Lengkap"` and count `"1"` to touch (`Administrasi Lengkap1`).
+- **Mathematical Layout Hardening:**
+  - Converted `.legend-item` to a strict 2-column grid (`grid-template-columns: minmax(0, 1fr) auto` on desktop; `grid-template-columns: minmax(0, 1fr) 36px` at `<= 768px`; `30px` at `<= 360px`).
+  - Added dedicated right-aligned text column for `.legend-count` with fixed minimum width (`min-width: 24px`).
+  - Added dashed connector line (`border-bottom: 1px dashed #f1f5f9; padding: 0.25rem 0`) providing visual separation.
+  - Verified minimum anti-collision clearance between label bounding box and count bounding box across viewports:
+    - **320px (Mobile Mini):** **108.1px gap** (target: $\ge 8\text{px}$)
+    - **375px (Mobile Standard):** **126.9px gap** (target: $\ge 8\text{px}$)
+    - **425px (Mobile Large):** **176.9px gap** (target: $\ge 8\text{px}$)
+    - **1440px (Desktop):** **76.2px gap** (target: $\ge 8\text{px}$)
 
 ---
 
-## 5. Security Invariants & Defensive Implementations
+## 5. Security & Lifecycle Hardening
 
-| Security Invariant | Implementation Mechanism | Verification Result |
-|---|---|:---:|
-| **Zero Pre-Auth Reads** | `loadMasterData()` and `loadActivities()` return immediately if `currentAuthState` is not authenticated. | **VERIFIED** (0 network reads detected during anonymous visit) |
-| **Strict Lowercase Roles** | `resolveUserProfile()` checks strictly `rawRole === 'admin'` and `rawRole === 'editor'`. Uppercase `'ADMIN'` or `'EDITOR'` evaluates to `ACCESS_DENIED`. | **VERIFIED** (100% compliant with Gate 5A `firestore.rules`) |
-| **Anti-Account Enumeration** | `signInOperator()` and `requestPasswordReset()` normalize error codes (`auth/user-not-found`, `auth/wrong-password`) to uniform messages. | **VERIFIED** (Zero discrepancy in response messages) |
-| **Session Persistence** | `setPersistence(auth, browserLocalPersistence)` maintains operator state across page refreshes. | **VERIFIED** (Session persists without re-prompt) |
-| **Complete Cache Wiping** | `clearAdministrativeSession()` wipes `masterLocations`, `masterOrganizers`, `cachedActivities`, and lookup maps on sign-out. | **VERIFIED** (Zero state leaks across user switches) |
-| **Disabled Account Handling** | Firebase Auth `auth/user-disabled` error code maps to informative Indonesian lock notice. | **VERIFIED** (Disabled accounts rejected immediately) |
+### 5.1 Asynchronous In-Flight Data Protection (`activeSessionEpoch`)
+A subtle race condition exists in single-page applications when an operator signs out while an asynchronous network call (`loadMasterData()`, `loadActivities()`, dynamic module `import()`) is in-flight. If the promise resolves after session termination, lingering data could populate the DOM or rehydrate memory caches.
+- **Defense:** Implemented `activeSessionEpoch` session counter in `apps/admin/src/main.ts`.
+- Every call to `clearAdministrativeSession()` increments `activeSessionEpoch`.
+- Every asynchronous function captures a snapshot `const sessionToken = activeSessionEpoch;` before any `await`. Upon resumption, it confirms `sessionToken === activeSessionEpoch` and that the auth state remains valid. If invalid, the incoming data is silently discarded and never committed to state or DOM.
+
+### 5.2 Real-Time Firestore Listener Cleanup Registry
+- Implemented `activeFirestoreListeners: Array<() => void>` registry.
+- Exported `registerFirestoreListener(unsub)` to register active snapshot listeners.
+- On sign-out or access denial, `clearAdministrativeSession()` iterates over all registered listeners, invokes each unsubscribe function within a guarded `try/catch`, and clears the array.
+
+### 5.3 Token Refresh & Revocation Boundaries
+- **Stateless JWT Lifetime:** Firebase Authentication ID tokens are stateless JWTs signed by Google with a fixed 1-hour lifespan. Calling server-side `revokeRefreshTokens()` invalidates the refresh token exchange, but the currently issued ID token remains cryptographically valid until its expiration timestamp unless force-refreshed.
+- **Client Claims Enforcement:** SIMAK DISKUM enforces fresh token claim resolution by invoking `getIdTokenResult(true)` during `resolveUserProfile()`, ensuring any role change or account disabling is reflected upon the next client checkpoint.
+
+### 5.4 Usability & Accessibility Defenses
+- **Enter-Key Submission:** Supported on login and recovery forms; verified via Playwright keyboard interaction.
+- **Accessible ARIA Busy:** Added `aria-busy="true"` on `<form id="adminLoginForm">` and `<form id="adminRecoveryForm">` during in-flight network submissions.
+- **Failure Focus Management:** If login fails, focus is automatically directed to `#authPassword` and its contents selected (`.select()`) for immediate re-entry without requiring mouse interaction.
+- **WAI-ARIA Menu Keyboard Navigation:** The topbar operator profile pill supports:
+  - `Enter` / `Space`: Toggle dropdown menu open/closed.
+  - `ArrowDown`: Open dropdown menu and immediately focus the `Keluar (Sign Out)` action button.
+  - `Escape`: Close dropdown menu from either pill or button and return focus to `#operatorProfilePill`.
 
 ---
 
 ## 6. Comprehensive Verification Evidence
 
 ### 6.1 Unit & Integration Test Suite (Vitest)
-A dedicated integration test suite (`tests/integration/adminAuthService.test.ts`) was executed against the running Firebase Auth Emulator:
-
+A total of 26 test suites were executed against the running Firebase Auth and Cloud Firestore emulators:
 - **Total Test Files:** 26 passed (26)
 - **Total Tests:** **233 passed (233)**
-- **A01 Service Tests:** **19 passed (19)**:
-  1. Accepts standard civic and governmental email formats (`@batam.go.id`).
-  2. Rejects invalid email formats and empty inputs.
-  3. Evaluates `role: "admin"` to `AUTHENTICATED_ADMIN` with `Administrator` label.
-  4. Evaluates `role: "editor"` to `AUTHENTICATED_EDITOR` with `Operator Agenda` label.
-  5. Evaluates uppercase `"ADMIN"` to `ACCESS_DENIED`.
-  6. Evaluates missing custom claims to `ACCESS_DENIED`.
-  7. Validates empty email before network call.
-  8. Validates invalid email format before network call.
-  9. Validates empty password before network call.
-  10. Returns non-enumerating error for invalid password.
-  11. Returns non-enumerating error for non-existent user.
-  12. Returns descriptive lock message for disabled accounts.
-  13. Successfully authenticates Admin and verifies token claims.
-  14. Successfully authenticates Editor and verifies token claims.
-  15. Authenticates unprivileged user and confirms `ACCESS_DENIED` state.
-  16. Validates empty email on password reset.
-  17. Validates invalid email format on password reset.
-  18. Returns neutral success message for registered email.
-  19. Returns identical neutral message for non-registered email.
+- **A01 Auth Service Tests:** **19 passed (19)** in `tests/integration/adminAuthService.test.ts`
+- **P01-B Operational Safety Tests:** **10 passed (10)** in `tests/integration/p01bSafetyVerification.test.ts`
+- **Firestore Security Rules Tests:** **32 passed (32)** in `tests/rules/firestore.rules.test.ts`
+- **Maintenance Rules Tests:** **6 passed (6)** in `tests/rules/maintenanceRules.test.ts`
 
 ### 6.2 Real-Browser End-to-End Suite (Playwright)
-A full-browser verification suite (`tests/e2e/adminAuthVerification.mjs`) was executed across Desktop (1440px) and Mobile (375px) viewports:
+The dedicated A01 verification suite (`tests/e2e/adminAuthVerification.mjs`) was executed against the active Vite servers and emulators:
+- **Total Scenarios:** **49 passed / 49 total (100%)**
+- **Test Scenarios Summary:**
+  - Scenario 1 (1.1 - 1.5): Anonymous isolation, login card mount, zero private Firestore reads, 1440px and 375px screenshots.
+  - Scenario 2 (2.1 - 2.6): Form validation, Enter-key submission, aria-busy states, password visibility toggle.
+  - Scenario 3 (3.1 - 3.4): Non-enumerating credential failure, post-failure password focus restoration, failure screenshots.
+  - Scenario 4 (4.1 - 4.5): Password recovery submission, neutral success confirmation, back-to-login navigation, recovery screenshots.
+  - Scenario 5 (5.1 - 5.6): Access denied quarantine for unprivileged users, denial badge, sign-out redirect, access denied screenshots.
+  - Scenario 6 (6.1 - 6.6): Authenticated Admin login, topbar operator header, profile dropdown keyboard navigation (`ArrowDown`/`Escape`), dashboard screenshots.
+  - Scenario 7 (7.1 - 7.2): Session termination, admin shell unmounting, URL hash navigation blocking while logged out.
+  - Scenario 8 (8.1 - 8.2): Authenticated Editor login, role badge verification (`Operator Agenda`), clean editor sign-out.
+  - Scenario 9 (9.1 - 9.12): Multi-viewport geometry verification across 320px, 375px, 425px, and 1440px (0px document overflow, title wrapping, accessible tooltip, status legend clearance $\ge 8\text{px}$).
+  - Scenario 10 (10.1): Public portal unaffected verification (`http://localhost:3000`).
 
-- **Total Scenarios:** **34 passed / 34 total (100%)**
-- **Captured Visual Screenshots:**
-  1. `a01-login-1440px.png` (Desktop Operator Sign-In Form)
-  2. `a01-login-375px.png` (Mobile Operator Sign-In Form)
-  3. `a01-invalid-creds-1440px.png` (Desktop Invalid Credentials Alert)
-  4. `a01-invalid-creds-375px.png` (Mobile Invalid Credentials Alert)
-  5. `a01-recovery-1440px.png` (Desktop Password Recovery Form with Neutral Alert)
-  6. `a01-recovery-375px.png` (Mobile Password Recovery Form)
-  7. `a01-access-denied-1440px.png` (Desktop Access Denied View)
-  8. `a01-access-denied-375px.png` (Mobile Access Denied View)
-  9. `a01-dashboard-1440px.png` (Desktop Authenticated Dashboard with Operator Pill & 5 Stage Cards)
-  10. `a01-dashboard-375px.png` (Mobile Authenticated Dashboard with Responsive Topbar)
-- **Public Portal Check:** Confirmed `http://localhost:3000` remains completely functional with zero visual or runtime regressions.
+### 6.3 Core Regression Suite (Playwright)
+The complete functional regression suite (`tests/e2e/runVerification.mjs`) was executed with the protected admin authentication bootstrap:
+- **Total Scenarios:** **13 passed / 13 total (100%)**
+  - Scenarios 1-13 covering Dashboard navigation, Activities table, Create/Edit persistence, Attendee selection, Public preview privacy, Privacy scanner blocking, Room conflict override modal, Cancel/Complete workflows, Duplicate cloning, Version conflict modal, Empty states, and Desktop/Mobile layouts.
 
-### 6.3 Production Bundle Compilation
+### 6.4 Production Bundle Compilation
 Clean production build executed via Vite and Rollup:
-- Public Application Bundle: **13.67 kB gzip**
-- Admin Application Bundle: **10.23 kB gzip**
+- `@department-agenda/shared`: TypeScript typecheck and compile clean.
+- `@department-agenda/public`: Built in 4.06s (13.67 kB gzip main chunk).
+- `@department-agenda/admin`: Built in 4.87s with dynamic route-based code-splitting:
+  - `DashboardPage`: 2.62 kB gzip
+  - `ActivitiesPage`: 1.91 kB gzip
+  - `ActivityEditWorkflow`: 8.40 kB gzip
+  - `ReportsPage`: 5.13 kB gzip
+  - `MasterDataPage`: 4.84 kB gzip
+  - `SettingsPage`: 2.08 kB gzip
+  - `index` (auth & shell router): 10.55 kB gzip
 - Zero TypeScript diagnostics or compilation errors (`tsc --noEmit` clean).
 
 ---
 
 ## 7. Status of Production Preflight Blockers
 
-With the completion and verification of Milestone A01, the status of outstanding preflight blockers has evolved:
-
 | Blocker # | Description | Previous Status | Current Status | Notes |
 |:---:|---|:---:|:---:|---|
-| **Blocker 1** | **Official Civil Service Deliverables:** Signed SK from Kepala Dinas, employee directory, and approved operator email roster. | PENDING | **PENDING** | Civil service administrative action (Department Stakeholders). |
-| **Blocker 2** | **Client-Side Admin Login & Password Recovery UI:** Implementation of authenticated bootstrap, login form, and password recovery. | **BLOCKER** | **RESOLVED** | **100% implemented, tested (233 Vitest + 34 E2E scenarios), and verified in Milestone A01.** |
+| **Blocker 1** | **Official Civil Service Deliverables:** Signed SK from Kepala Dinas, official employee directory, and approved operator email roster. | PENDING | **PENDING** | Civil service administrative action (Department Stakeholders). |
+| **Blocker 2** | **Client-Side Admin Login & Password Recovery UI:** Implementation of authenticated bootstrap, login form, and password recovery. | **BLOCKER** | **RESOLVED** | **100% implemented, mathematically hardened against mobile defects, tested (233 Vitest + 49 Auth E2E + 13 Regression), and verified.** |
 | **Blocker 3** | **Dual-Operator Live Authorization:** Formal human authorization to proceed with live cloud deployment gates. | PENDING | **PENDING** | Department Head and Project Owner authorization required. |
 
 ---
 
-## 8. Milestone A01 Sign-Off Checkpoint
+## 8. Milestone A01 Closure Checkpoint
 
-- **Milestone A01 Status:** **COMPLETED & APPROVED FOR HANDOFF**
-- **Next Milestone:** Milestone P02-B (Controlled Production Activation) remains **ON HOLD** pending Blocker 1 and Blocker 3 resolution.
-- **Handoff Target:** A01 Admin Authentication Review Checkpoint.
+- **Milestone A01 Status:** **COMPLETED, FULLY AUDITED & LOCKED**
+- **Next Milestone:** Milestone P02-B (Controlled Production Activation) remains **ON HOLD** pending external civil service resolution of Blocker 1 and dual-operator authorization of Blocker 3.
+- **Handoff Target:** Ready for final stakeholder review. Zero live Firebase changes executed. Spark plan intact.

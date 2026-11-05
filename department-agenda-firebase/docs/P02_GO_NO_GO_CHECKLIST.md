@@ -54,7 +54,7 @@ pie title Production Readiness Breakdown (Verification Categories)
 | **1.14** | Production Master Data Seeding Safeguard | `templates/productionMasterDataTemplate.json` | Verified | Rejects unapproved templates and placeholder markers | **GO** |
 | **1.15** | Zero Credential Logging Safeguard | `scripts/manageRoles.mjs` | Verified | Zero passwords or API keys printed to logs/stdout | **GO** |
 | **1.16** | Production Vite Build Bundles | Vite + Rollup | Exit 0 | Public Shell: 13.67 kB gzip; Admin Shell: 10.23 kB gzip | **GO** |
-| **1.17** | Admin Authentication UI & RBAC Verification | Playwright & Real Auth Emulator | 34 / 34 Passed (100%) | `tests/e2e/adminAuthVerification.mjs` (10 verified screenshots) | **GO** |
+| **1.17** | Admin Authentication UI & RBAC Verification | Playwright & Real Auth Emulator | 49 / 49 Passed (100%) | `tests/e2e/adminAuthVerification.mjs` (10 verified screenshots, 4-viewport geometry, keyboard nav) | **GO** |
 
 ---
 
