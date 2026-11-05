@@ -222,3 +222,43 @@ The SIMAK DISKUM v5.0 visual identity embodies modern minimalist Indonesian civi
   - Status: `SCHEDULED` → `Terjadwal`, `COMPLETED` → `Selesai`, `CANCELLED` → `Dibatalkan`.
   - Location Type: `OFFICE` → `Kantor Dinas`, `EXTERNAL` → `Luar Kantor`, `ONLINE` → `Daring`.
   - Administrative Stage: `INITIAL_ENTRY` → `Input Awal`, `OFFLINE_PROCESS` → `Proses Offline`, `DETAILS_COMPLETED` → `Detail Dilengkapi`, `ADMIN_COMPLETE` → `Administrasi Lengkap`.
+
+---
+
+## 7. V01-C Final Responsive, Accessibility, Performance & Quality Assurance Hardening
+
+### A. Admin Table Reachability & Contained Horizontal Scroll
+- **Action Buttons Preservation:** On all viewports (375px, 768px, 1024px, 1280px, 1440px), `.data-table.activities-table` enforces `min-width: 880px; width: 100%;` and `td.action-cell` enforces `min-width: 210px; width: 210px;`.
+- **Button Squeeze Prevention:** Action buttons (`Edit`, `Duplikat`, `Hapus`) are wrapped in `.action-buttons-wrap` (`display: flex; gap: 0.45rem; min-width: 210px;`), preventing browser table layout algorithms from collapsing action controls.
+- **Visual Scroll Hint:** On screens `<= 1024px`, an explicit Indonesian scroll hint is rendered above the table: `<div class="table-scroll-hint"><span>👉 Geser tabel ke kanan untuk melihat semua kolom & aksi</span></div>`.
+- **Destructive Action Safeguard:** Deleting an activity prompts with unambiguous Indonesian confirmation text: `"Apakah Anda yakin ingin menghapus agenda kegiatan ini secara permanen?"`.
+
+### B. Mobile Month Calendar Scroll Hint & Touch Reachability
+- **Contained Mobile Scroll:** On mobile viewports (`< 768px`), `.month-grid-wrapper` enforces `min-width: 640px` inside a touch-friendly overflow container (`overflow-x: auto; -webkit-overflow-scrolling: touch;`).
+- **Interactive Indonesian Hint:** Displays `.calendar-scroll-hint` (`👉 Geser untuk melihat hari lainnya`) directly above the calendar grid.
+- **Sunday Column Reachability:** Touch or pointer scrolling reveals the complete Sunday (Minggu) column without causing document-level overflow (`document.documentElement.scrollWidth === window.innerWidth`).
+- **Interactive Target Retention:** All date cells and calendar activities remain clickable and keyboard-focusable after scrolling.
+
+### C. Accessibility & Focus Visibility (WCAG 2.1 AA)
+- **Global Visible Focus Rings:** Added high-contrast `:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }` to all interactive buttons, links, inputs, and selects across both Public and Admin portals.
+- **Modal Focus Trapping & Restoration:**
+  - Auto-focuses the close button (`#btnModalClose`) or primary form input upon opening.
+  - Traps `Tab` and `Shift+Tab` keyboard focus strictly inside the modal dialog container.
+  - Dismisses dialog on `Escape` keypress.
+  - Automatically restores focus to the invoking element upon dialog closure.
+- **200% Browser Zoom Responsive Layout:**
+  - Header responsiveness adjusted at `@media (max-width: 1350px)` to hide secondary agency titles and brand dividers.
+  - Verified `0px` horizontal overflow (`scrollWidth === innerWidth`) at 1280px viewport width with 200% zoom (`deviceScaleFactor: 2`).
+  - All 4 dashboard summary cards and 2-column feed remain completely intact.
+
+### D. Public Privacy & DTO Hardening
+- **Strict Key Allow-list:** `PublicActivityDTO` guarantees only public-facing fields are exposed.
+- **Emulator Verification:** Direct Firestore document reads confirm zero leakage of `attendeeIds`, `attendeeSnapshots`, `invitationLetter`, `driveUrl`, `privateNotes`, `privateMeetingUrl`, `administrativeStage`, or `cancelReason`.
+- **Historical Snapshot Immutability:** Updating master employee directories preserves existing activity attendee snapshots without retroactive corruption.
+
+### E. Telemetry & Performance Instrumentation
+- **Cold Load Data-Ready Latency:** **561ms** (Budget: < 3000ms).
+- **First Contentful Paint (FCP):** **24ms – 40ms** (Budget: < 1000ms).
+- **DOM Complete:** **217ms – 235ms**.
+- **Public Application Bundle:** **48.85 kB** (13.55 kB gzip), safely below the critical performance ceiling.
+

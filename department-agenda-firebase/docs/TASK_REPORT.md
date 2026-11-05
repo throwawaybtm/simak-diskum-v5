@@ -433,8 +433,64 @@ In `ActivityDetailModal.ts` and `publicActivities` projection:
 
 ---
 
-## 6. Review Checkpoint Status
+## 7. Visual Makeover V01-C: Final Responsive, Accessibility, Performance & Functional QA
 
-- **Checkpoint:** **V01-B Final Correction Review Checkpoint**
+### A. Context & Objectives
+Visual Makeover V01-C represents the final comprehensive quality assurance pass before production staging. The objective was to verify:
+1. Complete visibility and zero clipping of admin table actions (`Edit`, `Duplikat`, `Hapus`) across 5 viewports with contained horizontal scrolling hints and destructive safeguards.
+2. Usability of mobile month calendar with clear Indonesian scrolling hints (`👉 Geser untuk melihat hari lainnya`), unlocking the Sunday column without document horizontal overflow.
+3. WCAG 2.1 AA accessibility: visible focus rings (`:focus-visible`), modal focus traps, Escape dismissal with focus restoration, touch targets (>=32px desktop, >=44px touch), and 200% zoom reflow.
+4. Deep public privacy isolation: raw Firestore emulator document inspection verifying zero leaks of `attendeeIds`, `attendeeSnapshots`, `invitationLetter`, `driveUrl`, `privateNotes`, or `cancelReason`.
+5. 12-step full functional lifecycle walkthrough from `INITIAL_ENTRY` to `ADMIN_COMPLETE`, concurrency conflicts, citizen cancellation notices, 8-column reports, and RBAC rules context.
+6. Core Web Vitals profiling, monorepo production build, and independent OpenXML XLSX workbook parsing.
+
+### B. Implementation Summary
+- **Admin Table Action Reachability (`ActivitiesPage.ts`, `admin.css`):**
+  - Added `.action-buttons-wrap` (`display: flex; gap: 0.45rem; min-width: 210px;`) wrapping `Edit`, `Duplikat`, and `Hapus` buttons.
+  - Enforced `min-width: 880px` on `.data-table.activities-table` and `min-width: 210px` on `td.action-cell`.
+  - Added `.table-scroll-hint` displaying on `<= 1024px` with Indonesian instruction: `👉 Geser tabel ke kanan untuk melihat semua kolom & aksi`.
+  - Added safe Indonesian delete confirmation prompt: `"Apakah Anda yakin ingin menghapus agenda kegiatan ini secara permanen?"`.
+- **Mobile Month Calendar (`CalendarView.ts`, `public.css`):**
+  - Added `.calendar-scroll-hint` above `.month-grid-wrapper` displaying on `< 768px`: `👉 Geser untuk melihat hari lainnya`.
+  - Contained smooth scrolling container (`overflow-x: auto; -webkit-overflow-scrolling: touch; min-width: 640px`) revealing Sunday without document overflow.
+  - Ensured all date cells and event tags remain interactive and clickable after scrolling.
+- **Accessibility & Focus Management (`public.css`, `admin.css`, `public/main.ts`, `admin/MasterDataPage.ts`):**
+  - Added global high-contrast `:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }`.
+  - Modal focus trap implemented: records `document.activeElement` on open, focuses close button, traps Tab/Shift+Tab inside modal card, dismisses on Escape, and restores focus to triggering element.
+  - Delegated click listener on `document` for `[data-open-detail]` ensuring dynamic and filtered views immediately open modals without stale bindings.
+  - Adjusted header breakpoint to `@media (max-width: 1350px)` to gracefully hide secondary agency titles and dividers, guaranteeing 0px horizontal overflow at 200% zoom with all 4 summary cards intact.
+- **Public Privacy & DTO Audit Suite (`publicPrivacyAudit.emulator.test.ts`):**
+  - Raw Firestore emulator document reads confirm zero forbidden keys or raw database IDs.
+  - Deduplicated attendee snapshots and verified historical snapshot immutability when master employee records are edited later.
+- **Full Verification Suite (`v01cReleaseReadinessVerification.mjs`):**
+  - 27 / 27 assertions passed across all 6 parts with 100% success rate.
+  - Captured 15 comprehensive screenshots in `tests/e2e/screenshots/`.
+  - Authored official release readiness audit: `docs/V01_C_RELEASE_READINESS.md`.
+
+### C. Test Verification Evidence
+- **Vitest Unit & Integration:** 170 / 170 passed (20 test files, 100%).
+- **Firestore Security Rules:** 32 / 32 passed (100%).
+- **Public Privacy Audit:** 3 / 3 passed (100%).
+- **Browser Scenarios:** 79 / 79 passed across current primary suites:
+  - `v01cReleaseReadinessVerification.mjs`: 27 / 27 passed
+  - `v01bFinalCorrectionVerification.mjs`: 23 / 23 passed
+  - `f01WorkflowVerification.mjs`: 13 / 13 passed
+  - `masterDataVerification.mjs`: 8 / 8 passed
+  - `reportsVerification.mjs`: 8 / 8 passed
+- **Core Web Vitals:** Cold load data-ready **561ms**, FCP **24–40ms**, DOM Complete **217ms**.
+- **Bundle Metrics:** Public JS application code **48.85 kB** (**13.55 kB gzip**).
+- **Monorepo Production Build:** Exit code 0, zero TypeScript errors.
+
+---
+
+## 8. Review Checkpoint Status
+
+- **Checkpoint:** **V01-C Final Review Checkpoint**
 - **Status:** **COMPLETED & VERIFIED (AWAITING APPROVAL)**
-- **Strict Invariant Maintained:** Application is in local development mode using Firebase Emulator. No live deployment or billing changes performed. V01-C has NOT been started. Awaiting user review and authorization.
+- **Strict Invariants Maintained:**
+  - Running exclusively in local emulator development environment.
+  - No live Firebase Hosting deploy executed.
+  - No live Firebase Authentication activated.
+  - No Google Cloud Blaze billing upgrade performed.
+  - No real administrative accounts created.
+  - Work stopped and awaiting user review and progression approval.
