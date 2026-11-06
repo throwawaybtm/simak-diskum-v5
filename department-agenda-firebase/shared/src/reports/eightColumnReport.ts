@@ -24,8 +24,97 @@ import {
 import { sortActivities } from '../scheduling/sortUtils';
 
 /**
+ * Detects if a string is a role, job position, rank, or non-personal organizational title
+ * in Indonesian civil service terminology (Pemerintah Kota Batam / Diskum).
+ */
+export function isRoleOrPosition(str: string): boolean {
+  if (!str) return false;
+  let clean = str.trim();
+  clean = clean.replace(/^\(+|\)+$/g, '').trim();
+  clean = clean.replace(/\s*\((?:simulasi|ujicoba|demo)\)/gi, '').trim();
+  clean = clean.replace(/\s*(?:simulasi|ujicoba|demo)\b/gi, '').trim();
+  if (!clean) return false;
+
+  const rolePrefixes = [
+    'kadis', 'kasi', 'kasubbag', 'kabid', 'sekdis', 'sekda', 'sekretaris',
+    'kepala', 'staf', 'staff', 'pengelola', 'pranata', 'penyuluh', 'pengawas',
+    'pengembang', 'konsultan', 'analis', 'auditor', 'inspektur', 'asisten',
+    'walikota', 'bupati', 'gubernur', 'direktur', 'direksi', 'camat', 'sekcam',
+    'lurah', 'seklur', 'pejabat', 'pns', 'asn', 'thl', 'p3k', 'pppk', 'honorer',
+    'bendahara', 'notulis', 'moderator', 'narasumber', 'pembawa acara', 'mc',
+    'dirjen', 'irjen', 'anggota', 'ketua', 'wakil', 'pegawai dinas', 'pegawai'
+  ];
+  const lower = clean.toLowerCase();
+  for (const prefix of rolePrefixes) {
+    if (lower === prefix || lower.startsWith(prefix + ' ') || lower.startsWith(prefix + '/') || lower.startsWith(prefix + '-')) {
+      return true;
+    }
+  }
+  if (/^(?:bidang|bagian|subbag|seksi|dinas)\b/i.test(lower)) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Checks if a token is a non-name synthetic / placeholder word
+ */
+export function isNonNameToken(str: string): boolean {
+  if (!str) return true;
+  const s = str.trim().toLowerCase();
+  return (
+    s === '-' ||
+    s === 'simulasi' ||
+    s === 'ujicoba' ||
+    s === 'demo' ||
+    s === 'dummy' ||
+    s === 'test' ||
+    s === 'testing' ||
+    s.startsWith('emp_')
+  );
+}
+
+/**
+ * Ensures human-readable Indonesian date formatting (e.g. "Jumat, 30 Oktober 2026")
+ * Converts raw YYYY-MM-DD or raw YYYY-MM-DD s.d. YYYY-MM-DD strings defensively.
+ */
+export function ensureIndonesianDateFormat(str: string): string {
+  if (!str) return '-';
+  const clean = str.trim();
+
+  // If already formatted in Indonesian words, return as is
+  if (/(?:Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu|Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)/i.test(clean)) {
+    return clean;
+  }
+
+  // Single raw date: YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    try {
+      return formatIndonesianDate(clean);
+    } catch {
+      return clean;
+    }
+  }
+
+  // Multi-day raw range: YYYY-MM-DD s.d. YYYY-MM-DD
+  const rangeMatch = clean.match(/^(\d{4}-\d{2}-\d{2})\s*(?:s\.d\.|-|–|to)\s*(\d{4}-\d{2}-\d{2})$/i);
+  if (rangeMatch && rangeMatch[1] && rangeMatch[2]) {
+    try {
+      return formatIndonesianDateSpan(rangeMatch[1], rangeMatch[2]);
+    } catch {
+      return clean;
+    }
+  }
+
+  return clean;
+}
+
+/**
  * Extracts pure employee / guest name from attendee snapshot or label,
  * stripping position, title, department, rank, NIP, and internal database IDs.
+ *
+ * If a label contains ONLY a role or position without any personal name,
+ * outputs "Nama belum tersedia" instead of mistakenly displaying the role.
  */
 export function extractNameFromLabel(label: string): string {
   if (!label) return '-';
@@ -33,39 +122,76 @@ export function extractNameFromLabel(label: string): string {
 
   // Strip leading numbering like "1. ", "2) ", "1 - "
   clean = clean.replace(/^\d+[\.\)\-]\s*/, '');
-
-  // Format: "Position (Name)" e.g. "Kadis (Drs. Hendri Arifin, M.Si)" or "Staff (Budi)"
-  const parenMatch = clean.match(/\(([^)]+)\)/);
-  if (parenMatch && parenMatch[1]) {
-    const candidate = parenMatch[1].trim();
-    if (!candidate.startsWith('emp_')) {
-      return candidate;
-    }
-  }
-
-  // Format: "Position — Name" or "Position - Name"
-  if (clean.includes('—')) {
-    const parts = clean.split('—');
-    if (parts[1] && parts[1].trim()) return parts[1].trim();
-  } else if (clean.includes(' - ')) {
-    const parts = clean.split(' - ');
-    if (parts[1] && parts[1].trim()) return parts[1].trim();
-  }
+  if (!clean || clean === '-') return '-';
 
   // Format: "Tamu: Name"
   if (clean.toLowerCase().startsWith('tamu:')) {
-    return clean.slice(5).trim();
+    const guest = clean.slice(5).trim();
+    return guest || 'Tamu';
   }
 
   // Defense-in-depth: purge raw employee database IDs
   clean = clean.replace(/\(?emp_[a-zA-Z0-9_-]+\)?/gi, '').trim();
-  return clean || '-';
+  if (!clean) return 'Nama belum tersedia';
+
+  // Format with parentheses: "Name (Position)" or "Position (Name)" or "Position (Name (Simulasi))"
+  const firstParen = clean.indexOf('(');
+  if (firstParen !== -1) {
+    const lastParen = clean.lastIndexOf(')');
+    const partBefore = clean.substring(0, firstParen).trim();
+    const partInside = lastParen > firstParen
+      ? clean.substring(firstParen + 1, lastParen).trim()
+      : clean.substring(firstParen + 1).trim();
+
+    const beforeIsRole = isRoleOrPosition(partBefore) || isNonNameToken(partBefore);
+    const insideIsRole = isRoleOrPosition(partInside) || isNonNameToken(partInside);
+
+    if (!beforeIsRole && insideIsRole) {
+      return partBefore || 'Nama belum tersedia';
+    }
+    if (beforeIsRole && !insideIsRole) {
+      return partInside || 'Nama belum tersedia';
+    }
+    if (beforeIsRole && insideIsRole) {
+      return 'Nama belum tersedia';
+    }
+    return partBefore || partInside || 'Nama belum tersedia';
+  }
+
+  // Format: "Position — Name" or "Name — Position"
+  if (clean.includes('—')) {
+    const [p0, p1] = clean.split('—').map(s => s.trim());
+    const p0Role = isRoleOrPosition(p0) || isNonNameToken(p0);
+    const p1Role = isRoleOrPosition(p1) || isNonNameToken(p1);
+    if (p0Role && !p1Role) return p1;
+    if (!p0Role && p1Role) return p0;
+    if (p0Role && p1Role) return 'Nama belum tersedia';
+    return p0 || p1 || 'Nama belum tersedia';
+  }
+
+  // Format: "Position - Name" or "Name - Position"
+  if (clean.includes(' - ')) {
+    const [p0, p1] = clean.split(' - ').map(s => s.trim());
+    const p0Role = isRoleOrPosition(p0) || isNonNameToken(p0);
+    const p1Role = isRoleOrPosition(p1) || isNonNameToken(p1);
+    if (p0Role && !p1Role) return p1;
+    if (!p0Role && p1Role) return p0;
+    if (p0Role && p1Role) return 'Nama belum tersedia';
+    return p0 || p1 || 'Nama belum tersedia';
+  }
+
+  // Pure role or non-name token without any individual name
+  if (isRoleOrPosition(clean) || isNonNameToken(clean)) {
+    return 'Nama belum tersedia';
+  }
+
+  return clean;
 }
 
 /**
  * Formats attendees strictly as numbered names only:
- * 1. Budi Simulasi
- * 2. Siti Purwarupa
+ * 1. Budi Simulasi, S.Sos
+ * 2. Siti Purwarupa, M.Si
  * Zero jabatan, zero NIP, zero pangkat/golongan.
  */
 export function formatAttendeeNamesOnly(attendees: (AttendeeSnapshot | string | any)[]): string {
@@ -77,7 +203,13 @@ export function formatAttendeeNamesOnly(attendees: (AttendeeSnapshot | string | 
     if (!item) continue;
     let name = '';
     if (typeof item === 'object') {
-      name = item.name || (item.label ? extractNameFromLabel(item.label) : '');
+      if (item.name && !isRoleOrPosition(item.name) && !isNonNameToken(item.name)) {
+        name = item.name.trim();
+      } else if (item.label) {
+        name = extractNameFromLabel(item.label);
+      } else {
+        name = 'Nama belum tersedia';
+      }
     } else if (typeof item === 'string') {
       name = extractNameFromLabel(item);
     }
@@ -145,7 +277,9 @@ export function buildEightColumnReportRows(
     const cat = lookups.categories.get(act.categoryId);
 
     // Hari / Tanggal
-    const hariTanggal = formatIndonesianDateSpan(act.startDate, act.endDate);
+    const hariTanggal = ensureIndonesianDateFormat(
+      formatIndonesianDateSpan(act.startDate, act.endDate || act.startDate)
+    );
 
     // Pukul
     const pukul = formatTimeDisplay(act.startTime, act.endTime, act.openEnded);
@@ -160,16 +294,16 @@ export function buildEightColumnReportRows(
     const penyelenggara = org ? org.name : (act.organizerId || '-');
 
     // Dihadiri Oleh (from frozen snapshots, with fallback to guest list)
-    const attendeeParts: string[] = [];
+    const attendeeParts: (AttendeeSnapshot | string)[] = [];
     if (act.attendeeSnapshots && act.attendeeSnapshots.length > 0) {
-      attendeeParts.push(...act.attendeeSnapshots.map(s => s.label));
+      attendeeParts.push(...act.attendeeSnapshots);
     } else if (act.attendeeIds && act.attendeeIds.length > 0 && lookups.employees) {
       attendeeParts.push(...act.attendeeIds.map(id => lookups.employees?.get(id)?.name || id));
     }
 
     if (act.guestAttendees && act.guestAttendees.length > 0) {
       for (const guest of act.guestAttendees) {
-        if (!attendeeParts.some(p => p.includes(guest))) {
+        if (!attendeeParts.some(p => typeof p === 'string' ? p.includes(guest) : p.name?.includes(guest))) {
           attendeeParts.push(`Tamu: ${guest}`);
         }
       }
@@ -256,7 +390,7 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
   const tableRowsHtml = options.rows.map(row => `
     <tr class="${row.isCancelled ? 'cancelled-row' : ''}">
       <td class="text-center align-middle">${row.no}</td>
-      <td class="text-center align-middle">${row.hariTanggal}</td>
+      <td class="text-center align-middle">${ensureIndonesianDateFormat(row.hariTanggal)}</td>
       <td class="text-center align-middle text-nowrap">${row.pukul}</td>
       <td class="text-center align-middle font-bold">${row.kegiatan}</td>
       <td class="text-center align-middle">${row.tempat}</td>

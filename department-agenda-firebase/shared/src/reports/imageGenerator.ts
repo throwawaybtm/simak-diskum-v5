@@ -13,6 +13,7 @@
  */
 
 import type { EightColumnReportRow } from './eightColumnReport';
+import { ensureIndonesianDateFormat } from './eightColumnReport';
 import { formatDynamicScheduleTitlePeriod } from '../scheduling/timeUtils';
 
 export interface GenerateImageOptions {
@@ -128,7 +129,7 @@ function measureAndPaginateRows(
     // Wrap each of the 8 columns
     const colTexts = [
       String(r.no),
-      r.hariTanggal || '-',
+      ensureIndonesianDateFormat(r.hariTanggal || '-'),
       r.pukul || '-',
       r.kegiatan || '-',
       r.tempat || '-',

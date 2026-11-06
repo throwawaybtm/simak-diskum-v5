@@ -252,13 +252,20 @@ async function main() {
   if (dataRowsNewest.length >= 2) {
     expectEq(dataRowsNewest[0].pukul.includes('14.00') || dataRowsNewest[0].pukul.includes('14:00'), true, 'Row 1 must be 14:00 (Newest-first)');
     expectEq(dataRowsNewest[1].pukul.includes('09.00') || dataRowsNewest[1].pukul.includes('09:00'), true, 'Row 2 must be 09:00 (Newest-first)');
+    expectEq(dataRowsNewest[0].hariTanggal.includes('Jumat, 30 Oktober 2026'), true, 'Row 1 date must be formatted in Indonesian (Jumat, 30 Oktober 2026)');
+    expectEq(dataRowsNewest[0].hariTanggal.includes('2026-10-30'), false, 'Row 1 date must NOT be raw YYYY-MM-DD');
   }
 
-  // Verify attendee names only: no "Kadis", no NIP, no internal IDs
+  // Verify attendee names only: no "Kadis", no NIP, no internal IDs, no role labels as names
   for (const dr of dataRowsNewest) {
     if (dr.dihadiriOleh && dr.dihadiriOleh !== '-') {
       expectEq(dr.dihadiriOleh.includes('emp_'), false, 'Dihadiri Oleh must not leak internal employee ID');
       expectEq(dr.dihadiriOleh.includes('NIP.'), false, 'Dihadiri Oleh must not contain NIP');
+      expectEq(dr.dihadiriOleh.includes('Kepala Dinas (Simulasi'), false, 'Dihadiri Oleh must not treat role as name');
+      expectEq(dr.dihadiriOleh.includes('Sekretaris Dinas (Simulasi'), false, 'Dihadiri Oleh must not treat role as name');
+      expectEq(dr.dihadiriOleh.includes('Kasubbag Umum & Kepegawaian'), false, 'Dihadiri Oleh must not treat role as name');
+      expectEq(dr.dihadiriOleh.includes('Pengelola Agenda Kedinasan'), false, 'Dihadiri Oleh must not treat role as name');
+      expectEq(dr.dihadiriOleh.includes('(Simulasi'), false, 'Dihadiri Oleh must not contain malformed (Simulasi');
     }
   }
 
@@ -305,43 +312,81 @@ async function main() {
   console.log('  [F-01 Conclusion]:', reportResults.f01.pass ? 'PASS (Zero ReferenceError, perfect XLSX structure & sorting)' : 'FAIL');
 
   // =====================================================================
-  // TEST 3: SCHEDULE IMAGE EXPORT (PNG & JPG)
+  // TEST 3: SCHEDULE IMAGE EXPORT (PNG & JPG) - BOTH NEWEST & OLDEST
   // =====================================================================
   console.log('\n--- TEST 3: SCHEDULE IMAGE EXPORT (PNG & JPG) ---');
 
-  // Public PNG Download
-  console.log('  --> Triggering Public Unduh PNG...');
-  const [downloadPng] = await Promise.all([
+  // 3a. NEWEST (Default) PNG & JPG
+  console.log('  --> Ensuring NEWEST sort mode for default export...');
+  await page.selectOption('#selectSortOption', 'NEWEST');
+  await page.waitForTimeout(600);
+
+  console.log('  --> Triggering Public Unduh PNG (NEWEST)...');
+  const [downloadPngNewest] = await Promise.all([
     page.waitForEvent('download', { timeout: 10000 }),
     page.click('#btnDownloadPublicPng')
   ]);
-  const pathPng = path.join(TEMP_DOWNLOAD_DIR, 'public_schedule.png');
-  await downloadPng.saveAs(pathPng);
-  const statPng = fs.statSync(pathPng);
-  console.log(`  ✓ Public PNG downloaded: ${pathPng} (${statPng.size} bytes)`);
+  const pathPngNewest = path.join(TEMP_DOWNLOAD_DIR, 'public_schedule_newest.png');
+  await downloadPngNewest.saveAs(pathPngNewest);
+  const statPngNewest = fs.statSync(pathPngNewest);
+  console.log(`  ✓ Public PNG (NEWEST) downloaded: ${pathPngNewest} (${statPngNewest.size} bytes)`);
 
-  // Public JPG Download
-  console.log('  --> Triggering Public Unduh JPG...');
-  const [downloadJpg] = await Promise.all([
+  console.log('  --> Triggering Public Unduh JPG (NEWEST)...');
+  const [downloadJpgNewest] = await Promise.all([
     page.waitForEvent('download', { timeout: 10000 }),
     page.click('#btnDownloadPublicJpg')
   ]);
-  const pathJpg = path.join(TEMP_DOWNLOAD_DIR, 'public_schedule.jpg');
-  await downloadJpg.saveAs(pathJpg);
-  const statJpg = fs.statSync(pathJpg);
-  console.log(`  ✓ Public JPG downloaded: ${pathJpg} (${statJpg.size} bytes)`);
+  const pathJpgNewest = path.join(TEMP_DOWNLOAD_DIR, 'public_schedule_newest.jpg');
+  await downloadJpgNewest.saveAs(pathJpgNewest);
+  const statJpgNewest = fs.statSync(pathJpgNewest);
+  console.log(`  ✓ Public JPG (NEWEST) downloaded: ${pathJpgNewest} (${statJpgNewest.size} bytes)`);
 
-  expectEq(statPng.size > 20000, true, 'PNG file size must be substantial (>20KB)');
-  expectEq(statJpg.size > 20000, true, 'JPG file size must be substantial (>20KB)');
+  // 3b. OLDEST (Explicitly Selected) PNG & JPG
+  console.log('  --> Switching to OLDEST sort mode for comparison export...');
+  await page.selectOption('#selectSortOption', 'OLDEST');
+  await page.waitForTimeout(600);
 
-  // Copy sample to artifacts for inspection
-  fs.copyFileSync(pathPng, path.join(ARTIFACTS_DIR, 's01-qa-r2-public-schedule-sample.png'));
-  fs.copyFileSync(pathJpg, path.join(ARTIFACTS_DIR, 's01-qa-r2-public-schedule-sample.jpg'));
+  console.log('  --> Triggering Public Unduh PNG (OLDEST)...');
+  const [downloadPngOldest] = await Promise.all([
+    page.waitForEvent('download', { timeout: 10000 }),
+    page.click('#btnDownloadPublicPng')
+  ]);
+  const pathPngOldest = path.join(TEMP_DOWNLOAD_DIR, 'public_schedule_oldest.png');
+  await downloadPngOldest.saveAs(pathPngOldest);
+  const statPngOldest = fs.statSync(pathPngOldest);
+  console.log(`  ✓ Public PNG (OLDEST) downloaded: ${pathPngOldest} (${statPngOldest.size} bytes)`);
 
-  reportResults.imageExport.pass = statPng.size > 20000 && statJpg.size > 20000;
+  console.log('  --> Triggering Public Unduh JPG (OLDEST)...');
+  const [downloadJpgOldest] = await Promise.all([
+    page.waitForEvent('download', { timeout: 10000 }),
+    page.click('#btnDownloadPublicJpg')
+  ]);
+  const pathJpgOldest = path.join(TEMP_DOWNLOAD_DIR, 'public_schedule_oldest.jpg');
+  await downloadJpgOldest.saveAs(pathJpgOldest);
+  const statJpgOldest = fs.statSync(pathJpgOldest);
+  console.log(`  ✓ Public JPG (OLDEST) downloaded: ${pathJpgOldest} (${statJpgOldest.size} bytes)`);
+
+  expectEq(statPngNewest.size > 20000, true, 'PNG (NEWEST) file size must be substantial (>20KB)');
+  expectEq(statJpgNewest.size > 20000, true, 'JPG (NEWEST) file size must be substantial (>20KB)');
+  expectEq(statPngOldest.size > 20000, true, 'PNG (OLDEST) file size must be substantial (>20KB)');
+  expectEq(statJpgOldest.size > 20000, true, 'JPG (OLDEST) file size must be substantial (>20KB)');
+
+  // Copy samples to artifacts with explicit sort names & backward compatibility links
+  fs.copyFileSync(pathPngNewest, path.join(ARTIFACTS_DIR, 's01-qa-r2-public-schedule-sample-newest.png'));
+  fs.copyFileSync(pathJpgNewest, path.join(ARTIFACTS_DIR, 's01-qa-r2-public-schedule-sample-newest.jpg'));
+  fs.copyFileSync(pathPngOldest, path.join(ARTIFACTS_DIR, 's01-qa-r2-public-schedule-sample-oldest.png'));
+  fs.copyFileSync(pathJpgOldest, path.join(ARTIFACTS_DIR, 's01-qa-r2-public-schedule-sample-oldest.jpg'));
+
+  // Standard artifact links
+  fs.copyFileSync(pathPngNewest, path.join(ARTIFACTS_DIR, 's01-qa-r2-public-schedule-sample.png'));
+  fs.copyFileSync(pathJpgNewest, path.join(ARTIFACTS_DIR, 's01-qa-r2-public-schedule-sample.jpg'));
+
+  reportResults.imageExport.pass = statPngNewest.size > 20000 && statPngOldest.size > 20000;
   reportResults.imageExport.files.push(
-    { format: 'png', size: statPng.size, path: pathPng },
-    { format: 'jpg', size: statJpg.size, path: pathJpg }
+    { format: 'png', sort: 'NEWEST', size: statPngNewest.size, path: pathPngNewest },
+    { format: 'jpg', sort: 'NEWEST', size: statJpgNewest.size, path: pathJpgNewest },
+    { format: 'png', sort: 'OLDEST', size: statPngOldest.size, path: pathPngOldest },
+    { format: 'jpg', sort: 'OLDEST', size: statJpgOldest.size, path: pathJpgOldest }
   );
 
   // =====================================================================
@@ -410,6 +455,10 @@ async function main() {
   expectEq(printHtml.includes('JADWAL KEGIATAN'), true, 'Print output must have JADWAL KEGIATAN title');
   expectEq(printHtml.toUpperCase().includes('DINAS KOPERASI DAN USAHA MIKRO'), true, 'Print output must have department name');
   expectEq(printHtml.includes('DATA SIMULASI — TIDAK UNTUK PENGGUNAAN RESMI'), true, 'Print output must have staging watermark');
+  expectEq(/\b(?:Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu),\s*\d+\s+Oktober\s+2026/.test(printHtml), true, 'Print output must have Indonesian day name and month');
+  expectEq(/\b2026-10-\d{2}\b/.test(printHtml), false, 'Print output must NOT contain raw YYYY-MM-DD dates in rows');
+  expectEq(printHtml.includes('Kepala Dinas (Simulasi'), false, 'Print output must NOT treat role as name');
+  expectEq(printHtml.includes('Kasubbag Umum & Kepegawaian'), false, 'Print output must NOT treat role as name');
   expectEq(printHtml.includes('kop-surat'), false, 'Print output must NOT contain kop-surat');
   expectEq(printHtml.includes('signature-block'), false, 'Print output must NOT contain signature-block');
 

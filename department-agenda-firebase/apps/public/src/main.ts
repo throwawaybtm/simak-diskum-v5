@@ -12,6 +12,7 @@ import {
   formatIndonesianDate,
   formatIndonesianDateSpan,
   formatAttendeeNamesOnly,
+  ensureIndonesianDateFormat,
   parseWibDate,
   addDaysToWibDate,
   captureClientPerformance,
@@ -502,7 +503,11 @@ function renderAgendaRoute(container: HTMLElement): void {
   function getPublicReportRows(acts: PublicActivityDTO[]) {
     return acts.map((act, idx) => ({
       no: idx + 1,
-      hariTanggal: act.dateDisplay,
+      hariTanggal: ensureIndonesianDateFormat(
+        act.startDate && act.endDate
+          ? formatIndonesianDateSpan(act.startDate, act.endDate)
+          : (act.dateDisplay || act.startDate)
+      ),
       pukul: act.timeDisplay,
       kegiatan: act.status === 'CANCELLED' ? `[DIBATALKAN] ${act.title}` : act.title,
       tempat: act.locationName,

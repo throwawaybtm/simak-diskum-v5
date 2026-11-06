@@ -17,6 +17,8 @@ import ExcelJS from 'exceljs';
 import {
   extractNameFromLabel,
   formatAttendeeNamesOnly,
+  isRoleOrPosition,
+  ensureIndonesianDateFormat,
   buildEightColumnReportRows,
   generateEightColumnHtmlReport,
   generateEightColumnXlsx,
@@ -34,9 +36,29 @@ describe('S01-QA-R2: Defect Remediation & Schedule Export Enhancement', () => {
       expect(extractNameFromLabel('Staff (Budi Santoso)')).toBe('Budi Santoso');
     });
 
+    it('extracts employee names from Name (Position) format with nested parentheses', () => {
+      expect(extractNameFromLabel('Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))')).toBe('Budi Simulasi, S.Sos');
+      expect(extractNameFromLabel('Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))')).toBe('Siti Purwarupa, M.Si');
+      expect(extractNameFromLabel('Agus Demo, SE (Kasubbag Umum & Kepegawaian)')).toBe('Agus Demo, SE');
+      expect(extractNameFromLabel('Dewi Contoh, S.Ak (Kasubbag Keuangan & Perencanaan)')).toBe('Dewi Contoh, S.Ak');
+      expect(extractNameFromLabel('Oki Percontohan, A.Md (Pengelola Agenda Kedinasan)')).toBe('Oki Percontohan, A.Md');
+    });
+
+    it('returns honest placeholder "Nama belum tersedia" for role-only labels or malformed strings', () => {
+      expect(extractNameFromLabel('Kepala Dinas (Simulasi')).toBe('Nama belum tersedia');
+      expect(extractNameFromLabel('Sekretaris Dinas (Simulasi')).toBe('Nama belum tersedia');
+      expect(extractNameFromLabel('Kasubbag Umum & Kepegawaian')).toBe('Nama belum tersedia');
+      expect(extractNameFromLabel('Pengelola Agenda Kedinasan')).toBe('Nama belum tersedia');
+      expect(extractNameFromLabel('Kadis')).toBe('Nama belum tersedia');
+      expect(extractNameFromLabel('Sekretaris Dinas')).toBe('Nama belum tersedia');
+      expect(extractNameFromLabel('Pegawai Dinas')).toBe('Nama belum tersedia');
+      expect(extractNameFromLabel('emp_syn_01')).toBe('Nama belum tersedia');
+    });
+
     it('extracts employee names from em-dash or hyphen strings', () => {
       expect(extractNameFromLabel('Kepala Bidang — Ahmad Fauzi, SE')).toBe('Ahmad Fauzi, SE');
       expect(extractNameFromLabel('Pranata Komputer - Siti Purwarupa')).toBe('Siti Purwarupa');
+      expect(extractNameFromLabel('Ahmad Fauzi, SE — Kepala Bidang')).toBe('Ahmad Fauzi, SE');
     });
 
     it('extracts guest names from "Tamu: Name" format', () => {
@@ -63,9 +85,66 @@ describe('S01-QA-R2: Defect Remediation & Schedule Export Enhancement', () => {
       expect(result).not.toContain('Tamu:');
     });
 
+    it('formats mixed real-name and role-only attendees correctly with placeholder', () => {
+      const attendees = [
+        'Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))',
+        'Kasubbag Umum & Kepegawaian',
+        'Dewi Contoh, S.Ak (Kasubbag Keuangan & Perencanaan)'
+      ];
+      const result = formatAttendeeNamesOnly(attendees);
+      expect(result).toBe('1. Budi Simulasi, S.Sos\n2. Nama belum tersedia\n3. Dewi Contoh, S.Ak');
+    });
+
+    it('formats full staging synthetic attendee roster to exact names without role labels', () => {
+      const stagingAttendees = [
+        'Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))',
+        'Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))',
+        'Agus Demo, SE (Kasubbag Umum & Kepegawaian)',
+        'Dewi Contoh, S.Ak (Kasubbag Keuangan & Perencanaan)',
+        'Oki Percontohan, A.Md (Pengelola Agenda Kedinasan)'
+      ];
+      const result = formatAttendeeNamesOnly(stagingAttendees);
+      expect(result).toBe(
+        '1. Budi Simulasi, S.Sos\n' +
+        '2. Siti Purwarupa, M.Si\n' +
+        '3. Agus Demo, SE\n' +
+        '4. Dewi Contoh, S.Ak\n' +
+        '5. Oki Percontohan, A.Md'
+      );
+      // Zero roles, zero malformed parentheses
+      expect(result).not.toContain('Kepala Dinas');
+      expect(result).not.toContain('Sekretaris Dinas');
+      expect(result).not.toContain('Kasubbag');
+      expect(result).not.toContain('Pengelola');
+      expect(result).not.toContain('(Simulasi');
+    });
+
     it('returns placeholder "-" for empty attendees', () => {
       expect(formatAttendeeNamesOnly([])).toBe('-');
       expect(formatAttendeeNamesOnly([null, ''])).toBe('-');
+    });
+  });
+
+  describe('1b. Indonesian Date Formatting Defensive Engine (ensureIndonesianDateFormat)', () => {
+    it('formats raw YYYY-MM-DD into human-readable Indonesian date', () => {
+      expect(ensureIndonesianDateFormat('2026-10-30')).toBe('Jumat, 30 Oktober 2026');
+      expect(ensureIndonesianDateFormat('2026-10-01')).toBe('Kamis, 1 Oktober 2026');
+      expect(ensureIndonesianDateFormat('2026-11-15')).toBe('Minggu, 15 November 2026');
+    });
+
+    it('formats raw multi-day range into human-readable Indonesian date span', () => {
+      expect(ensureIndonesianDateFormat('2026-11-06 s.d. 2026-11-08')).toBe('Jumat–Minggu, 6–8 November 2026');
+      expect(ensureIndonesianDateFormat('2026-10-30 - 2026-11-02')).toBe('Jumat–Senin, 30 Oktober – 2 November 2026');
+    });
+
+    it('preserves already formatted Indonesian dates without double-formatting', () => {
+      expect(ensureIndonesianDateFormat('Jumat, 30 Oktober 2026')).toBe('Jumat, 30 Oktober 2026');
+      expect(ensureIndonesianDateFormat('Kamis–Sabtu, 1–3 Oktober 2026')).toBe('Kamis–Sabtu, 1–3 Oktober 2026');
+    });
+
+    it('returns "-" for empty or invalid values safely', () => {
+      expect(ensureIndonesianDateFormat('')).toBe('-');
+      expect(ensureIndonesianDateFormat('-')).toBe('-');
     });
   });
 

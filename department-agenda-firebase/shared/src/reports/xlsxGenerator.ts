@@ -8,7 +8,7 @@
 
 import ExcelJS from 'exceljs';
 import type { EightColumnReportRow } from './eightColumnReport';
-import { sanitizeFormulaInjection } from './eightColumnReport';
+import { sanitizeFormulaInjection, ensureIndonesianDateFormat } from './eightColumnReport';
 import { formatDynamicScheduleTitlePeriod } from '../scheduling/timeUtils';
 
 export interface GenerateXlsxOptions {
@@ -137,7 +137,7 @@ export async function generateEightColumnXlsx(
   for (const row of options.rows) {
     const dataRow = worksheet.addRow([
       row.no,
-      sanitizeFormulaInjection(row.hariTanggal),
+      sanitizeFormulaInjection(ensureIndonesianDateFormat(row.hariTanggal)),
       sanitizeFormulaInjection(row.pukul),
       sanitizeFormulaInjection(row.kegiatan),
       sanitizeFormulaInjection(row.tempat),
