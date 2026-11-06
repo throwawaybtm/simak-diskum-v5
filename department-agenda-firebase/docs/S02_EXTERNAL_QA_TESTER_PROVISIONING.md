@@ -5,78 +5,90 @@
 **Target Environment:** Firebase Cloud Staging (`simakdiskum-staging`)  
 **Protected Production:** `simakdiskum` (Strictly Protected; Zero Mutations)  
 **Date:** 6 November 2026  
-**Status:** PREFLIGHT COMPLETE — PENDING OWNER APPROVAL  
-**Current Stop Condition:** `S02 TESTER ACCOUNT — OWNER APPROVAL REQUIRED`  
+**Status:** PROVISIONED & VERIFIED VIA ADMIN SDK — PENDING TESTER PASSWORD SETUP & LOGIN  
+**Milestone Stop Condition:** `S02 EXTERNAL QA TESTER ACCOUNT PROVISIONED`  
 
 ---
 
-## 1. Preflight Inspection Results
+## 1. Provisioning Summary & Verification Records
 
-### Target Environment & Identity Isolation
-- **Target Firebase Project:** `simakdiskum-staging`
-- **Protected Production Project:** `simakdiskum` (untouched, 0 writes, 0 deploys)
-- **Firebase CLI Target Mapping:** `.firebaserc` confirms separate staging targets (`simakdiskum-staging` and `simakdiskum-staging-admin`).
-- **Application Default Credentials (ADC):** Verified operational with live Google Cloud for `simakdiskum-staging`.
-- **Public Self-Registration:** Disabled in Firebase Authentication. End-users cannot register accounts.
-- **Console / GCP IAM Access:** No Google Cloud IAM or Firebase Console roles are requested or will be granted. The tester receives strictly application-level custom claims.
+In accordance with explicit owner authorization received on 6 November 2026, the temporary application-level Administrator account for external software tester Asep has been created and verified on Firebase project `simakdiskum-staging`.
 
-### Existing User Lookups (`simakdiskum-staging`)
-1. **Target External QA Tester Account:**
-   - Email: `aseppbukga@gmail.com`
-   - Lookup Result: `auth/user-not-found`
-   - Existence Status: **DOES NOT EXIST** (Safe to provision upon explicit owner approval).
-2. **Primary Owner Administrator Account:**
-   - Email: `riyanbwirawanto@gmail.com`
-   - UID: `31Bin8ErtBaAy3YODaf1SKKymYb2`
-   - Display Name: `Administrator Staging`
-   - Status: `disabled: false`, `emailVerified: true`
-   - Role Claim: `{ "role": "admin", "department": "Dinas Koperasi dan Usaha Mikro Kota Batam" }`
-   - Impact: **Completely separate, preserved, and unaffected**.
+### A. Target Tester Auth Record (Verified via Firebase Admin SDK)
+- **UID:** `RlFoWs62BVa66jdHjmGrONr1NKP2`
+- **Email:** `aseppbukga@gmail.com`
+- **Display Name:** `Asep — QA Tester`
+- **Account Status:** `disabled: false` (Active & Enabled)
+- **Email Verified:** `false` (Genuinely unverified; not automatically marked true)
+- **Custom Claims:**
+  ```json
+  {
+    "role": "admin",
+    "department": "Dinas Koperasi dan Usaha Mikro Kota Batam",
+    "updatedAt": "2026-11-06T04:03:39.344Z"
+  }
+  ```
+- **Tokens Revoked Timestamp:** `Fri, 06 Nov 2026 04:03:39 GMT`
 
----
-
-## 2. Proposed Mutation Plan
-
-| Parameter | Specification |
-|---|---|
-| **Target Project ID** | `simakdiskum-staging` |
-| **Target Email** | `aseppbukga@gmail.com` |
-| **Display Name** | `Asep — QA Tester` |
-| **Application Role** | `admin` (`{ "role": "admin", "department": "Dinas Koperasi dan Usaha Mikro Kota Batam" }`) |
-| **Account Status** | `enabled` (`disabled: false`, `emailVerified: true`) |
-| **Account Type** | Temporary External QA Tester (Application Level Only) |
-| **Initial Password** | Secure high-entropy cryptographic random bytes (never printed or saved) |
-| **Setup Link Handling** | `--suppress-link` enforced to ensure zero credential or token leakage to logs |
-| **Exact CLI Operation** | `node scripts/manageRoles.mjs provision aseppbukga@gmail.com "Asep — QA Tester" admin --target=staging --suppress-link` |
+### B. Primary Owner Administrator Account Isolation (Verified)
+- **UID:** `31Bin8ErtBaAy3YODaf1SKKymYb2`
+- **Email:** `riyanbwirawanto@gmail.com`
+- **Display Name:** `Administrator Staging`
+- **Account Status:** `disabled: false`, `emailVerified: true`
+- **Custom Claims:** `{ "role": "admin", "department": "Dinas Koperasi dan Usaha Mikro Kota Batam" }`
+- **Isolation Status:** **100% Preserved & Unaffected**. Separate UID, separate audit log attribution, continuous operational access.
 
 ---
 
-## 3. Password Setup & Delivery Analysis
+## 2. Provisioning Execution Audit
 
-Firebase Admin SDK `generatePasswordResetLink()` creates a URL string on the server but **does NOT dispatch an automated email**. To ensure zero plaintext password handling and zero URL leakage in chat/logs:
-
-### Approved Delivery Routes:
-1. **Route 1 (Recommended — Native Self-Service via Staging Web Portal):**
-   - Once the account is created, the tester visits the live staging Admin Portal:  
-     `https://simakdiskum-staging-admin.web.app`
-   - On the login card, clicks **"Lupa Password?"**.
-   - Enters `aseppbukga@gmail.com` and clicks **"Kirim Tautan Pemulihan"**.
-   - Firebase Client SDK invokes `sendPasswordResetEmail`, which triggers Google's native email delivery directly to the tester's inbox (covered under Firebase Spark free tier up to 150 emails/day).
-   - The tester sets their own private password directly through the Google-hosted identity flow.
-
-2. **Route 2 (Owner-Triggered via Firebase Console):**
-   - The project owner navigates to Firebase Console > `simakdiskum-staging` > Authentication > Users.
-   - Locates `aseppbukga@gmail.com`, clicks the three dots (`⋮`), and selects **"Reset password"**.
-   - Firebase immediately dispatches the native password reset email to `aseppbukga@gmail.com`.
-
-3. **Route 3 (Confidential Out-of-Band Delivery):**
-   - If the tester cannot receive native emails, the project owner can generate the link on their private CLI (`node scripts/manageRoles.mjs reset-password aseppbukga@gmail.com --target=staging`) and deliver the link directly to the tester via private messaging without logging.
+- **Execution Command:**
+  ```bash
+  node scripts/manageRoles.mjs provision aseppbukga@gmail.com "Asep — QA Tester" admin --target=staging --suppress-link
+  ```
+- **Credential Protection:** `--suppress-link` successfully prevented one-time password reset URLs and tokens from printing into terminal, logs, or chat.
+- **Initial Password:** Auto-generated secure cryptographic entropy (`crypto.randomBytes(24)`). Never recorded or exposed.
+- **IAM Boundaries:** Zero Google Cloud IAM or Firebase Console permissions granted. Account privileges are strictly governed by application-level custom claims evaluated by Gate 5A Firestore Security Rules (`request.auth.token.role == 'admin'`).
 
 ---
 
-## 4. Planned Account Revocation & De-Provisioning Procedure
+## 3. Password Setup & Initial Sign-In Instructions for Tester (Asep)
 
-Once QA testing concludes, the owner can completely revoke tester access:
+No password has been set, and no automated email was falsely claimed to have been sent by the CLI.
+
+To complete password creation privately:
+
+1. **Step 1:** Open the Staging Admin Portal login card:  
+   👉 [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app)
+2. **Step 2:** Click **"Lupa Password?"** at the bottom of the login modal.
+3. **Step 3:** Enter `aseppbukga@gmail.com` into the email field and click **"Kirim Tautan Pemulihan"**.
+4. **Step 4:** Open the inbox for `aseppbukga@gmail.com`. Firebase will dispatch an official Google-hosted password reset email (covered under Firebase Spark free tier).
+5. **Step 5:** Follow the secure link to set a private password.
+6. **Step 6:** Return to [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app) and sign in using `aseppbukga@gmail.com` and the newly created password.
+7. **Step 7:** Verify the **Administrator** badge appears in the top navigation profile and all administrative features (Agenda CRUD, Master Data, Laporan, Pengaturan) are accessible.
+
+---
+
+## 4. Verification Checklist Matrix
+
+| Item | Requirement | Verification Method | Status |
+|---|---|---|:---:|
+| **A** | User exists in `simakdiskum-staging` | `auth.getUserByEmail('aseppbukga@gmail.com')` | **VERIFIED** (`UID: RlFoWs62BVa66jdHjmGrONr1NKP2`) |
+| **B** | Target email matches | Direct inspection | **VERIFIED** (`aseppbukga@gmail.com`) |
+| **C** | Application role is `admin` | Custom claims inspection | **VERIFIED** (`{ "role": "admin" }`) |
+| **D** | Account is enabled | `disabled: false` | **VERIFIED** |
+| **E** | Email unverified initially | `emailVerified: false` | **VERIFIED** (Genuine unverified status preserved) |
+| **F** | Zero secret / link disclosure | `--suppress-link` flag audit | **VERIFIED** (0 URLs or passwords leaked) |
+| **G** | Primary admin preserved | `auth.getUserByEmail('riyanbwirawanto@gmail.com')` | **VERIFIED** (Active, intact) |
+| **H** | Tester sets password privately | Staging portal "Lupa Password?" flow | **PENDING TESTER ACTION** |
+| **I** | Tester confirms live sign-in | Asep login to `simakdiskum-staging-admin.web.app` | **PENDING TESTER CONFIRMATION** |
+| **J** | Owner confirms live sign-in | Owner session check | **PENDING OWNER CONFIRMATION** |
+
+---
+
+## 5. Post-Testing Account Revocation Procedure
+
+Once QA testing concludes, the project owner can completely de-provision or disable the tester's access using the following standard operational procedure:
 
 1. **Step 1: Downgrade / Remove Application Role:**
    ```bash
@@ -86,35 +98,21 @@ Once QA testing concludes, the owner can completely revoke tester access:
    ```bash
    node scripts/manageRoles.mjs disable aseppbukga@gmail.com --target=staging
    ```
-   - Sets `disabled: true` in Firebase Authentication.
-   - Invokes `auth.revokeRefreshTokens(user.uid)`, immediately blocking the issuance of new ID tokens.
+   * Result: Account is disabled (`disabled: true`). Refresh tokens are immediately revoked via `auth.revokeRefreshTokens(uid)`, blocking any new ID token generation.
 3. **Step 3: Verification:**
-   - Execute `node scripts/manageRoles.mjs inspect aseppbukga@gmail.com --target=staging`.
-   - Confirm `Disabled: true` and `Tokens Revoked` timestamp is recorded.
-   - Attempting sign-in at `simakdiskum-staging-admin.web.app` will be rejected with `auth/user-disabled`.
-
-> [!WARNING]
-> **Token Lifetime Invariant:** Firebase Authentication JWT ID tokens have a standard 1-hour expiration. An already issued ID token remains cryptographically valid until its 1-hour expiry unless the application checks token revocation (`checkRevoked: true` on token verification) or Firestore Security Rules evaluate real-time revocation timestamps.
-
----
-
-## 5. Verification Checklist (Post-Approval)
-
-- [ ] A. Firebase Auth user exists in `simakdiskum-staging`.
-- [ ] B. Target email matches `aseppbukga@gmail.com`.
-- [ ] C. Application custom claims evaluate `{ role: "admin" }`.
-- [ ] D. Account is enabled (`disabled: false`).
-- [ ] E. Password setup delivered privately via approved delivery route.
-- [ ] F. Tester independently confirms password setup.
-- [ ] G. Tester logs into Staging Admin Portal (`https://simakdiskum-staging-admin.web.app`).
-- [ ] H. Primary Administrator (`riyanbwirawanto@gmail.com`) confirms ongoing operational access.
+   ```bash
+   node scripts/manageRoles.mjs inspect aseppbukga@gmail.com --target=staging
+   ```
+   * Confirm `Disabled: true` and `Tokens Revoked` timestamp is updated.
+4. **Token Lifetime Limitation Notice:**
+   * Firebase JWT ID tokens carry a standard client lifetime of up to 1 hour. While refresh tokens are revoked instantly, any active ID token already in the browser's memory remains valid until its 1-hour expiration unless token revocation is validated on each Firestore read/write.
 
 ---
 
-## 6. Safety & Boundary Invariants
+## 6. Strict Production & Platform Safeguards
 
-- **Production Project:** `simakdiskum` is strictly PROTECTED (zero reads, zero writes, zero deploys).
-- **Billing Tier:** Firebase Spark Free Tier ($0.00/month) strictly preserved.
-- **Firestore Security Rules & Indexes:** Zero changes.
-- **Hosting Targets:** Zero changes.
-- **Firestore Data & Projections:** Zero changes.
+- **Production Project:** `simakdiskum` untouched (0 reads, 0 writes, 0 deploys).
+- **Billing Tier:** Firebase Spark Free Tier ($0.00/month) fully preserved.
+- **Firestore Schema, Security Rules, Indexes:** Zero mutations.
+- **Hosting Deployments:** Zero deployments.
+- **Next Milestone:** Production activation (`P02-B`) remains strictly blocked until formal production onboarding authorization is issued.

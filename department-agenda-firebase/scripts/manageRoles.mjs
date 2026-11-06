@@ -172,12 +172,14 @@ export async function resolveUser(auth, identifier) {
 /**
  * Provisions a new department operator with Email/Password and custom role claims
  * Note: Password is never printed or logged to stdout.
+ * Security: Does not automatically set emailVerified=true unless explicitly requested via options.
  */
-export async function provisionUser(auth, email, password, displayName, role) {
+export async function provisionUser(auth, email, password, displayName, role, options = {}) {
   if (!ALLOWED_ROLES.includes(role)) {
     throw new Error(`Invalid role "${role}". Allowed roles: ${ALLOWED_ROLES.join(', ')}`);
   }
 
+  const emailVerified = Boolean(options.emailVerified);
   const effectivePassword = password || (crypto.randomBytes(24).toString('base64url') + '!A1');
   console.log(`[manageRoles] Creating operator account for ${email} with role: ${role}...`);
   let user;
@@ -186,7 +188,7 @@ export async function provisionUser(auth, email, password, displayName, role) {
     console.log(`[manageRoles] User ${email} already exists (UID: ${user.uid}). Updating profile and claims...`);
     await auth.updateUser(user.uid, {
       displayName: displayName || user.displayName,
-      emailVerified: true
+      ...(options.emailVerified !== undefined ? { emailVerified } : {})
     });
   } catch (err) {
     if (err.code === 'auth/user-not-found' || err.message?.includes('user-not-found')) {
@@ -194,7 +196,7 @@ export async function provisionUser(auth, email, password, displayName, role) {
         email,
         password: effectivePassword,
         displayName,
-        emailVerified: true,
+        emailVerified,
         disabled: false
       });
       console.log(`[manageRoles] Successfully created user ${email} (UID: ${user.uid})`);
@@ -321,7 +323,8 @@ Commands:
         console.error('  manageRoles.mjs provision <email> <password> <displayName> <role: admin|editor> [--target=emulator|prod]');
         process.exit(1);
       }
-      await provisionUser(auth, email, password, displayName, role);
+      const emailVerified = args.includes('--verified') || process.env.EMAIL_VERIFIED === 'true';
+      await provisionUser(auth, email, password, displayName, role, { emailVerified });
       if (!password) {
         const suppressLink = args.includes('--suppress-link') || args.includes('--no-link') || process.env.SUPPRESS_SETUP_LINK === 'true';
         console.log(`[manageRoles Security] Account provisioned with auto-generated secure entropy.`);

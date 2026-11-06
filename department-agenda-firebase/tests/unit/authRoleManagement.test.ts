@@ -229,11 +229,40 @@ describe('P01-A: Operator Role Management & Custom Claims Verification', () => {
     expect(mockAuth.createUser).toHaveBeenCalledWith(expect.objectContaining({
       email: 'passwordless@batam.go.id',
       displayName: 'Operator Mandiri',
+      emailVerified: false,
       // Password must be auto-generated high-entropy string
       password: expect.stringMatching(/^[A-Za-z0-9_-]{24,}!A1$/)
     }));
     expect(mockAuth.setCustomUserClaims).toHaveBeenCalledWith(user.uid, expect.objectContaining({
       role: 'editor'
+    }));
+  });
+
+  it('preserves genuine unverified email status unless emailVerified is explicitly set true', async () => {
+    await provisionUser(
+      mockAuth,
+      'unverified@tester.com',
+      null,
+      'Tester Belum Verifikasi',
+      'admin',
+      { emailVerified: false }
+    );
+    expect(mockAuth.createUser).toHaveBeenCalledWith(expect.objectContaining({
+      email: 'unverified@tester.com',
+      emailVerified: false
+    }));
+
+    await provisionUser(
+      mockAuth,
+      'verified@tester.com',
+      null,
+      'Tester Sudah Verifikasi',
+      'admin',
+      { emailVerified: true }
+    );
+    expect(mockAuth.createUser).toHaveBeenCalledWith(expect.objectContaining({
+      email: 'verified@tester.com',
+      emailVerified: true
     }));
   });
 });
