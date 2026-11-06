@@ -1,0 +1,1701 @@
+[
+  {
+    "id": "act_syn_20261001_23",
+    "status": "COMPLETED",
+    "version": 1,
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "title": "Koordinasi Awal Penyusunan Laporan Triwulanan",
+    "publicCancellationNotice": "",
+    "startTime": "09:00",
+    "endTime": "11:00",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "organizerId": "org_syn_01",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_03",
+        "name": "Agus Demo, SE",
+        "position": "Kasubbag Umum & Kepegawaian",
+        "label": "Agus Demo, SE (Kasubbag Umum & Kepegawaian)"
+      },
+      {
+        "employeeId": "emp_syn_04",
+        "name": "Dewi Contoh, S.Ak",
+        "position": "Kasubbag Keuangan & Perencanaan",
+        "label": "Dewi Contoh, S.Ak (Kasubbag Keuangan & Perencanaan)"
+      }
+    ],
+    "endDate": "2026-10-01",
+    "openEnded": false,
+    "startDate": "2026-10-01",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "publicNotes": "Pembagian lembar kerja telaah anggaran.",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "categoryId": "cat_syn_01",
+    "locationId": "loc_syn_01",
+    "createdBy": "system_staging_seed",
+    "attendeeIds": [
+      "emp_syn_03",
+      "emp_syn_04"
+    ]
+  },
+  {
+    "id": "act_syn_20261001_24",
+    "openEnded": false,
+    "locationId": "loc_syn_03",
+    "categoryId": "cat_syn_03",
+    "startDate": "2026-10-01",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "publicCancellationNotice": "",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      },
+      {
+        "employeeId": "emp_syn_10",
+        "name": "Joko Rekaan, S.ST",
+        "position": "Pengembang Kewirausahaan",
+        "label": "Joko Rekaan, S.ST (Pengembang Kewirausahaan)"
+      }
+    ],
+    "endDate": "2026-10-01",
+    "attendeeIds": [
+      "emp_syn_09",
+      "emp_syn_10"
+    ],
+    "createdBy": "system_staging_seed",
+    "publicNotes": "Pemeriksaan berkas administrasi calon penerima hibah.",
+    "status": "COMPLETED",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "endTime": "15:30",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "organizerId": "org_syn_03",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "version": 1,
+    "title": "Verifikasi Dokumen Kelayakan Bantuan Modal Usaha Mikro",
+    "startTime": "13:30"
+  },
+  {
+    "id": "act_syn_20261002_05",
+    "organizerId": "org_syn_01",
+    "version": 1,
+    "createdBy": "system_staging_seed",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "endTime": "11:30",
+    "openEnded": false,
+    "startDate": "2026-10-02",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_04",
+        "name": "Dewi Contoh, S.Ak",
+        "position": "Kasubbag Keuangan & Perencanaan",
+        "label": "Dewi Contoh, S.Ak (Kasubbag Keuangan & Perencanaan)"
+      }
+    ],
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_02",
+      "emp_syn_04"
+    ],
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "startTime": "09:00",
+    "endDate": "2026-10-02",
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_01",
+    "publicNotes": "Membawa laporan penyerapan anggaran per sub-kegiatan.",
+    "status": "COMPLETED",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "title": "Rapat Evaluasi Realisasi Fisik dan Keuangan Triwulan III",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "publicCancellationNotice": ""
+  },
+  {
+    "id": "act_syn_20261002_25",
+    "organizerId": "org_syn_04",
+    "endTime": "16:00",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_13",
+        "name": "Mega Fiktif, SE",
+        "position": "Kepala UPT PLUT-KUMKM",
+        "label": "Mega Fiktif, SE (Kepala UPT PLUT-KUMKM)"
+      },
+      {
+        "employeeId": "emp_syn_14",
+        "name": "Nanda Virtual, S.Pd",
+        "position": "Konsultan Pendamping PLUT",
+        "label": "Nanda Virtual, S.Pd (Konsultan Pendamping PLUT)"
+      }
+    ],
+    "title": "Konsultasi Pengembangan Inkubator Bisnis PLUT",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "version": 1,
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "startTime": "14:00",
+    "openEnded": false,
+    "attendeeIds": [
+      "emp_syn_13",
+      "emp_syn_14"
+    ],
+    "startDate": "2026-10-02",
+    "publicNotes": "Penyusunan kurikulum tenant inkubasi gelombang II.",
+    "locationId": "loc_syn_02",
+    "categoryId": "cat_syn_02",
+    "publicCancellationNotice": "",
+    "endDate": "2026-10-02",
+    "createdBy": "system_staging_seed",
+    "status": "COMPLETED",
+    "administrativeStage": "ADMIN_COMPLETE"
+  },
+  {
+    "id": "act_syn_20261005_01",
+    "status": "COMPLETED",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_03",
+        "name": "Agus Demo, SE",
+        "position": "Kasubbag Umum & Kepegawaian",
+        "label": "Agus Demo, SE (Kasubbag Umum & Kepegawaian)"
+      },
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      },
+      {
+        "employeeId": "emp_syn_07",
+        "name": "Gita Teladan, SH",
+        "position": "Kepala Bidang Pengawasan",
+        "label": "Gita Teladan, SH (Kepala Bidang Pengawasan)"
+      },
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      }
+    ],
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "version": 1,
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_01",
+    "startTime": "07:30",
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_02",
+      "emp_syn_03",
+      "emp_syn_05",
+      "emp_syn_07",
+      "emp_syn_09"
+    ],
+    "recurringSeriesId": "series_syn_apel_pagi",
+    "title": "Apel Pagi Kedinasan & Pengarahan Mingguan",
+    "endTime": "08:15",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "publicNotes": "Pakaian dinas harian (PDH) lengkap.",
+    "endDate": "2026-10-05",
+    "createdBy": "system_staging_seed",
+    "openEnded": false,
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "organizerId": "org_syn_01",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "startDate": "2026-10-05"
+  },
+  {
+    "id": "act_syn_20261005_26",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "version": 1,
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "publicCancellationNotice": "",
+    "title": "Rapat Koordinasi Tindak Lanjut Hasil Pengawasan Koperasi",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "endTime": "12:00",
+    "organizerId": "org_syn_02",
+    "startTime": "10:00",
+    "startDate": "2026-10-05",
+    "endDate": "2026-10-05",
+    "openEnded": false,
+    "locationId": "loc_syn_03",
+    "categoryId": "cat_syn_03",
+    "createdBy": "system_staging_seed",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_07",
+        "name": "Gita Teladan, SH",
+        "position": "Kepala Bidang Pengawasan",
+        "label": "Gita Teladan, SH (Kepala Bidang Pengawasan)"
+      },
+      {
+        "employeeId": "emp_syn_08",
+        "name": "Hadi Ujicoba, SE",
+        "position": "Pengawas Koperasi Ahli Muda",
+        "label": "Hadi Ujicoba, SE (Pengawas Koperasi Ahli Muda)"
+      }
+    ],
+    "attendeeIds": [
+      "emp_syn_07",
+      "emp_syn_08"
+    ],
+    "publicNotes": "Pembahasan surat rekomendasi perbaikan tata kelola.",
+    "status": "COMPLETED"
+  },
+  {
+    "id": "act_syn_20261006_06",
+    "startTime": "08:30",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "endDate": "2026-10-06",
+    "locationId": "loc_syn_02",
+    "categoryId": "cat_syn_02",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "publicNotes": "Peserta 30 perwakilan pengurus koperasi simpan pinjam se-Batam.",
+    "status": "COMPLETED",
+    "attendeeIds": [
+      "emp_syn_05",
+      "emp_syn_06"
+    ],
+    "title": "Bimtek Pembukuan Keuangan Digital Koperasi Angkatan I",
+    "publicCancellationNotice": "",
+    "version": 1,
+    "createdBy": "system_staging_seed",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      },
+      {
+        "employeeId": "emp_syn_06",
+        "name": "Fajar Model, S.Kom",
+        "position": "Penyuluh Koperasi Ahli Pertama",
+        "label": "Fajar Model, S.Kom (Penyuluh Koperasi Ahli Pertama)"
+      }
+    ],
+    "startDate": "2026-10-06",
+    "endTime": "16:00",
+    "organizerId": "org_syn_02",
+    "openEnded": false
+  },
+  {
+    "id": "act_syn_20261007_07",
+    "endTime": "14:00",
+    "startTime": "10:00",
+    "publicCancellationNotice": "",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "organizerId": "org_syn_02",
+    "version": 1,
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "locationId": "loc_syn_05",
+    "categoryId": "cat_syn_03",
+    "title": "Pemeriksaan Kesehatan dan Kepatuhan Koperasi Konsumen Sejahtera",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_07",
+        "name": "Gita Teladan, SH",
+        "position": "Kepala Bidang Pengawasan",
+        "label": "Gita Teladan, SH (Kepala Bidang Pengawasan)"
+      },
+      {
+        "employeeId": "emp_syn_08",
+        "name": "Hadi Ujicoba, SE",
+        "position": "Pengawas Koperasi Ahli Muda",
+        "label": "Hadi Ujicoba, SE (Pengawas Koperasi Ahli Muda)"
+      }
+    ],
+    "createdBy": "system_staging_seed",
+    "attendeeIds": [
+      "emp_syn_07",
+      "emp_syn_08"
+    ],
+    "administrativeStage": "ADMIN_COMPLETE",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "openEnded": false,
+    "status": "COMPLETED",
+    "endDate": "2026-10-07",
+    "startDate": "2026-10-07",
+    "publicNotes": "Audit kepatuhan tata kelola perkoperasian."
+  },
+  {
+    "id": "act_syn_20261007_27",
+    "organizerId": "org_syn_03",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "status": "COMPLETED",
+    "startTime": "14:00",
+    "endDate": "2026-10-07",
+    "title": "Penyusunan Publikasi Statistik Profil UMKM Batam",
+    "endTime": "16:00",
+    "startDate": "2026-10-07",
+    "publicCancellationNotice": "",
+    "attendeeIds": [
+      "emp_syn_11",
+      "emp_syn_12"
+    ],
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_11",
+        "name": "Kartika Maya, S.Ds",
+        "position": "Kepala Bidang Promosi & Kemitraan",
+        "label": "Kartika Maya, S.Ds (Kepala Bidang Promosi & Kemitraan)"
+      },
+      {
+        "employeeId": "emp_syn_12",
+        "name": "Lukman Tiruan, S.I.Kom",
+        "position": "Pranata Humas & Kemitraan",
+        "label": "Lukman Tiruan, S.I.Kom (Pranata Humas & Kemitraan)"
+      }
+    ],
+    "openEnded": false,
+    "categoryId": "cat_syn_04",
+    "locationId": "loc_syn_01",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "publicNotes": "Finalisasi data infografis tahun 2026.",
+    "version": 1,
+    "createdBy": "system_staging_seed"
+  },
+  {
+    "id": "act_syn_20261008_08",
+    "status": "COMPLETED",
+    "organizerId": "org_syn_03",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "endTime": "12:30",
+    "startTime": "09:00",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      },
+      {
+        "employeeId": "emp_syn_10",
+        "name": "Joko Rekaan, S.ST",
+        "position": "Pengembang Kewirausahaan",
+        "label": "Joko Rekaan, S.ST (Pengembang Kewirausahaan)"
+      }
+    ],
+    "version": 1,
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "attendeeIds": [
+      "emp_syn_09",
+      "emp_syn_10"
+    ],
+    "locationId": "loc_syn_02",
+    "categoryId": "cat_syn_04",
+    "createdBy": "system_staging_seed",
+    "publicNotes": "Kuota 50 pelaku usaha olahan makanan dan minuman.",
+    "publicCancellationNotice": "",
+    "openEnded": false,
+    "title": "Sosialisasi Program Fasilitasi Sertifikasi Halal Gratis (SEHATI) 2026",
+    "endDate": "2026-10-08",
+    "startDate": "2026-10-08"
+  },
+  {
+    "id": "act_syn_20261008_28",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "endDate": "2026-10-08",
+    "startTime": "14:00",
+    "attendeeIds": [
+      "emp_syn_11",
+      "emp_syn_16"
+    ],
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "publicCancellationNotice": "",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_11",
+        "name": "Kartika Maya, S.Ds",
+        "position": "Kepala Bidang Promosi & Kemitraan",
+        "label": "Kartika Maya, S.Ds (Kepala Bidang Promosi & Kemitraan)"
+      },
+      {
+        "employeeId": "emp_syn_16",
+        "name": "Putri Desain, S.Tr",
+        "position": "Analis Kebijakan Usaha Mikro",
+        "label": "Putri Desain, S.Tr (Analis Kebijakan Usaha Mikro)"
+      }
+    ],
+    "status": "COMPLETED",
+    "publicNotes": "Penetapan denah stan dan teknis kelistrikan pameran.",
+    "startDate": "2026-10-08",
+    "version": 1,
+    "title": "Koordinasi Penyelenggaraan Festival Kuliner Nusantara",
+    "categoryId": "cat_syn_05",
+    "locationId": "loc_syn_02",
+    "openEnded": false,
+    "organizerId": "org_syn_03",
+    "endTime": "16:00",
+    "createdBy": "system_staging_seed"
+  },
+  {
+    "id": "act_syn_20261009_09",
+    "status": "COMPLETED",
+    "publicCancellationNotice": "",
+    "version": 1,
+    "createdBy": "system_staging_seed",
+    "title": "Rapat Koordinasi Penguatan Ekosistem UMKM bersama Walikota Batam",
+    "openEnded": true,
+    "publicNotes": "Pakaian batik Batam lengan panjang.",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_02"
+    ],
+    "endTime": null,
+    "categoryId": "cat_syn_01",
+    "locationId": "loc_syn_04",
+    "startDate": "2026-10-09",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      }
+    ],
+    "endDate": "2026-10-09",
+    "startTime": "14:00",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "organizerId": "org_syn_05"
+  },
+  {
+    "id": "act_syn_20261009_29",
+    "title": "Sosialisasi Tata Cara Pendirian Koperasi Konsumen",
+    "createdBy": "system_staging_seed",
+    "endDate": "2026-10-09",
+    "status": "COMPLETED",
+    "startDate": "2026-10-09",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "publicNotes": "Panduan penyusunan akta pendirian dan AD/ART.",
+    "attendeeIds": [
+      "emp_syn_05",
+      "emp_syn_06"
+    ],
+    "openEnded": false,
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "startTime": "09:00",
+    "version": 1,
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      },
+      {
+        "employeeId": "emp_syn_06",
+        "name": "Fajar Model, S.Kom",
+        "position": "Penyuluh Koperasi Ahli Pertama",
+        "label": "Fajar Model, S.Kom (Penyuluh Koperasi Ahli Pertama)"
+      }
+    ],
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "locationId": "loc_syn_02",
+    "categoryId": "cat_syn_04",
+    "organizerId": "org_syn_02",
+    "publicCancellationNotice": "",
+    "endTime": "11:30"
+  },
+  {
+    "id": "act_syn_20261012_02",
+    "startDate": "2026-10-12",
+    "version": 1,
+    "openEnded": false,
+    "createdBy": "system_staging_seed",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "organizerId": "org_syn_01",
+    "endTime": "08:15",
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_01",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "endDate": "2026-10-12",
+    "status": "COMPLETED",
+    "recurringSeriesId": "series_syn_apel_pagi",
+    "startTime": "07:30",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_02",
+      "emp_syn_03",
+      "emp_syn_05",
+      "emp_syn_07",
+      "emp_syn_09"
+    ],
+    "publicNotes": "Pakaian dinas harian (PDH) lengkap.",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_03",
+        "name": "Agus Demo, SE",
+        "position": "Kasubbag Umum & Kepegawaian",
+        "label": "Agus Demo, SE (Kasubbag Umum & Kepegawaian)"
+      },
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      },
+      {
+        "employeeId": "emp_syn_07",
+        "name": "Gita Teladan, SH",
+        "position": "Kepala Bidang Pengawasan",
+        "label": "Gita Teladan, SH (Kepala Bidang Pengawasan)"
+      },
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      }
+    ],
+    "title": "Apel Pagi Kedinasan & Pengarahan Mingguan"
+  },
+  {
+    "id": "act_syn_20261013_10",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "organizerId": "org_syn_04",
+    "administrativeStage": "DETAILS_COMPLETED",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "status": "SCHEDULED",
+    "startTime": "09:00",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_13",
+        "name": "Mega Fiktif, SE",
+        "position": "Kepala UPT PLUT-KUMKM",
+        "label": "Mega Fiktif, SE (Kepala UPT PLUT-KUMKM)"
+      },
+      {
+        "employeeId": "emp_syn_14",
+        "name": "Nanda Virtual, S.Pd",
+        "position": "Konsultan Pendamping PLUT",
+        "label": "Nanda Virtual, S.Pd (Konsultan Pendamping PLUT)"
+      }
+    ],
+    "endDate": "2026-10-13",
+    "startDate": "2026-10-13",
+    "endTime": "12:00",
+    "publicNotes": "Pendampingan langsung pembuatan proposal kredit usaha rakyat.",
+    "openEnded": false,
+    "attendeeIds": [
+      "emp_syn_13",
+      "emp_syn_14"
+    ],
+    "version": 1,
+    "createdBy": "system_staging_seed",
+    "title": "Klinik Konsultasi Akses Pembiayaan KUR bagi Pelaku Usaha Mikro",
+    "publicCancellationNotice": "",
+    "categoryId": "cat_syn_02",
+    "locationId": "loc_syn_03",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik)."
+  },
+  {
+    "id": "act_syn_20261013_30",
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_04",
+    "title": "Rapat Kerja Sama Kemitraan Ritel Modern dan UMKM",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "startTime": "14:00",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "organizerId": "org_syn_03",
+    "status": "SCHEDULED",
+    "endDate": "2026-10-13",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "endTime": "16:00",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      },
+      {
+        "employeeId": "emp_syn_11",
+        "name": "Kartika Maya, S.Ds",
+        "position": "Kepala Bidang Promosi & Kemitraan",
+        "label": "Kartika Maya, S.Ds (Kepala Bidang Promosi & Kemitraan)"
+      }
+    ],
+    "createdBy": "system_staging_seed",
+    "administrativeStage": "DETAILS_COMPLETED",
+    "openEnded": false,
+    "publicCancellationNotice": "",
+    "version": 1,
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_09",
+      "emp_syn_11"
+    ],
+    "startDate": "2026-10-13",
+    "publicNotes": "Penjajakan kuota display produk lokal pada minimarket."
+  },
+  {
+    "id": "act_syn_20261014_19",
+    "organizerId": "org_syn_01",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "endTime": "15:30",
+    "title": "Rapat Koordinasi Pengadaan Sarana Prasarana PLUT",
+    "status": "CANCELLED",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "startTime": "13:30",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_03",
+        "name": "Agus Demo, SE",
+        "position": "Kasubbag Umum & Kepegawaian",
+        "label": "Agus Demo, SE (Kasubbag Umum & Kepegawaian)"
+      }
+    ],
+    "version": 1,
+    "attendeeIds": [
+      "emp_syn_02",
+      "emp_syn_03"
+    ],
+    "startDate": "2026-10-14",
+    "publicCancellationNotice": "Dibatalkan dan dijadwalkan ulang karena bertepatan dengan agenda mendesak Walikota.",
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_01",
+    "openEnded": false,
+    "publicNotes": "Rapat internal pembahasan pengadaan logistik.",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "endDate": "2026-10-14",
+    "createdBy": "system_staging_seed"
+  },
+  {
+    "id": "act_syn_20261014_31",
+    "startDate": "2026-10-14",
+    "openEnded": false,
+    "title": "Fasilitasi Sertifikasi Uji Nutrisi Produk Olahan",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_13",
+        "name": "Mega Fiktif, SE",
+        "position": "Kepala UPT PLUT-KUMKM",
+        "label": "Mega Fiktif, SE (Kepala UPT PLUT-KUMKM)"
+      },
+      {
+        "employeeId": "emp_syn_14",
+        "name": "Nanda Virtual, S.Pd",
+        "position": "Konsultan Pendamping PLUT",
+        "label": "Nanda Virtual, S.Pd (Konsultan Pendamping PLUT)"
+      }
+    ],
+    "createdBy": "system_staging_seed",
+    "administrativeStage": "DETAILS_COMPLETED",
+    "publicNotes": "Pengambilan sampel produk uji laboratorium terakreditasi.",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "endDate": "2026-10-14",
+    "locationId": "loc_syn_02",
+    "categoryId": "cat_syn_02",
+    "attendeeIds": [
+      "emp_syn_13",
+      "emp_syn_14"
+    ],
+    "endTime": "11:30",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "publicCancellationNotice": "",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "version": 1,
+    "startTime": "09:00",
+    "organizerId": "org_syn_04",
+    "status": "SCHEDULED"
+  },
+  {
+    "id": "act_syn_20261015_11",
+    "status": "SCHEDULED",
+    "endDate": "2026-10-17",
+    "openEnded": false,
+    "startDate": "2026-10-15",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "categoryId": "cat_syn_05",
+    "locationId": "loc_syn_06",
+    "publicCancellationNotice": "",
+    "createdBy": "system_staging_seed",
+    "organizerId": "org_syn_03",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "version": 1,
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      },
+      {
+        "employeeId": "emp_syn_11",
+        "name": "Kartika Maya, S.Ds",
+        "position": "Kepala Bidang Promosi & Kemitraan",
+        "label": "Kartika Maya, S.Ds (Kepala Bidang Promosi & Kemitraan)"
+      },
+      {
+        "employeeId": "emp_syn_12",
+        "name": "Lukman Tiruan, S.I.Kom",
+        "position": "Pranata Humas & Kemitraan",
+        "label": "Lukman Tiruan, S.I.Kom (Pranata Humas & Kemitraan)"
+      }
+    ],
+    "publicNotes": "Diikuti oleh 60 stan binaan PLUT dan Dekranasda Batam.",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "endTime": "21:00",
+    "startTime": "10:00",
+    "title": "Bazar dan Pameran Produk Kreatif Unggulan UMKM Kota Batam",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_09",
+      "emp_syn_11",
+      "emp_syn_12"
+    ]
+  },
+  {
+    "id": "act_syn_20261016_12",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "organizerId": "org_syn_06",
+    "startTime": "13:30",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "endDate": "2026-10-16",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      },
+      {
+        "employeeId": "emp_syn_06",
+        "name": "Fajar Model, S.Kom",
+        "position": "Penyuluh Koperasi Ahli Pertama",
+        "label": "Fajar Model, S.Kom (Penyuluh Koperasi Ahli Pertama)"
+      }
+    ],
+    "title": "Webinar Sosialisasi Transformasi Digital Koperasi Modern",
+    "publicCancellationNotice": "",
+    "publicNotes": "Tautan ruang virtual disediakan bagi operator dinas terdaftar.",
+    "administrativeStage": "DETAILS_COMPLETED",
+    "endTime": "16:00",
+    "attendeeIds": [
+      "emp_syn_05",
+      "emp_syn_06"
+    ],
+    "createdBy": "system_staging_seed",
+    "openEnded": false,
+    "version": 1,
+    "status": "SCHEDULED",
+    "startDate": "2026-10-16",
+    "categoryId": "cat_syn_04",
+    "locationId": "loc_syn_08"
+  },
+  {
+    "id": "act_syn_20261019_03",
+    "organizerId": "org_syn_01",
+    "title": "Apel Pagi Kedinasan & Pengarahan Mingguan",
+    "createdBy": "system_staging_seed",
+    "endDate": "2026-10-19",
+    "recurringSeriesId": "series_syn_apel_pagi",
+    "startDate": "2026-10-19",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_03",
+        "name": "Agus Demo, SE",
+        "position": "Kasubbag Umum & Kepegawaian",
+        "label": "Agus Demo, SE (Kasubbag Umum & Kepegawaian)"
+      },
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      },
+      {
+        "employeeId": "emp_syn_07",
+        "name": "Gita Teladan, SH",
+        "position": "Kepala Bidang Pengawasan",
+        "label": "Gita Teladan, SH (Kepala Bidang Pengawasan)"
+      },
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      }
+    ],
+    "openEnded": false,
+    "administrativeStage": "ADMIN_COMPLETE",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "startTime": "07:30",
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_02",
+      "emp_syn_03",
+      "emp_syn_05",
+      "emp_syn_07",
+      "emp_syn_09"
+    ],
+    "version": 1,
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "publicNotes": "Pakaian dinas harian (PDH) lengkap.",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_01",
+    "endTime": "08:15",
+    "status": "COMPLETED"
+  },
+  {
+    "id": "act_syn_20261019_32",
+    "publicCancellationNotice": "",
+    "startTime": "13:30",
+    "endTime": "15:30",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "attendeeIds": [
+      "emp_syn_03",
+      "emp_syn_04"
+    ],
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "publicNotes": "Verifikasi kelengkapan kuitansi dan absensi peserta.",
+    "version": 1,
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_03",
+        "name": "Agus Demo, SE",
+        "position": "Kasubbag Umum & Kepegawaian",
+        "label": "Agus Demo, SE (Kasubbag Umum & Kepegawaian)"
+      },
+      {
+        "employeeId": "emp_syn_04",
+        "name": "Dewi Contoh, S.Ak",
+        "position": "Kasubbag Keuangan & Perencanaan",
+        "label": "Dewi Contoh, S.Ak (Kasubbag Keuangan & Perencanaan)"
+      }
+    ],
+    "title": "Konsolidasi Pelaporan SPJ Keuangan Kegiatan Bimtek",
+    "status": "SCHEDULED",
+    "categoryId": "cat_syn_01",
+    "locationId": "loc_syn_01",
+    "createdBy": "system_staging_seed",
+    "endDate": "2026-10-19",
+    "administrativeStage": "OFFLINE_PROCESS",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "organizerId": "org_syn_01",
+    "openEnded": false,
+    "startDate": "2026-10-19"
+  },
+  {
+    "id": "act_syn_20261020_13",
+    "publicCancellationNotice": "",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "version": 1,
+    "publicNotes": "Agenda pembahasan arah kebijakan dan target IKU dinas.",
+    "startTime": "09:30",
+    "endTime": "12:00",
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_02",
+      "emp_syn_04",
+      "emp_syn_05",
+      "emp_syn_07",
+      "emp_syn_09"
+    ],
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "endDate": "2026-10-20",
+    "openEnded": false,
+    "status": "SCHEDULED",
+    "startDate": "2026-10-20",
+    "administrativeStage": "OFFLINE_PROCESS",
+    "organizerId": "org_syn_01",
+    "createdBy": "system_staging_seed",
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_01",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_04",
+        "name": "Dewi Contoh, S.Ak",
+        "position": "Kasubbag Keuangan & Perencanaan",
+        "label": "Dewi Contoh, S.Ak (Kasubbag Keuangan & Perencanaan)"
+      },
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      },
+      {
+        "employeeId": "emp_syn_07",
+        "name": "Gita Teladan, SH",
+        "position": "Kepala Bidang Pengawasan",
+        "label": "Gita Teladan, SH (Kepala Bidang Pengawasan)"
+      },
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      }
+    ],
+    "title": "Rapat Pleno Penyusunan Rencana Strategis Dinas Tahun 2027-2031"
+  },
+  {
+    "id": "act_syn_20261020_33",
+    "startDate": "2026-10-20",
+    "title": "Sosialisasi Perlindungan Hak Cipta & Merek Dagang bagi UMKM",
+    "publicCancellationNotice": "",
+    "endTime": "16:00",
+    "openEnded": false,
+    "createdBy": "system_staging_seed",
+    "version": 1,
+    "publicNotes": "Bimbingan pendaftaran hak kekayaan intelektual (HAKI).",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "locationId": "loc_syn_02",
+    "categoryId": "cat_syn_04",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      },
+      {
+        "employeeId": "emp_syn_10",
+        "name": "Joko Rekaan, S.ST",
+        "position": "Pengembang Kewirausahaan",
+        "label": "Joko Rekaan, S.ST (Pengembang Kewirausahaan)"
+      }
+    ],
+    "attendeeIds": [
+      "emp_syn_09",
+      "emp_syn_10"
+    ],
+    "administrativeStage": "OFFLINE_PROCESS",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "startTime": "14:00",
+    "organizerId": "org_syn_03",
+    "status": "SCHEDULED",
+    "endDate": "2026-10-20"
+  },
+  {
+    "id": "act_syn_20261021_14",
+    "version": 1,
+    "locationId": "loc_syn_02",
+    "categoryId": "cat_syn_02",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "status": "SCHEDULED",
+    "administrativeStage": "DETAILS_COMPLETED",
+    "organizerId": "org_syn_04",
+    "title": "Workshop Peningkatan Mutu Kemasan dan Branding Produk Mikro",
+    "endTime": "15:30",
+    "startTime": "08:30",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "openEnded": false,
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_11",
+        "name": "Kartika Maya, S.Ds",
+        "position": "Kepala Bidang Promosi & Kemitraan",
+        "label": "Kartika Maya, S.Ds (Kepala Bidang Promosi & Kemitraan)"
+      },
+      {
+        "employeeId": "emp_syn_13",
+        "name": "Mega Fiktif, SE",
+        "position": "Kepala UPT PLUT-KUMKM",
+        "label": "Mega Fiktif, SE (Kepala UPT PLUT-KUMKM)"
+      },
+      {
+        "employeeId": "emp_syn_14",
+        "name": "Nanda Virtual, S.Pd",
+        "position": "Konsultan Pendamping PLUT",
+        "label": "Nanda Virtual, S.Pd (Konsultan Pendamping PLUT)"
+      }
+    ],
+    "startDate": "2026-10-21",
+    "endDate": "2026-10-21",
+    "attendeeIds": [
+      "emp_syn_11",
+      "emp_syn_13",
+      "emp_syn_14"
+    ],
+    "publicNotes": "Fasilitas konsultasi cetak prototipe kemasan gratis.",
+    "publicCancellationNotice": "",
+    "createdBy": "system_staging_seed"
+  },
+  {
+    "id": "act_syn_20261022_15",
+    "title": "Peninjauan Lapangan Calon Koperasi Berprestasi Tingkat Provinsi",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "status": "SCHEDULED",
+    "version": 1,
+    "attendeeIds": [
+      "emp_syn_05",
+      "emp_syn_07"
+    ],
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      },
+      {
+        "employeeId": "emp_syn_07",
+        "name": "Gita Teladan, SH",
+        "position": "Kepala Bidang Pengawasan",
+        "label": "Gita Teladan, SH (Kepala Bidang Pengawasan)"
+      }
+    ],
+    "startTime": "10:00",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "publicNotes": "Verifikasi faktual portofolio kelembagaan koperasi.",
+    "endTime": "13:00",
+    "endDate": "2026-10-22",
+    "openEnded": false,
+    "administrativeStage": "INITIAL_ENTRY",
+    "categoryId": "cat_syn_03",
+    "locationId": "loc_syn_05",
+    "startDate": "2026-10-22",
+    "organizerId": "org_syn_02",
+    "publicCancellationNotice": "",
+    "createdBy": "system_staging_seed"
+  },
+  {
+    "id": "act_syn_20261022_34",
+    "startDate": "2026-10-22",
+    "status": "SCHEDULED",
+    "openEnded": false,
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      }
+    ],
+    "createdBy": "system_staging_seed",
+    "publicNotes": "Rapat koordinasi virtual antar dinas perindustrian dan perdagangan.",
+    "title": "Rapat Sinkronisasi Program Pemberdayaan bersama Dinas Provinsi",
+    "endDate": "2026-10-22",
+    "administrativeStage": "INITIAL_ENTRY",
+    "attendeeIds": [
+      "emp_syn_02",
+      "emp_syn_05"
+    ],
+    "locationId": "loc_syn_07",
+    "categoryId": "cat_syn_01",
+    "publicCancellationNotice": "",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "endTime": "16:00",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "startTime": "14:00",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "version": 1,
+    "organizerId": "org_syn_01"
+  },
+  {
+    "id": "act_syn_20261023_16",
+    "endTime": "14:30",
+    "publicNotes": "Melibatkan kurator ahli dari Asosiasi Eksportir Riau Kepulauan.",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "attendeeIds": [
+      "emp_syn_09",
+      "emp_syn_11",
+      "emp_syn_16"
+    ],
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "startTime": "09:00",
+    "version": 1,
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      },
+      {
+        "employeeId": "emp_syn_11",
+        "name": "Kartika Maya, S.Ds",
+        "position": "Kepala Bidang Promosi & Kemitraan",
+        "label": "Kartika Maya, S.Ds (Kepala Bidang Promosi & Kemitraan)"
+      },
+      {
+        "employeeId": "emp_syn_16",
+        "name": "Putri Desain, S.Tr",
+        "position": "Analis Kebijakan Usaha Mikro",
+        "label": "Putri Desain, S.Tr (Analis Kebijakan Usaha Mikro)"
+      }
+    ],
+    "title": "Kurasi Produk Makanan Ringan dan Kerajinan Menuju Pasar Ekspor Singapura",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "createdBy": "system_staging_seed",
+    "organizerId": "org_syn_03",
+    "administrativeStage": "DETAILS_COMPLETED",
+    "publicCancellationNotice": "",
+    "openEnded": false,
+    "status": "SCHEDULED",
+    "startDate": "2026-10-23",
+    "endDate": "2026-10-23",
+    "categoryId": "cat_syn_05",
+    "locationId": "loc_syn_02"
+  },
+  {
+    "id": "act_syn_20261023_35",
+    "startTime": "15:00",
+    "publicNotes": "Pengarsipan berkas hasil RAT koperasi tahun buku sebelumnya.",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "title": "Penataan Arsip Dinamis dan Digitalisasi Dokumen Koperasi",
+    "administrativeStage": "INITIAL_ENTRY",
+    "attendeeIds": [
+      "emp_syn_06",
+      "emp_syn_15"
+    ],
+    "status": "SCHEDULED",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_06",
+        "name": "Fajar Model, S.Kom",
+        "position": "Penyuluh Koperasi Ahli Pertama",
+        "label": "Fajar Model, S.Kom (Penyuluh Koperasi Ahli Pertama)"
+      },
+      {
+        "employeeId": "emp_syn_15",
+        "name": "Oki Percontohan, A.Md",
+        "position": "Pengelola Agenda Kedinasan",
+        "label": "Oki Percontohan, A.Md (Pengelola Agenda Kedinasan)"
+      }
+    ],
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "endDate": "2026-10-23",
+    "createdBy": "system_staging_seed",
+    "organizerId": "org_syn_02",
+    "categoryId": "cat_syn_01",
+    "locationId": "loc_syn_03",
+    "publicCancellationNotice": "",
+    "endTime": "17:00",
+    "startDate": "2026-10-23",
+    "version": 1,
+    "openEnded": false,
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik)."
+  },
+  {
+    "id": "act_syn_20261024_20",
+    "status": "CANCELLED",
+    "publicCancellationNotice": "Dibatalkan atas arahan narasumber dari Kementerian Koperasi RI.",
+    "endDate": "2026-10-24",
+    "publicNotes": "Sosialisasi teknis standar mutu kelembagaan.",
+    "attendeeIds": [
+      "emp_syn_06"
+    ],
+    "startTime": "09:00",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "version": 1,
+    "administrativeStage": "ADMIN_COMPLETE",
+    "organizerId": "org_syn_02",
+    "createdBy": "system_staging_seed",
+    "title": "Sosialisasi Sertifikasi ISO bagi Pengurus Koperasi Mandiri",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_06",
+        "name": "Fajar Model, S.Kom",
+        "position": "Penyuluh Koperasi Ahli Pertama",
+        "label": "Fajar Model, S.Kom (Penyuluh Koperasi Ahli Pertama)"
+      }
+    ],
+    "categoryId": "cat_syn_04",
+    "locationId": "loc_syn_03",
+    "openEnded": false,
+    "endTime": "12:00",
+    "startDate": "2026-10-24"
+  },
+  {
+    "id": "act_syn_20261026_04",
+    "endDate": "2026-10-26",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "title": "Apel Pagi Kedinasan & Pengarahan Mingguan",
+    "publicNotes": "Pakaian dinas harian (PDH) lengkap.",
+    "categoryId": "cat_syn_01",
+    "locationId": "loc_syn_01",
+    "startTime": "07:30",
+    "status": "COMPLETED",
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_02",
+      "emp_syn_03",
+      "emp_syn_05",
+      "emp_syn_07",
+      "emp_syn_09"
+    ],
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_03",
+        "name": "Agus Demo, SE",
+        "position": "Kasubbag Umum & Kepegawaian",
+        "label": "Agus Demo, SE (Kasubbag Umum & Kepegawaian)"
+      },
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      },
+      {
+        "employeeId": "emp_syn_07",
+        "name": "Gita Teladan, SH",
+        "position": "Kepala Bidang Pengawasan",
+        "label": "Gita Teladan, SH (Kepala Bidang Pengawasan)"
+      },
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      }
+    ],
+    "openEnded": false,
+    "version": 1,
+    "startDate": "2026-10-26",
+    "endTime": "08:15",
+    "recurringSeriesId": "series_syn_apel_pagi",
+    "administrativeStage": "ADMIN_COMPLETE",
+    "organizerId": "org_syn_01",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "createdBy": "system_staging_seed"
+  },
+  {
+    "id": "act_syn_20261027_17",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "startTime": "08:30",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_05",
+        "name": "Eko Latihan, MT",
+        "position": "Kepala Bidang Koperasi",
+        "label": "Eko Latihan, MT (Kepala Bidang Koperasi)"
+      },
+      {
+        "employeeId": "emp_syn_06",
+        "name": "Fajar Model, S.Kom",
+        "position": "Penyuluh Koperasi Ahli Pertama",
+        "label": "Fajar Model, S.Kom (Penyuluh Koperasi Ahli Pertama)"
+      },
+      {
+        "employeeId": "emp_syn_08",
+        "name": "Hadi Ujicoba, SE",
+        "position": "Pengawas Koperasi Ahli Muda",
+        "label": "Hadi Ujicoba, SE (Pengawas Koperasi Ahli Muda)"
+      }
+    ],
+    "administrativeStage": "ADMIN_COMPLETE",
+    "title": "Bimbingan Teknis Standarisasi Dewan Pengawas Syariah Koperasi",
+    "endTime": "16:00",
+    "organizerId": "org_syn_02",
+    "status": "SCHEDULED",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "version": 1,
+    "publicNotes": "Sertifikasi kompetensi pengawas syariah KSPPS.",
+    "createdBy": "system_staging_seed",
+    "categoryId": "cat_syn_02",
+    "locationId": "loc_syn_05",
+    "publicCancellationNotice": "",
+    "attendeeIds": [
+      "emp_syn_05",
+      "emp_syn_06",
+      "emp_syn_08"
+    ],
+    "endDate": "2026-10-28",
+    "startDate": "2026-10-27",
+    "openEnded": false
+  },
+  {
+    "id": "act_syn_20261028_36",
+    "startDate": "2026-10-28",
+    "locationId": "loc_syn_02",
+    "categoryId": "cat_syn_01",
+    "openEnded": false,
+    "createdBy": "system_staging_seed",
+    "publicCancellationNotice": "",
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_13"
+    ],
+    "endDate": "2026-10-28",
+    "publicNotes": "Analisis indeks kepuasan masyarakat (IKM) terhadap layanan konsultasi.",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "status": "SCHEDULED",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_13",
+        "name": "Mega Fiktif, SE",
+        "position": "Kepala UPT PLUT-KUMKM",
+        "label": "Mega Fiktif, SE (Kepala UPT PLUT-KUMKM)"
+      }
+    ],
+    "endTime": "12:00",
+    "administrativeStage": "DETAILS_COMPLETED",
+    "organizerId": "org_syn_04",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "startTime": "10:00",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "version": 1,
+    "title": "Evaluasi Pelayanan Pusat Layanan Usaha Terpadu (PLUT)"
+  },
+  {
+    "id": "act_syn_20261029_18",
+    "status": "SCHEDULED",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_07",
+        "name": "Gita Teladan, SH",
+        "position": "Kepala Bidang Pengawasan",
+        "label": "Gita Teladan, SH (Kepala Bidang Pengawasan)"
+      },
+      {
+        "employeeId": "emp_syn_08",
+        "name": "Hadi Ujicoba, SE",
+        "position": "Pengawas Koperasi Ahli Muda",
+        "label": "Hadi Ujicoba, SE (Pengawas Koperasi Ahli Muda)"
+      }
+    ],
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "endTime": "12:00",
+    "publicNotes": "Koordinasi bersama aparat penegak hukum dan Satgas Waspada Investasi.",
+    "version": 1,
+    "startTime": "09:00",
+    "publicCancellationNotice": "",
+    "attendeeIds": [
+      "emp_syn_07",
+      "emp_syn_08"
+    ],
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "administrativeStage": "DETAILS_COMPLETED",
+    "openEnded": false,
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_04",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "startDate": "2026-10-29",
+    "title": "Focus Group Discussion Mitigasi Risiko Koperasi Berisiko Tinggi",
+    "endDate": "2026-10-29",
+    "createdBy": "system_staging_seed",
+    "organizerId": "org_syn_02"
+  },
+  {
+    "id": "act_syn_20261029_37",
+    "endTime": "16:00",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_04",
+    "version": 1,
+    "status": "SCHEDULED",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "administrativeStage": "DETAILS_COMPLETED",
+    "publicNotes": "Penerapan sertifikat elektronik BSrE pada naskah dinas kedinasan.",
+    "startTime": "14:00",
+    "attendeeIds": [
+      "emp_syn_02",
+      "emp_syn_03",
+      "emp_syn_15"
+    ],
+    "startDate": "2026-10-29",
+    "publicCancellationNotice": "",
+    "openEnded": false,
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_03",
+        "name": "Agus Demo, SE",
+        "position": "Kasubbag Umum & Kepegawaian",
+        "label": "Agus Demo, SE (Kasubbag Umum & Kepegawaian)"
+      },
+      {
+        "employeeId": "emp_syn_15",
+        "name": "Oki Percontohan, A.Md",
+        "position": "Pengelola Agenda Kedinasan",
+        "label": "Oki Percontohan, A.Md (Pengelola Agenda Kedinasan)"
+      }
+    ],
+    "createdBy": "system_staging_seed",
+    "title": "Sosialisasi Penggunaan Tanda Tangan Elektronik (TTE) Kedinasan",
+    "organizerId": "org_syn_01",
+    "endDate": "2026-10-29"
+  },
+  {
+    "id": "act_syn_20261030_21",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "startTime": "14:00",
+    "status": "SCHEDULED",
+    "organizerId": "org_syn_01",
+    "endTime": "16:30",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "version": 1,
+    "publicCancellationNotice": "",
+    "publicNotes": "Membahas kehadiran, capaian SKP, dan penyiapan agenda bulan November.",
+    "createdBy": "system_staging_seed",
+    "title": "Rapat Evaluasi Capaian Kinerja dan Disiplin Pegawai Bulan Oktober",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "attendeeIds": [
+      "emp_syn_01",
+      "emp_syn_02",
+      "emp_syn_03",
+      "emp_syn_04",
+      "emp_syn_15"
+    ],
+    "startDate": "2026-10-30",
+    "endDate": "2026-10-30",
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_01",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_01",
+        "name": "Budi Simulasi, S.Sos",
+        "position": "Kepala Dinas (Simulasi)",
+        "label": "Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_03",
+        "name": "Agus Demo, SE",
+        "position": "Kasubbag Umum & Kepegawaian",
+        "label": "Agus Demo, SE (Kasubbag Umum & Kepegawaian)"
+      },
+      {
+        "employeeId": "emp_syn_04",
+        "name": "Dewi Contoh, S.Ak",
+        "position": "Kasubbag Keuangan & Perencanaan",
+        "label": "Dewi Contoh, S.Ak (Kasubbag Keuangan & Perencanaan)"
+      },
+      {
+        "employeeId": "emp_syn_15",
+        "name": "Oki Percontohan, A.Md",
+        "position": "Pengelola Agenda Kedinasan",
+        "label": "Oki Percontohan, A.Md (Pengelola Agenda Kedinasan)"
+      }
+    ],
+    "openEnded": false,
+    "administrativeStage": "DETAILS_COMPLETED"
+  },
+  {
+    "id": "act_syn_20261030_38",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "status": "SCHEDULED",
+    "startTime": "09:00",
+    "endDate": "2026-10-30",
+    "publicNotes": "Pengumpulan usulan kegiatan dari seluruh kepala bidang.",
+    "locationId": "loc_syn_01",
+    "categoryId": "cat_syn_01",
+    "publicCancellationNotice": "",
+    "updatedAt": "2026-11-05T13:13:11.298Z",
+    "attendeeIds": [
+      "emp_syn_02",
+      "emp_syn_15"
+    ],
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_02",
+        "name": "Siti Purwarupa, M.Si",
+        "position": "Sekretaris Dinas (Simulasi)",
+        "label": "Siti Purwarupa, M.Si (Sekretaris Dinas (Simulasi))"
+      },
+      {
+        "employeeId": "emp_syn_15",
+        "name": "Oki Percontohan, A.Md",
+        "position": "Pengelola Agenda Kedinasan",
+        "label": "Oki Percontohan, A.Md (Pengelola Agenda Kedinasan)"
+      }
+    ],
+    "title": "Koordinasi Penyusunan Kalender Agenda Kedinasan November 2026",
+    "createdBy": "system_staging_seed",
+    "endTime": "11:00",
+    "openEnded": false,
+    "startDate": "2026-10-30",
+    "administrativeStage": "DETAILS_COMPLETED",
+    "version": 1,
+    "organizerId": "org_syn_01"
+  },
+  {
+    "id": "act_syn_20261031_22",
+    "status": "SCHEDULED",
+    "endTime": "14:00",
+    "createdBy": "system_staging_seed",
+    "attendeeIds": [
+      "emp_syn_09",
+      "emp_syn_10",
+      "emp_syn_14"
+    ],
+    "administrativeStage": "ADMIN_COMPLETE",
+    "openEnded": false,
+    "version": 1,
+    "publicNotes": "Layanan gratis bagi 100 pelaku UMKM di wilayah Batam Centre.",
+    "locationId": "loc_syn_02",
+    "categoryId": "cat_syn_04",
+    "startDate": "2026-10-31",
+    "privateNotes": "Catatan internal simulasi (tidak diproyeksikan ke publik).",
+    "publicCancellationNotice": "",
+    "startTime": "08:30",
+    "createdAt": "2026-11-05T13:13:11.298Z",
+    "organizerId": "org_syn_03",
+    "endDate": "2026-10-31",
+    "title": "Layanan Jemput Bola Pembuatan Nomor Induk Berusaha (NIB) OSS-RBA",
+    "attendeeSnapshots": [
+      {
+        "employeeId": "emp_syn_09",
+        "name": "Indah Sintetis, SP",
+        "position": "Kepala Bidang Fasilitasi Usaha Mikro",
+        "label": "Indah Sintetis, SP (Kepala Bidang Fasilitasi Usaha Mikro)"
+      },
+      {
+        "employeeId": "emp_syn_10",
+        "name": "Joko Rekaan, S.ST",
+        "position": "Pengembang Kewirausahaan",
+        "label": "Joko Rekaan, S.ST (Pengembang Kewirausahaan)"
+      },
+      {
+        "employeeId": "emp_syn_14",
+        "name": "Nanda Virtual, S.Pd",
+        "position": "Konsultan Pendamping PLUT",
+        "label": "Nanda Virtual, S.Pd (Konsultan Pendamping PLUT)"
+      }
+    ],
+    "updatedAt": "2026-11-05T13:13:11.298Z"
+  }
+]

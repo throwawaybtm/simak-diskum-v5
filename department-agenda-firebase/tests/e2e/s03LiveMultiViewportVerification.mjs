@@ -26,6 +26,8 @@ import fs from 'node:fs';
 import ExcelJS from 'exceljs';
 
 const artifactsDir = 'C:/Users/Evaluation Software/.gemini/antigravity/brain/9bc97728-a55d-4267-af2e-af77ebf60f34';
+const fixturePath = path.resolve('tests/fixtures/stagingFirestoreActivities.json');
+const stagingActivities = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'));
 
 const VIEWPORTS = [
   { name: '320px', width: 320, height: 844, isMobile: true },
@@ -78,14 +80,19 @@ async function run() {
 
       // Authenticate via staging test hook
       await page.waitForFunction(() => Boolean((window).__ADMIN_TEST_VIEW__), { timeout: 15000 });
-      await page.evaluate(async () => {
-        await (window).__ADMIN_TEST_VIEW__();
-      });
+      await page.evaluate(async (acts) => {
+        await (window).__ADMIN_TEST_VIEW__(null, acts);
+      }, stagingActivities);
       await page.waitForTimeout(1000);
 
       // Navigate to #activities
       await page.evaluate(() => { window.location.hash = '#activities'; });
-      await page.waitForTimeout(1200);
+      if (vp.isMobile) {
+        await page.waitForSelector('.activity-mgmt-card', { timeout: 15000 });
+      } else {
+        await page.waitForSelector('.activities-table tbody tr[data-activity-row]', { timeout: 15000 });
+      }
+      await page.waitForTimeout(500);
 
       // Overflow metrics
       const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -215,9 +222,9 @@ async function run() {
       await page.goto(`https://simakdiskum-staging-admin.web.app/?v=${Date.now()}#dashboard`, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(800);
       await page.waitForFunction(() => Boolean((window).__ADMIN_TEST_VIEW__), { timeout: 15000 });
-      await page.evaluate(async () => {
-        await (window).__ADMIN_TEST_VIEW__();
-      });
+      await page.evaluate(async (acts) => {
+        await (window).__ADMIN_TEST_VIEW__(null, acts);
+      }, stagingActivities);
       await page.waitForTimeout(800);
 
       // Navigate to #reports
@@ -326,42 +333,87 @@ async function run() {
       let newestTimes = [];
       let oldestTimes = [];
 
-      if (vp.isMobile && visibleReportCards >= 2) {
-        newestTimes = await page.evaluate(() => {
-          const cards = Array.from(document.querySelectorAll('.report-preview-card'));
-          return cards.map(c => c.querySelector('.report-card-time')?.textContent?.trim() || '');
-        });
+      if (vp.isMobile) {
+        if (visibleReportCards >= 2) {
+          newestTimes = await page.evaluate(() => {
+            const cards = Array.from(document.querySelectorAll('.report-preview-card'));
+            return cards.map(c => c.querySelector('.report-card-time')?.textContent?.trim() || '');
+          });
 
-        // Switch sort to OLDEST
-        await page.evaluate(() => {
-          const sortSel = document.getElementById('selectReportSort');
-          if (sortSel) {
-            sortSel.value = 'OLDEST';
-            sortSel.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        });
-        await page.waitForTimeout(800);
+          // Switch sort to OLDEST
+          await page.evaluate(() => {
+            const sortSel = document.getElementById('selectReportSort');
+            if (sortSel) {
+              sortSel.value = 'OLDEST';
+              sortSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          });
+          await page.waitForTimeout(800);
 
-        oldestTimes = await page.evaluate(() => {
-          const cards = Array.from(document.querySelectorAll('.report-preview-card'));
-          return cards.map(c => c.querySelector('.report-card-time')?.textContent?.trim() || '');
-        });
+          oldestTimes = await page.evaluate(() => {
+            const cards = Array.from(document.querySelectorAll('.report-preview-card'));
+            return cards.map(c => c.querySelector('.report-card-time')?.textContent?.trim() || '');
+          });
 
-        // Verify NEWEST: 14:00 (or later) comes before 09:00 (or earlier)
-        // Verify OLDEST: 09:00 comes before 14:00
-        const isNewestCorrect = newestTimes[0] >= newestTimes[1];
-        const isOldestCorrect = oldestTimes[0] <= oldestTimes[1];
-        sortingParityPass = isNewestCorrect && isOldestCorrect;
+          // Verify NEWEST: 14:00 (or later) comes before 09:00 (or earlier)
+          // Verify OLDEST: 09:00 comes before 14:00
+          const isNewestCorrect = newestTimes.length >= 2 && newestTimes[0] >= newestTimes[1];
+          const isOldestCorrect = oldestTimes.length >= 2 && oldestTimes[0] <= oldestTimes[1];
+          sortingParityPass = isNewestCorrect && isOldestCorrect;
 
-        // Reset to NEWEST for screenshot
-        await page.evaluate(() => {
-          const sortSel = document.getElementById('selectReportSort');
-          if (sortSel) {
-            sortSel.value = 'NEWEST';
-            sortSel.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        });
-        await page.waitForTimeout(600);
+          // Reset to NEWEST for screenshot
+          await page.evaluate(() => {
+            const sortSel = document.getElementById('selectReportSort');
+            if (sortSel) {
+              sortSel.value = 'NEWEST';
+              sortSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          });
+          await page.waitForTimeout(600);
+        } else {
+          sortingParityPass = false;
+        }
+      } else {
+        // Desktop table sorting verification
+        if (visibleTableRows >= 2) {
+          newestTimes = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#reportPreviewTable tbody tr'));
+            return rows.map(r => r.querySelector('td:nth-child(3)')?.textContent?.trim() || '');
+          });
+
+          // Switch sort to OLDEST
+          await page.evaluate(() => {
+            const sortSel = document.getElementById('selectReportSort');
+            if (sortSel) {
+              sortSel.value = 'OLDEST';
+              sortSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          });
+          await page.waitForTimeout(800);
+
+          oldestTimes = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#reportPreviewTable tbody tr'));
+            return rows.map(r => r.querySelector('td:nth-child(3)')?.textContent?.trim() || '');
+          });
+
+          // Verify NEWEST: 14:00 (or later) comes before 09:00 (or earlier)
+          // Verify OLDEST: 09:00 comes before 14:00
+          const isNewestCorrect = newestTimes.length >= 2 && newestTimes[0] >= newestTimes[1];
+          const isOldestCorrect = oldestTimes.length >= 2 && oldestTimes[0] <= oldestTimes[1];
+          sortingParityPass = isNewestCorrect && isOldestCorrect;
+
+          // Reset to NEWEST for screenshot
+          await page.evaluate(() => {
+            const sortSel = document.getElementById('selectReportSort');
+            if (sortSel) {
+              sortSel.value = 'NEWEST';
+              sortSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          });
+          await page.waitForTimeout(600);
+        } else {
+          sortingParityPass = false;
+        }
       }
 
       // Overall Task 2 per-viewport evaluation
@@ -377,6 +429,7 @@ async function run() {
       } else {
         if (visibleTableRows !== 2) vpPass = false;
         if (visibleReportCards !== 0) vpPass = false;
+        if (!sortingParityPass) vpPass = false;
       }
 
       results.tasks.task2_adminReportsGrid.viewports[vp.name] = {
@@ -443,9 +496,9 @@ async function run() {
       await page.goto(`https://simakdiskum-staging-admin.web.app/?v=${Date.now()}#dashboard`, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(800);
       await page.waitForFunction(() => Boolean((window).__ADMIN_TEST_VIEW__), { timeout: 15000 });
-      await page.evaluate(async () => {
-        await (window).__ADMIN_TEST_VIEW__();
-      });
+      await page.evaluate(async (acts) => {
+        await (window).__ADMIN_TEST_VIEW__(null, acts);
+      }, stagingActivities);
       await page.waitForTimeout(800);
       await page.evaluate(() => { window.location.hash = '#reports'; });
       await page.waitForTimeout(1000);
@@ -493,15 +546,35 @@ async function run() {
         JSON.stringify(r.values).includes('PEMBINA UTAMA MUDA')
       );
 
+      const xlsxPass = hasStagingWatermark && !hasSignatureBlock && rowCount >= 5;
       results.tasks.task2_adminReportsGrid.exportInspection = {
-        xlsxFileSaved: downloadPath,
-        sheetName: worksheet.name,
-        totalRows: rowCount,
-        columnCount: 8,
-        hasStagingWatermark,
-        hasNoSignatureBlock: !hasSignatureBlock,
-        status: (hasStagingWatermark && !hasSignatureBlock && rowCount >= 5) ? 'PASS' : 'FAIL'
+        xlsx: {
+          fileSaved: downloadPath,
+          sheetName: worksheet.name,
+          totalRows: rowCount,
+          columnCount: 8,
+          hasStagingWatermark,
+          hasNoSignatureBlock: !hasSignatureBlock,
+          status: xlsxPass ? 'PASS' : 'FAIL'
+        },
+        png: {
+          status: 'BLOCKED',
+          reason: 'Physical raster pixel inspection pending external review'
+        },
+        jpg: {
+          status: 'BLOCKED',
+          reason: 'Physical raster pixel inspection pending external review'
+        },
+        printA4: {
+          status: 'BLOCKED',
+          reason: 'Native print PDF binary inspection pending external review'
+        }
       };
+
+      if (!xlsxPass) {
+        results.overallStatus = 'FAIL';
+        results.tasks.task2_adminReportsGrid.status = 'FAIL';
+      }
 
       console.log(`  ✓ ExcelJS Inspection: Rows=${rowCount}, Columns=8, Watermark=${hasStagingWatermark}, NoSignatureBlock=${!hasSignatureBlock}`);
 
@@ -518,9 +591,9 @@ async function run() {
       await page.goto(`https://simakdiskum-staging-admin.web.app/?v=${Date.now()}#dashboard`, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(800);
       await page.waitForFunction(() => Boolean((window).__ADMIN_TEST_VIEW__), { timeout: 15000 });
-      await page.evaluate(async () => {
-        await (window).__ADMIN_TEST_VIEW__();
-      });
+      await page.evaluate(async (acts) => {
+        await (window).__ADMIN_TEST_VIEW__(null, acts);
+      }, stagingActivities);
       await page.waitForTimeout(800);
       await page.evaluate(() => { window.location.hash = '#settings'; });
       await page.waitForTimeout(1000);
@@ -605,8 +678,12 @@ async function run() {
   // Save verification JSON artifact
   const resultsPath = path.join(artifactsDir, 's03-r1-consolidated-verification-results.json');
   fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2), 'utf-8');
+  const resultsPathR2 = path.join(artifactsDir, 's03-r2-data-integrity-verification-results.json');
+  fs.writeFileSync(resultsPathR2, JSON.stringify(results, null, 2), 'utf-8');
   console.log(`\n======================================================================`);
-  console.log(`S03-R1 Verification complete! Results written to: ${resultsPath}`);
+  console.log(`S03-R2 Verification complete! Results written to:`);
+  console.log(`- ${resultsPath}`);
+  console.log(`- ${resultsPathR2}`);
   console.log(`Overall Status: ${results.overallStatus}`);
   console.log(`======================================================================\n`);
 }
