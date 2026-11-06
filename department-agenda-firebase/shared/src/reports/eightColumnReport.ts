@@ -11,16 +11,87 @@
  * 5. Strictly filtered by date-range intersection and sorted chronologically.
  */
 
-import type { ActivityDocument, ActivityStatus } from '../schema/activity';
+import type { ActivityDocument, ActivityStatus, AttendeeSnapshot } from '../schema/activity';
 import type { Location, Organizer, Category, Employee, SignatorySettings } from '../schema/master';
 import { DEFAULT_SIGNATORY_SETTINGS } from '../schema/master';
 import {
   formatIndonesianDateSpan,
   formatTimeDisplay,
   intersectsRange,
-  formatIndonesianDate
+  formatIndonesianDate,
+  formatDynamicScheduleTitlePeriod
 } from '../scheduling/timeUtils';
 import { sortActivities } from '../scheduling/sortUtils';
+
+/**
+ * Extracts pure employee / guest name from attendee snapshot or label,
+ * stripping position, title, department, rank, NIP, and internal database IDs.
+ */
+export function extractNameFromLabel(label: string): string {
+  if (!label) return '-';
+  let clean = label.trim();
+
+  // Strip leading numbering like "1. ", "2) ", "1 - "
+  clean = clean.replace(/^\d+[\.\)\-]\s*/, '');
+
+  // Format: "Position (Name)" e.g. "Kadis (Drs. Hendri Arifin, M.Si)" or "Staff (Budi)"
+  const parenMatch = clean.match(/\(([^)]+)\)/);
+  if (parenMatch && parenMatch[1]) {
+    const candidate = parenMatch[1].trim();
+    if (!candidate.startsWith('emp_')) {
+      return candidate;
+    }
+  }
+
+  // Format: "Position — Name" or "Position - Name"
+  if (clean.includes('—')) {
+    const parts = clean.split('—');
+    if (parts[1] && parts[1].trim()) return parts[1].trim();
+  } else if (clean.includes(' - ')) {
+    const parts = clean.split(' - ');
+    if (parts[1] && parts[1].trim()) return parts[1].trim();
+  }
+
+  // Format: "Tamu: Name"
+  if (clean.toLowerCase().startsWith('tamu:')) {
+    return clean.slice(5).trim();
+  }
+
+  // Defense-in-depth: purge raw employee database IDs
+  clean = clean.replace(/\(?emp_[a-zA-Z0-9_-]+\)?/gi, '').trim();
+  return clean || '-';
+}
+
+/**
+ * Formats attendees strictly as numbered names only:
+ * 1. Budi Simulasi
+ * 2. Siti Purwarupa
+ * Zero jabatan, zero NIP, zero pangkat/golongan.
+ */
+export function formatAttendeeNamesOnly(attendees: (AttendeeSnapshot | string | any)[]): string {
+  if (!attendees || attendees.length === 0) return '-';
+
+  const names: string[] = [];
+
+  for (const item of attendees) {
+    if (!item) continue;
+    let name = '';
+    if (typeof item === 'object') {
+      name = item.name || (item.label ? extractNameFromLabel(item.label) : '');
+    } else if (typeof item === 'string') {
+      name = extractNameFromLabel(item);
+    }
+
+    name = name.trim();
+    if (name && name !== '-' && !names.includes(name)) {
+      names.push(name);
+    }
+  }
+
+  if (names.length === 0) return '-';
+  if (names.length === 1) return `1. ${names[0]}`;
+  return names.map((n, i) => `${i + 1}. ${n}`).join('\n');
+}
 
 export interface EightColumnReportRow {
   no: number;
@@ -103,7 +174,7 @@ export function buildEightColumnReportRows(
         }
       }
     }
-    const dihadiriOleh = attendeeParts.length > 0 ? attendeeParts.join('\n') : '-';
+    const dihadiriOleh = attendeeParts.length > 0 ? formatAttendeeNamesOnly(attendeeParts) : '-';
 
     // Keterangan (public notes or cancellation notice only, NEVER privateNotes or cancelReason)
     let keterangan = '-';
@@ -164,31 +235,34 @@ export interface HtmlReportOptions {
 }
 
 /**
- * Generates official Indonesian Government A4 Landscape HTML Report with Letterhead
+ * Generates clean manual-style Indonesian schedule HTML Report (A4 Landscape)
+ * per Section 6 & 8 of S01-QA-R2:
+ * 1. 3 centered title lines:
+ *    - JADWAL KEGIATAN
+ *    - DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM
+ *    - BULAN OKTOBER 2026 (or dynamic period)
+ * 2. 8 columns: No | Hari / Tanggal | Pukul | Kegiatan | Tempat | Penyelenggara | Dihadiri Oleh | Keterangan
+ * 3. Uniform typography (Arial), white background, black text, thin black borders (1px solid #000)
+ * 4. Alignments: Dihadiri Oleh left-aligned, all others centered
+ * 5. Names-only attendees
+ * 6. NO kop surat, logo, signature block, signatory name/NIP
+ * 7. Prominent staging warning & watermark when isStaging is true
  */
 export function generateEightColumnHtmlReport(options: HtmlReportOptions): string {
-  const signatoryName = options.signatory?.name || options.signatoryName || DEFAULT_SIGNATORY_SETTINGS.name;
-  const signatoryNip = options.signatory?.nip || options.signatoryNip || DEFAULT_SIGNATORY_SETTINGS.nip;
-  const signatoryPosition = options.signatory?.position || options.signatoryPosition || DEFAULT_SIGNATORY_SETTINGS.position;
-  const signatoryCity = options.signatory?.city || 'Batam';
-  const department = options.departmentName || options.signatory?.department || DEFAULT_SIGNATORY_SETTINGS.department;
-  const subTitle = options.subTitle || 'LAPORAN AGENDA KEGIATAN KEDINASAN';
-  const periodLabel = `Periode: ${formatIndonesianDateSpan(options.startDate, options.endDate)}`;
-  const signDate = options.currentDateStr
-    ? formatIndonesianDate(options.currentDateStr)
-    : formatIndonesianDate(new Date().toISOString().slice(0, 10));
+  const department = options.departmentName || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM';
+  const periodTitle = formatDynamicScheduleTitlePeriod(options.startDate, options.endDate);
   const watermark = options.watermarkText || (options.isStaging ? 'DATA SIMULASI — TIDAK UNTUK PENGGUNAAN RESMI' : '');
 
   const tableRowsHtml = options.rows.map(row => `
     <tr class="${row.isCancelled ? 'cancelled-row' : ''}">
-      <td class="text-center">${row.no}</td>
-      <td>${row.hariTanggal}</td>
-      <td class="text-nowrap">${row.pukul}</td>
-      <td class="font-bold">${row.kegiatan}</td>
-      <td>${row.tempat}</td>
-      <td>${row.penyelenggara}</td>
-      <td class="pre-line">${row.dihadiriOleh}</td>
-      <td>${row.keterangan}</td>
+      <td class="text-center align-middle">${row.no}</td>
+      <td class="text-center align-middle">${row.hariTanggal}</td>
+      <td class="text-center align-middle text-nowrap">${row.pukul}</td>
+      <td class="text-center align-middle font-bold">${row.kegiatan}</td>
+      <td class="text-center align-middle">${row.tempat}</td>
+      <td class="text-center align-middle">${row.penyelenggara}</td>
+      <td class="text-left align-middle pre-line">${row.dihadiriOleh}</td>
+      <td class="text-center align-middle">${row.keterangan}</td>
     </tr>
   `).join('\n');
 
@@ -197,79 +271,73 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>${subTitle} - ${department}</title>
+  <title>Jadwal Kegiatan - ${department}</title>
   <style>
     @page {
       size: A4 landscape;
-      margin: 15mm 15mm 15mm 15mm;
+      margin: 12mm 15mm 12mm 15mm;
     }
     body {
       font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
       font-size: 10pt;
-      color: #1e293b;
+      color: #000000;
       margin: 0;
       padding: 10px;
       line-height: 1.4;
       background: #ffffff;
     }
-    .kop-surat {
+    .schedule-header {
       text-align: center;
-      border-bottom: 3px double #000;
-      padding-bottom: 8px;
       margin-bottom: 16px;
     }
-    .kop-surat h1 {
+    .schedule-header .title-line-1 {
       margin: 0;
-      font-size: 14pt;
-      font-weight: bold;
-      letter-spacing: 1px;
-    }
-    .kop-surat h2 {
-      margin: 2px 0;
       font-size: 12pt;
       font-weight: bold;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
-    .kop-surat p {
-      margin: 0;
-      font-size: 9pt;
-      color: #334155;
-    }
-    .report-title-section {
-      text-align: center;
-      margin-bottom: 14px;
-    }
-    .report-title {
+    .schedule-header .title-line-2 {
+      margin: 2px 0;
       font-size: 11pt;
       font-weight: bold;
-      text-decoration: underline;
-      margin: 0;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
-    .report-subtitle {
-      font-size: 9.5pt;
-      margin: 4px 0 0 0;
-      color: #475569;
+    .schedule-header .title-line-3 {
+      margin: 2px 0 0 0;
+      font-size: 11pt;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
+
     table.report-table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 24px;
-      font-size: 8.5pt;
+      margin-bottom: 16px;
+      font-size: 9.5pt;
+      background: #ffffff;
     }
     table.report-table th, table.report-table td {
-      border: 1px solid #334155;
+      border: 1px solid #000000;
       padding: 6px 8px;
-      vertical-align: top;
+      vertical-align: middle;
+      color: #000000;
     }
     table.report-table th {
-      background-color: #f1f5f9;
+      background-color: #ffffff;
       font-weight: bold;
       text-align: center;
+      font-size: 9.5pt;
     }
     tr.cancelled-row td {
       background-color: #fff1f2;
       color: #991b1b;
     }
     .text-center { text-align: center; }
+    .text-left { text-align: left; }
+    .align-middle { vertical-align: middle; }
     .text-nowrap { white-space: nowrap; }
     .font-bold { font-weight: 600; }
     .pre-line { white-space: pre-line; }
@@ -297,39 +365,19 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
       border: 1.5px solid #ef4444;
       color: #991b1b;
       font-weight: bold;
-      font-size: 9pt;
+      font-size: 9.5pt;
       padding: 6px 12px;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       text-align: center;
       border-radius: 4px;
       letter-spacing: 0.5px;
     }
     
-    .signature-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 20px;
-      page-break-inside: avoid;
-    }
-    .signature-block {
-      text-align: center;
-      width: 250px;
-    }
-    .signature-space {
-      height: 60px;
-    }
-    .signatory-name {
-      font-weight: bold;
-      text-decoration: underline;
-      margin: 0;
-    }
-    .signatory-nip {
-      margin: 2px 0 0 0;
-      font-size: 9pt;
-    }
     @media print {
       body { padding: 0; }
       .no-print { display: none !important; }
+      thead { display: table-header-group; }
+      tr { page-break-inside: avoid; }
     }
   </style>
 </head>
@@ -340,27 +388,23 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
       ⚠️ ${watermark} (LINGKUNGAN STAGING) ⚠️
     </div>
   ` : ''}
-  <div class="kop-surat">
-    <h1>PEMERINTAH KOTA BATAM</h1>
-    <h2>${department}</h2>
-    <p>Jl. Engku Putri No. 17, Batam Centre, Kota Batam, Kepulauan Riau | Telp: (0778) 462123</p>
-  </div>
 
-  <div class="report-title-section">
-    <div class="report-title">${subTitle}</div>
-    <div class="report-subtitle">${periodLabel}</div>
+  <div class="schedule-header">
+    <div class="title-line-1">JADWAL KEGIATAN</div>
+    <div class="title-line-2">${department}</div>
+    <div class="title-line-3">${periodTitle}</div>
   </div>
 
   <table class="report-table">
     <thead>
       <tr>
         <th style="width: 4%">No</th>
-        <th style="width: 16%">Hari / Tanggal</th>
-        <th style="width: 11%">Pukul</th>
+        <th style="width: 15%">Hari / Tanggal</th>
+        <th style="width: 10%">Pukul</th>
         <th style="width: 22%">Kegiatan</th>
         <th style="width: 14%">Tempat</th>
-        <th style="width: 13%">Penyelenggara</th>
-        <th style="width: 12%">Dihadiri Oleh</th>
+        <th style="width: 14%">Penyelenggara</th>
+        <th style="width: 13%">Dihadiri Oleh</th>
         <th style="width: 8%">Keterangan</th>
       </tr>
     </thead>
@@ -368,16 +412,6 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
       ${tableRowsHtml || '<tr><td colspan="8" class="text-center" style="padding: 20px;">Tidak ada agenda kegiatan pada periode ini.</td></tr>'}
     </tbody>
   </table>
-
-  <div class="signature-container">
-    <div class="signature-block">
-      <div>${signatoryCity}, ${signDate}</div>
-      <div>${signatoryPosition}</div>
-      <div class="signature-space"></div>
-      <div class="signatory-name">${signatoryName}</div>
-      <div class="signatory-nip">NIP. ${signatoryNip}</div>
-    </div>
-  </div>
 
   ${watermark ? `
     <div style="font-size: 8pt; color: #991b1b; font-style: italic; margin-top: 15px; border-top: 1px dashed #ef4444; padding-top: 6px;">

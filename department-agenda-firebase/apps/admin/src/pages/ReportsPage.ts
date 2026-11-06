@@ -240,8 +240,10 @@ export async function mountReportsPage(
               </div>
               <div class="btn-group">
                 <button type="button" class="btn btn-secondary" id="btnRefreshReport" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🔄 Muat Ulang</button>
-                <button type="button" class="btn btn-secondary" id="btnPrintReport" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖨️ Cetak (A4 Landscape)</button>
-                <button type="button" class="btn btn-primary" id="btnDownloadXlsx" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>📊 Unduh Excel (.xlsx)</button>
+                <button type="button" class="btn btn-secondary" id="btnPrintReport" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖨️ Cetak</button>
+                <button type="button" class="btn btn-primary" id="btnDownloadXlsx" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>📊 Unduh Excel</button>
+                <button type="button" class="btn btn-secondary" id="btnDownloadAdminPng" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖼️ Unduh PNG</button>
+                <button type="button" class="btn btn-secondary" id="btnDownloadAdminJpg" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖼️ Unduh JPG</button>
               </div>
             </div>
           </div>
@@ -473,12 +475,16 @@ export async function mountReportsPage(
         try {
           const rows = getFilteredRows();
           const periodLabel = formatIndonesianDateSpan(startDate, endDate);
-          const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
+          const isStaging = typeof import.meta !== 'undefined' && (
+            import.meta.env?.MODE === 'staging' ||
+            (typeof window !== 'undefined' && window.location.hostname.includes('staging'))
+          );
           const buffer = await generateEightColumnXlsx({
             departmentName: currentSignatory.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
             periodLabel,
+            startDate,
+            endDate,
             rows,
-            signatory: currentSignatory,
             isStaging
           });
 
@@ -497,6 +503,55 @@ export async function mountReportsPage(
           alert(`Gagal membuat file Excel: ${err}`);
         }
       });
+    }
+
+    // Image exports: PNG & JPG
+    const handleAdminImageExport = async (fmt: 'png' | 'jpg') => {
+      if (startDate > endDate) return;
+      try {
+        const [{ generateScheduleImages }] = await Promise.all([
+          import('@department-agenda/shared')
+        ]);
+        const rows = getFilteredRows();
+        const isStaging = typeof import.meta !== 'undefined' && (
+          import.meta.env?.MODE === 'staging' ||
+          (typeof window !== 'undefined' && window.location.hostname.includes('staging'))
+        );
+        const imageFiles = await generateScheduleImages({
+          departmentName: currentSignatory.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
+          startDate,
+          endDate,
+          rows,
+          isStaging,
+          format: fmt
+        });
+
+        for (let i = 0; i < imageFiles.length; i++) {
+          const file = imageFiles[i];
+          const a = document.createElement('a');
+          a.href = file.dataUrl;
+          a.download = file.filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          if (imageFiles.length > 1 && i < imageFiles.length - 1) {
+            await new Promise((r) => setTimeout(r, 300));
+          }
+        }
+      } catch (err) {
+        console.error(`[AdminImageExport] Error generating ${fmt.toUpperCase()}:`, err);
+        alert(`Gagal membuat gambar ${fmt.toUpperCase()}: ${err}`);
+      }
+    };
+
+    const adminPngBtn = container.querySelector<HTMLButtonElement>('#btnDownloadAdminPng');
+    if (adminPngBtn) {
+      adminPngBtn.addEventListener('click', () => handleAdminImageExport('png'));
+    }
+
+    const adminJpgBtn = container.querySelector<HTMLButtonElement>('#btnDownloadAdminJpg');
+    if (adminJpgBtn) {
+      adminJpgBtn.addEventListener('click', () => handleAdminImageExport('jpg'));
     }
 
     // Migration Dry Run

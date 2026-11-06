@@ -1,6 +1,7 @@
 /**
  * Genuine OpenXML XLSX Generator using ExcelJS
- * Produces official Indonesian local government 8-column spreadsheet reports.
+ * Produces manual-style Indonesian local government 8-column spreadsheet reports
+ * matching legacy department schedule format (S01-QA-R2).
  * 
  * Enforces spreadsheet formula injection sanitization on all text cells.
  */
@@ -8,19 +9,15 @@
 import ExcelJS from 'exceljs';
 import type { EightColumnReportRow } from './eightColumnReport';
 import { sanitizeFormulaInjection } from './eightColumnReport';
-import type { SignatorySettings } from '../schema/master';
-import { DEFAULT_SIGNATORY_SETTINGS } from '../schema/master';
+import { formatDynamicScheduleTitlePeriod } from '../scheduling/timeUtils';
 
 export interface GenerateXlsxOptions {
   departmentName?: string;
   subTitle?: string;
-  periodLabel: string;
+  periodLabel?: string;
+  startDate?: string;
+  endDate?: string;
   rows: EightColumnReportRow[];
-  signatory?: SignatorySettings;
-  signatoryName?: string;
-  signatoryNip?: string;
-  signatoryPosition?: string;
-  signDateStr?: string;
   isStaging?: boolean;
   watermarkText?: string;
 }
@@ -29,8 +26,8 @@ export async function generateEightColumnXlsx(
   options: GenerateXlsxOptions
 ): Promise<Uint8Array> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Department Agenda System v5.0';
-  workbook.lastModifiedBy = 'Department Agenda System';
+  workbook.creator = 'SIMAK DISKUM v5.0';
+  workbook.lastModifiedBy = 'SIMAK DISKUM';
   workbook.created = new Date();
   workbook.modified = new Date();
 
@@ -45,16 +42,21 @@ export async function generateEightColumnXlsx(
   });
 
   const deptName = options.departmentName || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM';
-  const title = options.subTitle || 'LAPORAN AGENDA KEGIATAN KEDINASAN';
+  const periodTitle = (options.startDate && options.endDate)
+    ? formatDynamicScheduleTitlePeriod(options.startDate, options.endDate)
+    : (options.periodLabel || 'BULAN OKTOBER 2026').toUpperCase();
+
   const watermark = options.watermarkText || (options.isStaging ? 'DATA SIMULASI — TIDAK UNTUK PENGGUNAAN RESMI' : '');
 
-  // 1. Title rows
-  worksheet.addRow(['PEMERINTAH KOTA BATAM']);
-  worksheet.addRow([deptName]);
-  worksheet.addRow([title]);
-  worksheet.addRow([`Periode: ${options.periodLabel}`]);
+  // 1. Title section: 3 centered lines per Section 6.1
+  const rowTitle1 = worksheet.addRow(['JADWAL KEGIATAN']);
+  const rowTitle2 = worksheet.addRow([deptName]);
+  const rowTitle3 = worksheet.addRow([periodTitle]);
+
+  let currentRowIdx = 3;
 
   if (watermark) {
+    currentRowIdx++;
     const warningRow = worksheet.addRow([`⚠️ ${watermark} (LINGKUNGAN STAGING) ⚠️`]);
     worksheet.mergeCells(warningRow.number, 1, warningRow.number, 8);
     const cell = worksheet.getCell(warningRow.number, 1);
@@ -76,22 +78,25 @@ export async function generateEightColumnXlsx(
     worksheet.headerFooter.oddFooter = `&C&8 Dokumen dibuat di Lingkungan Staging — ${watermark}`;
   }
 
-  worksheet.addRow([]); // Empty spacer row
-
-  // Merge and format title rows
-  for (let r = 1; r <= 4; r++) {
+  // Format the 3 title rows
+  for (let r = 1; r <= 3; r++) {
     worksheet.mergeCells(r, 1, r, 8);
     const cell = worksheet.getCell(r, 1);
     cell.alignment = { horizontal: 'center', vertical: 'middle' };
     cell.font = {
       name: 'Arial',
       bold: true,
-      size: r === 1 ? 14 : r === 2 ? 12 : 11,
-      color: { argb: 'FF0F172A' }
+      size: r === 1 ? 12 : 11,
+      color: { argb: 'FF000000' }
     };
+    worksheet.getRow(r).height = r === 1 ? 24 : 20;
   }
 
-  // 2. Table Column Headers
+  // Spacer row
+  worksheet.addRow([]);
+  currentRowIdx += 2;
+
+  // 2. Table Column Headers per Section 6.2 & 6.3
   const headerRow = worksheet.addRow([
     'No',
     'Hari / Tanggal',
@@ -103,26 +108,32 @@ export async function generateEightColumnXlsx(
     'Keterangan'
   ]);
 
-  headerRow.font = { name: 'Arial', bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+  headerRow.font = { name: 'Arial', bold: true, size: 10, color: { argb: 'FF000000' } };
   headerRow.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FF1E293B' } // Slate-800
+    fgColor: { argb: 'FFFFFFFF' } // White background per Section 6.3
   };
   headerRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
   headerRow.height = 28;
 
-  // Set column widths explicitly
-  worksheet.getColumn(1).width = 6;
-  worksheet.getColumn(2).width = 28;
-  worksheet.getColumn(3).width = 20;
-  worksheet.getColumn(4).width = 38;
-  worksheet.getColumn(5).width = 24;
-  worksheet.getColumn(6).width = 24;
-  worksheet.getColumn(7).width = 28;
-  worksheet.getColumn(8).width = 24;
+  // Column widths matching legacy proportions: [6, 25, 18, 36, 25, 25, 28, 22]
+  const colWidths = [6, 25, 18, 36, 25, 25, 28, 22];
+  for (let c = 1; c <= 8; c++) {
+    worksheet.getColumn(c).width = colWidths[c - 1];
+  }
 
-  // 3. Add Data Rows (neutralizing formula injection on all string cells)
+  // Header row borders: thin black on all sides
+  for (let c = 1; c <= 8; c++) {
+    headerRow.getCell(c).border = {
+      top: { style: 'thin', color: { argb: 'FF000000' } },
+      left: { style: 'thin', color: { argb: 'FF000000' } },
+      bottom: { style: 'thin', color: { argb: 'FF000000' } },
+      right: { style: 'thin', color: { argb: 'FF000000' } }
+    };
+  }
+
+  // 3. Add Data Rows (formula injection sanitized)
   for (const row of options.rows) {
     const dataRow = worksheet.addRow([
       row.no,
@@ -135,17 +146,18 @@ export async function generateEightColumnXlsx(
       sanitizeFormulaInjection(row.keterangan)
     ]);
 
-    dataRow.font = { name: 'Arial', size: 9 };
+    dataRow.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
 
-    // Alignment and wrapping
-    dataRow.getCell(1).alignment = { horizontal: 'center', vertical: 'top' };
-    dataRow.getCell(2).alignment = { vertical: 'top', wrapText: true };
-    dataRow.getCell(3).alignment = { vertical: 'top', wrapText: true };
-    dataRow.getCell(4).alignment = { vertical: 'top', wrapText: true };
-    dataRow.getCell(5).alignment = { vertical: 'top', wrapText: true };
-    dataRow.getCell(6).alignment = { vertical: 'top', wrapText: true };
-    dataRow.getCell(7).alignment = { vertical: 'top', wrapText: true };
-    dataRow.getCell(8).alignment = { vertical: 'top', wrapText: true };
+    // Alignments per Section 6.3:
+    // No, Hari/Tanggal, Pukul, Kegiatan, Tempat, Penyelenggara, Keterangan centered; Dihadiri Oleh left-aligned
+    dataRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+    dataRow.getCell(2).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    dataRow.getCell(3).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    dataRow.getCell(4).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    dataRow.getCell(5).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    dataRow.getCell(6).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    dataRow.getCell(7).alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+    dataRow.getCell(8).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
     if (row.isCancelled) {
       dataRow.fill = {
@@ -153,52 +165,30 @@ export async function generateEightColumnXlsx(
         pattern: 'solid',
         fgColor: { argb: 'FFFFF1F2' }
       };
-      dataRow.font = { name: 'Arial', size: 9, color: { argb: 'FF991B1B' } };
+      dataRow.font = { name: 'Arial', size: 10, color: { argb: 'FF991B1B' } };
     }
 
-    // Border around each cell
+    // Thin black border around each cell
     for (let c = 1; c <= 8; c++) {
       dataRow.getCell(c).border = {
-        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
       };
     }
+
+    // Dynamic row height calculation to prevent text clipping in Excel
+    const linesDihadiri = (row.dihadiriOleh || '').split('\n').length;
+    const linesKegiatan = Math.ceil((row.kegiatan || '').length / 28);
+    const linesTempat = Math.ceil((row.tempat || '').length / 20);
+    const linesPenyelenggara = Math.ceil((row.penyelenggara || '').length / 20);
+    const linesKeterangan = Math.ceil((row.keterangan || '').length / 18);
+    const maxLines = Math.max(1, linesDihadiri, linesKegiatan, linesTempat, linesPenyelenggara, linesKeterangan);
+    dataRow.height = Math.max(24, maxLines * 16 + 6);
   }
 
-  // Header row borders
-  for (let c = 1; c <= 8; c++) {
-    headerRow.getCell(c).border = {
-      top: { style: 'medium', color: { argb: 'FF0F172A' } },
-      left: { style: 'thin', color: { argb: 'FF334155' } },
-      bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
-      right: { style: 'thin', color: { argb: 'FF334155' } }
-    };
-  }
-
-  // 4. Official Signature Block (Columns F-H)
-  worksheet.addRow([]);
-  worksheet.addRow([]);
-
-  const signatoryName = options.signatory?.name || options.signatoryName || DEFAULT_SIGNATORY_SETTINGS.name;
-  const signatoryNip = options.signatory?.nip || options.signatoryNip || DEFAULT_SIGNATORY_SETTINGS.nip;
-  const signatoryPosition = options.signatory?.position || options.signatoryPosition || DEFAULT_SIGNATORY_SETTINGS.position;
-  const signatoryCity = options.signatory?.city || 'Batam';
-  const signDate = options.signDateStr || new Date().toISOString().slice(0, 10);
-
-  const sigDateRow = worksheet.addRow(['', '', '', '', '', `${signatoryCity}, ${signDate}`]);
-  const sigPosRow = worksheet.addRow(['', '', '', '', '', signatoryPosition]);
-  worksheet.addRow([]);
-  worksheet.addRow([]);
-  const sigNameRow = worksheet.addRow(['', '', '', '', '', signatoryName]);
-  const sigNipRow = worksheet.addRow(['', '', '', '', '', `NIP. ${signatoryNip}`]);
-
-  sigDateRow.getCell(6).font = { name: 'Arial', size: 9 };
-  sigPosRow.getCell(6).font = { name: 'Arial', size: 9 };
-  sigNameRow.getCell(6).font = { name: 'Arial', bold: true, underline: true, size: 9 };
-  sigNipRow.getCell(6).font = { name: 'Arial', size: 9 };
-
+  // 4. Staging disclaimer footer row (if staging)
   if (watermark) {
     worksheet.addRow([]);
     const disclaimerRow = worksheet.addRow([`* Peringatan: Dokumen ini diunduh dari Lingkungan Staging / Uji Coba SIMAK DISKUM. ${watermark}.`]);

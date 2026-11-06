@@ -20,6 +20,7 @@ export * from './repository/publicRepository';
 export * from './repository/masterRepository';
 export * from './reports/eightColumnReport';
 export * from './reports/xlsxGenerator';
+export * from './reports/imageGenerator';
 export * from './migration/legacyMigrationParser';
 export * from './telemetry/performanceTracker';
 

@@ -175,14 +175,13 @@ describe('Task 8: Independent XLSX Workbook Verification & OpenXML Inspection', 
     expect(worksheet.pageSetup.orientation).toBe('landscape');
     expect(worksheet.pageSetup.paperSize).toBe(9); // 9 = A4
 
-    // 2. Verify Title Banners (Rows 1-4)
-    expect(worksheet.getCell('A1').value).toBe('PEMERINTAH KOTA BATAM');
+    // 2. Verify Title Banners (Rows 1-3) per Section 6.1
+    expect(worksheet.getCell('A1').value).toBe('JADWAL KEGIATAN');
     expect(worksheet.getCell('A2').value).toBe('Dinas Koperasi dan Usaha Mikro Kota Batam');
-    expect(worksheet.getCell('A3').value).toBe('LAPORAN AGENDA KEGIATAN KEDINASAN');
-    expect(worksheet.getCell('A4').value).toContain('1 November 2026 s.d. 30 November 2026');
+    expect(worksheet.getCell('A3').value).toContain('1 NOVEMBER 2026 S.D. 30 NOVEMBER 2026');
 
-    // 3. Verify Table Column Headers (Row 6)
-    const headerRow = worksheet.getRow(6);
+    // 3. Verify Table Column Headers (Row 5)
+    const headerRow = worksheet.getRow(5);
     const expectedHeaders = [
       'No',
       'Hari / Tanggal',
@@ -198,19 +197,19 @@ describe('Task 8: Independent XLSX Workbook Verification & OpenXML Inspection', 
     }
 
     // 4. Verify Total Data Rows Count (Exactly 4 activities)
-    // Rows 7, 8, 9, 10
-    expect(worksheet.getCell('A7').value).toBe(1);
-    expect(worksheet.getCell('A8').value).toBe(2);
-    expect(worksheet.getCell('A9').value).toBe(3);
-    expect(worksheet.getCell('A10').value).toBe(4);
+    // Rows 6, 7, 8, 9
+    expect(worksheet.getCell('A6').value).toBe(1);
+    expect(worksheet.getCell('A7').value).toBe(2);
+    expect(worksheet.getCell('A8').value).toBe(3);
+    expect(worksheet.getCell('A9').value).toBe(4);
 
-    // 5. Verify Multi-Day Single-Row Formatting (Row 8)
-    const expoRow = worksheet.getRow(8);
+    // 5. Verify Multi-Day Single-Row Formatting (Row 7)
+    const expoRow = worksheet.getRow(7);
     expect(expoRow.getCell(2).value).toBe('Jumat–Minggu, 6–8 November 2026');
     expect(expoRow.getCell(4).value).toContain('Ekspo 2026');
 
-    // 6. Verify Cancelled Event Notice (Row 9)
-    const cancelledRow = worksheet.getRow(9);
+    // 6. Verify Cancelled Event Notice (Row 8)
+    const cancelledRow = worksheet.getRow(8);
     expect(cancelledRow.getCell(4).value).toContain('[DIBATALKAN]');
     expect(cancelledRow.getCell(8).value).toContain('Ditunda karena bertepatan dengan agenda Walikota Batam');
     // Ensure internal cancelReason is NEVER in the spreadsheet
@@ -218,8 +217,8 @@ describe('Task 8: Independent XLSX Workbook Verification & OpenXML Inspection', 
     expect(wholeSheetText).not.toContain('CONFIDENTIAL_SCHEDULE_OVERLAP');
     expect(wholeSheetText).not.toContain('-CMD|/C calc');
 
-    // 7. Verify Formula Injection Defense on Row 10
-    const injectionRow = worksheet.getRow(10);
+    // 7. Verify Formula Injection Defense on Row 9
+    const injectionRow = worksheet.getRow(9);
     const injectedTitleCell = injectionRow.getCell(4);
     const injectedNotesCell = injectionRow.getCell(8);
 
@@ -229,8 +228,7 @@ describe('Task 8: Independent XLSX Workbook Verification & OpenXML Inspection', 
     // Ensure cell is NOT marked as an executable formula type in ExcelJS
     expect(injectedTitleCell.type).not.toBe(ExcelJS.ValueType.Formula);
 
-    // 8. Verify Configurable Signatory Block
-    // Find the signatory block cells
+    // 8. Verify S01-QA-R2: Signature block removed per Section 6.1
     let foundSignatoryName = false;
     let foundSignatoryNip = false;
     let foundSignatoryPosition = false;
@@ -244,9 +242,9 @@ describe('Task 8: Independent XLSX Workbook Verification & OpenXML Inspection', 
       });
     });
 
-    expect(foundSignatoryName).toBe(true);
-    expect(foundSignatoryNip).toBe(true);
-    expect(foundSignatoryPosition).toBe(true);
+    expect(foundSignatoryName).toBe(false);
+    expect(foundSignatoryNip).toBe(false);
+    expect(foundSignatoryPosition).toBe(false);
   });
 
 });

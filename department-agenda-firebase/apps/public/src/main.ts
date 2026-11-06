@@ -11,6 +11,7 @@ import {
   fetchPublicActivities,
   formatIndonesianDate,
   formatIndonesianDateSpan,
+  formatAttendeeNamesOnly,
   parseWibDate,
   addDaysToWibDate,
   captureClientPerformance,
@@ -491,44 +492,60 @@ function renderAgendaRoute(container: HTMLElement): void {
     });
   }
 
+  function isStagingEnvironment(): boolean {
+    return typeof import.meta !== 'undefined' && (
+      import.meta.env?.MODE === 'staging' ||
+      (typeof window !== 'undefined' && window.location.hostname.includes('staging'))
+    );
+  }
+
+  function getPublicReportRows(acts: PublicActivityDTO[]) {
+    return acts.map((act, idx) => ({
+      no: idx + 1,
+      hariTanggal: act.dateDisplay,
+      pukul: act.timeDisplay,
+      kegiatan: act.status === 'CANCELLED' ? `[DIBATALKAN] ${act.title}` : act.title,
+      tempat: act.locationName,
+      penyelenggara: act.organizerName,
+      dihadiriOleh: formatAttendeeNamesOnly(act.attendeeLabels || []),
+      keterangan: act.status === 'CANCELLED'
+        ? (act.publicCancellationNotice ? `Dibatalkan: ${act.publicCancellationNotice}` : 'Kegiatan Dibatalkan')
+        : (act.publicNotes || '-'),
+      isCancelled: act.status === 'CANCELLED'
+    }));
+  }
+
   const btnPrint = document.getElementById('btnPrintPublicAgenda');
   if (btnPrint) {
     btnPrint.addEventListener('click', async () => {
-      const [{ generateEightColumnHtmlReport }] = await Promise.all([
-        import('../../../shared/src/reports/eightColumnReport')
-      ]);
-      const reportRows = filteredActs.map((act, idx) => ({
-        no: idx + 1,
-        hariTanggal: act.dateDisplay,
-        pukul: act.timeDisplay,
-        kegiatan: act.status === 'CANCELLED' ? `[DIBATALKAN] ${act.title}` : act.title,
-        tempat: act.locationName,
-        penyelenggara: act.organizerName,
-        dihadiriOleh: (act.attendeeLabels || []).join('\n') || '-',
-        keterangan: act.status === 'CANCELLED'
-          ? (act.publicCancellationNotice ? `Dibatalkan: ${act.publicCancellationNotice}` : 'Kegiatan Dibatalkan')
-          : (act.publicNotes || '-'),
-        isCancelled: act.status === 'CANCELLED'
-      }));
+      try {
+        const [{ generateEightColumnHtmlReport }] = await Promise.all([
+          import('../../../shared/src/reports/eightColumnReport')
+        ]);
+        const reportRows = getPublicReportRows(filteredActs);
 
-      const sDate = agendaFilters.startDate || (filteredActs[0]?.startDate || '2026-11-01');
-      const eDate = agendaFilters.endDate || (filteredActs[filteredActs.length - 1]?.endDate || '2026-11-30');
+        const sDate = agendaFilters.startDate || (filteredActs[0]?.startDate || '2026-11-01');
+        const eDate = agendaFilters.endDate || (filteredActs[filteredActs.length - 1]?.endDate || '2026-11-30');
 
-      const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
-      const html = generateEightColumnHtmlReport({
-        startDate: sDate,
-        endDate: eDate,
-        rows: reportRows,
-        departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
-        isStaging
-      });
+        const isStaging = isStagingEnvironment();
+        const html = generateEightColumnHtmlReport({
+          startDate: sDate,
+          endDate: eDate,
+          rows: reportRows,
+          departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
+          isStaging
+        });
 
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => printWindow.print(), 300);
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(html);
+          printWindow.document.close();
+          printWindow.focus();
+          setTimeout(() => printWindow.print(), 300);
+        }
+      } catch (err) {
+        console.error('[PublicPrint] Error generating print view:', err);
+        alert(`Gagal menyiapkan cetak agenda: ${err}`);
       }
     });
   }
@@ -536,47 +553,91 @@ function renderAgendaRoute(container: HTMLElement): void {
   const btnXlsx = document.getElementById('btnDownloadPublicXlsx');
   if (btnXlsx) {
     btnXlsx.addEventListener('click', async () => {
-      const [{ generateEightColumnXlsx }, { formatIndonesianDateSpan }] = await Promise.all([
-        import('../../../shared/src/reports/xlsxGenerator'),
-        import('../../../shared/src/scheduling/timeUtils')
-      ]);
-      const reportRows = filteredActs.map((act, idx) => ({
-        no: idx + 1,
-        hariTanggal: act.dateDisplay,
-        pukul: act.timeDisplay,
-        kegiatan: act.status === 'CANCELLED' ? `[DIBATALKAN] ${act.title}` : act.title,
-        tempat: act.locationName,
-        penyelenggara: act.organizerName,
-        dihadiriOleh: (act.attendeeLabels || []).join('\n') || '-',
-        keterangan: act.status === 'CANCELLED'
-          ? (act.publicCancellationNotice ? `Dibatalkan: ${act.publicCancellationNotice}` : 'Kegiatan Dibatalkan')
-          : (act.publicNotes || '-'),
-        isCancelled: act.status === 'CANCELLED'
-      }));
+      try {
+        const [{ generateEightColumnXlsx }, { formatIndonesianDateSpan }] = await Promise.all([
+          import('../../../shared/src/reports/xlsxGenerator'),
+          import('../../../shared/src/scheduling/timeUtils')
+        ]);
+        const reportRows = getPublicReportRows(filteredActs);
 
+        const sDate = agendaFilters.startDate || (filteredActs[0]?.startDate || '2026-11-01');
+        const eDate = agendaFilters.endDate || (filteredActs[filteredActs.length - 1]?.endDate || '2026-11-30');
+        const periodLabel = formatIndonesianDateSpan(sDate, eDate);
+
+        const isStaging = isStagingEnvironment();
+        const buffer = await generateEightColumnXlsx({
+          departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
+          periodLabel,
+          startDate: sDate,
+          endDate: eDate,
+          rows: reportRows,
+          isStaging
+        });
+
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Agenda_Publik_Batam_${sDate}_sd_${eDate}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('[PublicXlsx] Error exporting Excel:', err);
+        alert(`Gagal membuat file Excel: ${err}`);
+      }
+    });
+  }
+
+  // Image exports: PNG and JPG
+  const handleImageExport = async (fmt: 'png' | 'jpg') => {
+    try {
+      const [{ generateScheduleImages }] = await Promise.all([
+        import('../../../shared/src/reports/imageGenerator')
+      ]);
+      const reportRows = getPublicReportRows(filteredActs);
       const sDate = agendaFilters.startDate || (filteredActs[0]?.startDate || '2026-11-01');
       const eDate = agendaFilters.endDate || (filteredActs[filteredActs.length - 1]?.endDate || '2026-11-30');
-      const periodLabel = formatIndonesianDateSpan(sDate, eDate);
+      const isStaging = isStagingEnvironment();
 
-      const buffer = await generateEightColumnXlsx({
+      const imageFiles = await generateScheduleImages({
         departmentName: 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
-        periodLabel,
+        startDate: sDate,
+        endDate: eDate,
         rows: reportRows,
-        isStaging
+        isStaging,
+        format: fmt
       });
 
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Agenda_Publik_Batam_${sDate}_sd_${eDate}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    });
+      for (let i = 0; i < imageFiles.length; i++) {
+        const file = imageFiles[i];
+        const a = document.createElement('a');
+        a.href = file.dataUrl;
+        a.download = file.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        if (imageFiles.length > 1 && i < imageFiles.length - 1) {
+          await new Promise((r) => setTimeout(r, 300));
+        }
+      }
+    } catch (err) {
+      console.error(`[PublicImageExport] Error generating ${fmt.toUpperCase()}:`, err);
+      alert(`Gagal membuat gambar ${fmt.toUpperCase()}: ${err}`);
+    }
+  };
+
+  const btnPng = document.getElementById('btnDownloadPublicPng');
+  if (btnPng) {
+    btnPng.addEventListener('click', () => handleImageExport('png'));
+  }
+
+  const btnJpg = document.getElementById('btnDownloadPublicJpg');
+  if (btnJpg) {
+    btnJpg.addEventListener('click', () => handleImageExport('jpg'));
   }
 }
 

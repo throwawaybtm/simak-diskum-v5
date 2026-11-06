@@ -324,3 +324,44 @@ export function formatAnnouncementDate(
 
   return `${day} ${monthName} ${year} WIB`;
 }
+
+/**
+ * Formats dynamic schedule title period for official Indonesian reports.
+ * Matches legacy schedule header:
+ * - Single full month (or same-month query): "BULAN [MONTH] [YEAR]" (e.g. "BULAN OKTOBER 2026")
+ * - Single specific day: "TANGGAL [DAY] [MONTH] [YEAR]"
+ * - Multi-month / multi-year: "PERIODE [START DATE] S.D. [END DATE]"
+ */
+export function formatDynamicScheduleTitlePeriod(startDate: string, endDate: string): string {
+  if (!startDate || !endDate) return 'BULAN OKTOBER 2026';
+  try {
+    const s = parseWibDate(startDate);
+    const e = parseWibDate(endDate);
+
+    const sMonth = INDONESIAN_MONTHS[s.month - 1].toUpperCase();
+    const eMonth = INDONESIAN_MONTHS[e.month - 1].toUpperCase();
+
+    // If same month and same year
+    if (s.year === e.year && s.month === e.month) {
+      const lastDay = new Date(Date.UTC(s.year, s.month, 0)).getUTCDate();
+      // If it spans full month or is month-wide filter
+      if ((s.day === 1 && e.day >= lastDay - 1) || (s.day === 1 && e.day === lastDay)) {
+        return `BULAN ${sMonth} ${s.year}`;
+      }
+      if (s.day === e.day) {
+        return `TANGGAL ${s.day} ${sMonth} ${s.year}`;
+      }
+      return `TANGGAL ${s.day} S.D. ${e.day} ${sMonth} ${s.year}`;
+    }
+
+    // Different months, same year
+    if (s.year === e.year) {
+      return `PERIODE ${s.day} ${sMonth} S.D. ${e.day} ${eMonth} ${s.year}`;
+    }
+
+    // Different years
+    return `PERIODE ${s.day} ${sMonth} ${s.year} S.D. ${e.day} ${eMonth} ${e.year}`;
+  } catch {
+    return 'BULAN OKTOBER 2026';
+  }
+}
