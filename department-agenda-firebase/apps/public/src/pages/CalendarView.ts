@@ -174,6 +174,19 @@ function renderMonthGrid(
   `;
 }
 
+function formatAttendeeChip(label: string): string {
+  if (!label) return '';
+  const parenMatch = label.match(/^([^(]+)\(([^)]+)\)$/);
+  if (parenMatch) {
+    return `<span class="attendee-chip"><strong class="attendee-name">${parenMatch[1].trim()}</strong> <span class="attendee-role">(${parenMatch[2].trim()})</span></span>`;
+  }
+  const dashMatch = label.match(/^([^\u2014\-]+)[\u2014\-]\s*(.+)$/);
+  if (dashMatch) {
+    return `<span class="attendee-chip"><strong class="attendee-name">${dashMatch[2].trim()}</strong> <span class="attendee-role">(${dashMatch[1].trim()})</span></span>`;
+  }
+  return `<span class="attendee-chip"><strong class="attendee-name">${label}</strong></span>`;
+}
+
 function renderWeekGrid(
   visibleStart: string,
   visibleEnd: string,
@@ -184,6 +197,7 @@ function renderWeekGrid(
   const shortDayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
   let curr = new Date(visibleStart + 'T00:00:00Z');
   const colsHtml: string[] = [];
+  const stackedDaysHtml: string[] = [];
 
   for (let i = 0; i < 7; i++) {
     const yyyy = curr.getUTCFullYear();
@@ -193,8 +207,12 @@ function renderWeekGrid(
     const isToday = dateStr === todayStr;
     const activities = dayMap.get(dateStr) || [];
 
-    const actsHtml = activities.length > 0
-      ? activities.map(act => `
+    // Chronological order (earliest time first)
+    const sortedActs = [...activities].sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+
+    // Desktop 7-column view
+    const actsHtml = sortedActs.length > 0
+      ? sortedActs.map(act => `
           <div class="week-activity-card ${act.status === 'CANCELLED' ? 'card-cancelled' : ''}" data-open-detail="${act.id}">
             <div class="act-time">${act.timeDisplay}</div>
             <div class="act-title ${act.status === 'CANCELLED' ? 'text-strikethrough' : ''}"><strong>${act.title}</strong></div>
@@ -218,12 +236,61 @@ function renderWeekGrid(
       </div>
     `);
 
+    // Mobile stacked day view
+    const mobileActsHtml = sortedActs.length > 0
+      ? sortedActs.map(act => {
+          const isCancelled = act.status === 'CANCELLED';
+          const statusIndonesian = isCancelled ? 'Dibatalkan' : (act.status === 'COMPLETED' ? 'Selesai' : 'Terjadwal');
+          const locTypeIndonesian = act.locationType === 'OFFICE' ? 'Kantor Dinas'
+            : (act.locationType === 'ONLINE' ? 'Daring' : 'Luar Kantor');
+          return `
+            <div class="week-stacked-card ${isCancelled ? 'card-cancelled' : ''}" data-open-detail="${act.id}">
+              <div class="week-stacked-card-header">
+                <span class="status-pill status-${act.status.toLowerCase()}">${statusIndonesian}</span>
+                <span class="week-stacked-time">⏰ ${act.timeDisplay}</span>
+              </div>
+              <h4 class="week-stacked-title ${isCancelled ? 'text-strikethrough' : ''}">${act.title}</h4>
+              ${isCancelled && act.publicCancellationNotice ? `
+                <div class="card-cancellation-notice">
+                  <strong>Pemberitahuan:</strong> ${act.publicCancellationNotice}
+                </div>
+              ` : ''}
+              <div class="week-stacked-meta">
+                <span>📍 <strong>${act.locationName}</strong> (${locTypeIndonesian})</span>
+                <span>🏛️ ${act.organizerName}</span>
+                ${act.attendeeLabels && act.attendeeLabels.length > 0
+                  ? `<div class="agenda-attendees-list">👥 ${act.attendeeLabels.map(formatAttendeeChip).join(' ')}</div>`
+                  : ''}
+              </div>
+              <div class="week-stacked-actions">
+                <button type="button" class="btn btn-secondary btn-sm" data-open-detail="${act.id}">Rincian</button>
+              </div>
+            </div>
+          `;
+        }).join('')
+      : `<p class="week-stacked-empty">☕ Tidak ada kegiatan kedinasan</p>`;
+
+    stackedDaysHtml.push(`
+      <section class="week-stacked-day-section ${isToday ? 'is-today' : ''}">
+        <div class="week-stacked-day-header">
+          <span class="stacked-day-title">${formatIndonesianDate(dateStr)}</span>
+          ${isToday ? '<span class="badge-today-pill">Hari Ini</span>' : ''}
+        </div>
+        <div class="week-stacked-day-body">
+          ${mobileActsHtml}
+        </div>
+      </section>
+    `);
+
     curr.setUTCDate(curr.getUTCDate() + 1);
   }
 
   return `
-    <div class="week-grid-container">
+    <div class="week-grid-container desktop-only">
       ${colsHtml.join('')}
+    </div>
+    <div class="week-stacked-container mobile-only">
+      ${stackedDaysHtml.join('')}
     </div>
   `;
 }

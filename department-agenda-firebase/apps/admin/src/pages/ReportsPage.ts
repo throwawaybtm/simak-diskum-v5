@@ -20,7 +20,10 @@ import {
   type EightColumnReportRow,
   type LegacySpreadsheetRow,
   type LegacyMigrationResult,
-  formatIndonesianDateSpan
+  formatIndonesianDateSpan,
+  renderDateInputField,
+  bindDateInputField,
+  validateDateRange
 } from '@department-agenda/shared';
 
 export interface ReportsPageContext {
@@ -197,11 +200,21 @@ export async function mountReportsPage(
             <div class="filter-controls-grid">
               <div class="form-group">
                 <label for="inputReportStartDate">Dari Tanggal:</label>
-                <input type="date" id="inputReportStartDate" value="${startDate}">
+                ${renderDateInputField({
+                  id: 'inputReportStartDate',
+                  value: startDate,
+                  placeholder: 'dd/mm/yyyy',
+                  ariaLabel: 'Dari Tanggal'
+                })}
               </div>
               <div class="form-group">
                 <label for="inputReportEndDate">Sampai Tanggal:</label>
-                <input type="date" id="inputReportEndDate" value="${endDate}">
+                ${renderDateInputField({
+                  id: 'inputReportEndDate',
+                  value: endDate,
+                  placeholder: 'dd/mm/yyyy',
+                  ariaLabel: 'Sampai Tanggal'
+                })}
               </div>
               <div class="form-group">
                 <label for="selectReportCategory">Kategori:</label>
@@ -238,12 +251,23 @@ export async function mountReportsPage(
               <div class="summary-pill">
                 Periode: <strong>${periodLabel}</strong> | Total: <strong>${rows.length}</strong> kegiatan
               </div>
-              <div class="btn-group">
-                <button type="button" class="btn btn-secondary" id="btnRefreshReport" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🔄 Muat Ulang</button>
-                <button type="button" class="btn btn-secondary" id="btnPrintReport" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖨️ Cetak</button>
-                <button type="button" class="btn btn-primary" id="btnDownloadXlsx" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>📊 Unduh Excel</button>
-                <button type="button" class="btn btn-secondary" id="btnDownloadAdminPng" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖼️ Unduh PNG</button>
-                <button type="button" class="btn btn-secondary" id="btnDownloadAdminJpg" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖼️ Unduh JPG</button>
+              <div class="report-actions-desktop desktop-only">
+                <div class="btn-group">
+                  <button type="button" class="btn btn-secondary" id="btnRefreshReport" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🔄 Muat Ulang</button>
+                  <button type="button" class="btn btn-secondary" id="btnPrintReport" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖨️ Cetak</button>
+                  <button type="button" class="btn btn-primary" id="btnDownloadXlsx" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>📊 Unduh Excel</button>
+                  <button type="button" class="btn btn-secondary" id="btnDownloadAdminPng" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖼️ Unduh PNG</button>
+                  <button type="button" class="btn btn-secondary" id="btnDownloadAdminJpg" ${isDateRangeInvalid ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>🖼️ Unduh JPG</button>
+                </div>
+              </div>
+              <div class="report-actions-mobile mobile-only">
+                <button type="button" class="btn btn-secondary btn-fullwidth btn-refresh-mobile" id="btnRefreshReportMobile" ${isDateRangeInvalid ? 'disabled' : ''}>🔄 Muat Ulang</button>
+                <div class="export-grid-2col">
+                  <button type="button" class="btn btn-secondary" id="btnPrintReportMobile" ${isDateRangeInvalid ? 'disabled' : ''}>🖨️ Cetak</button>
+                  <button type="button" class="btn btn-primary" id="btnDownloadXlsxMobile" ${isDateRangeInvalid ? 'disabled' : ''}>📊 Unduh Excel</button>
+                  <button type="button" class="btn btn-secondary" id="btnDownloadAdminPngMobile" ${isDateRangeInvalid ? 'disabled' : ''}>🖼️ Unduh PNG</button>
+                  <button type="button" class="btn btn-secondary" id="btnDownloadAdminJpgMobile" ${isDateRangeInvalid ? 'disabled' : ''}>🖼️ Unduh JPG</button>
+                </div>
               </div>
             </div>
           </div>
@@ -256,7 +280,7 @@ export async function mountReportsPage(
               <p style="color: #64748b; font-size: 0.875rem;">Tanggal mulai tidak boleh lebih besar dari tanggal akhir. Silakan sesuaikan pilihan tanggal di atas.</p>
             </div>
           ` : `
-            <div class="panel table-responsive-panel">
+            <div class="panel table-responsive-panel desktop-only">
               <table class="eight-column-table" id="reportPreviewTable">
                 <thead>
                   <tr>
@@ -274,6 +298,44 @@ export async function mountReportsPage(
                   ${rowsHtml}
                 </tbody>
               </table>
+            </div>
+
+            <div class="mobile-only">
+              <div class="report-cards-container" id="reportCardsContainer">
+                ${rows.length > 0 ? rows.map(r => `
+                  <div class="report-preview-card ${r.isCancelled ? 'card-cancelled' : ''}">
+                    <div class="report-card-header">
+                      <span class="report-card-no">No. ${r.no}</span>
+                      <span class="report-card-date">${r.hariTanggal}</span>
+                    </div>
+                    <h4 class="report-card-title ${r.isCancelled ? 'text-strikethrough' : ''}">${r.kegiatan}</h4>
+                    <div class="report-card-time">⏰ ${r.pukul}</div>
+                    <div class="report-card-section">
+                      <div class="report-field-label">Tempat</div>
+                      <div class="report-field-value">📍 ${r.tempat}</div>
+                    </div>
+                    <div class="report-card-section">
+                      <div class="report-field-label">Penyelenggara</div>
+                      <div class="report-field-value">🏛️ ${r.penyelenggara}</div>
+                    </div>
+                    <div class="report-card-section">
+                      <div class="report-field-label">Dihadiri Oleh</div>
+                      <div class="report-field-value attendee-names-list">${r.dihadiriOleh || '—'}</div>
+                    </div>
+                    <div class="report-card-section">
+                      <div class="report-field-label">Keterangan</div>
+                      <div class="report-field-value">
+                        ${r.isCancelled ? `<span class="badge-cancelled-tag">DIBATALKAN</span> ` : ''}
+                        ${r.keterangan || '-'}
+                      </div>
+                    </div>
+                  </div>
+                `).join('') : `
+                  <div class="empty-state-card" style="padding: 2.5rem 1rem; text-align: center; color: #64748b; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    Tidak ada kegiatan yang ditemukan pada periode ${periodLabel}.
+                  </div>
+                `}
+              </div>
             </div>
           `}
         </div>
@@ -403,107 +465,109 @@ export async function mountReportsPage(
       });
     }
 
-    // Filter inputs
-    const startInput = container.querySelector<HTMLInputElement>('#inputReportStartDate');
-    const endInput = container.querySelector<HTMLInputElement>('#inputReportEndDate');
+    // Filter date inputs with dd/mm/yyyy support
+    bindDateInputField('inputReportStartDate', {
+      onChange: (val) => {
+        startDate = val;
+        render();
+      }
+    });
+    bindDateInputField('inputReportEndDate', {
+      onChange: (val) => {
+        endDate = val;
+        render();
+      }
+    });
+
     const catSelect = container.querySelector<HTMLSelectElement>('#selectReportCategory');
     const stSelect = container.querySelector<HTMLSelectElement>('#selectReportStatus');
     const sortSelect = container.querySelector<HTMLSelectElement>('#selectReportSort');
 
-    if (startInput) startInput.onchange = (e) => { startDate = (e.target as HTMLInputElement).value; render(); };
-    if (endInput) endInput.onchange = (e) => { endDate = (e.target as HTMLInputElement).value; render(); };
     if (catSelect) catSelect.onchange = (e) => { selectedCategory = (e.target as HTMLSelectElement).value; render(); };
     if (stSelect) stSelect.onchange = (e) => { selectedStatus = (e.target as HTMLSelectElement).value; render(); };
     if (sortSelect) sortSelect.onchange = (e) => { selectedSortOrder = (e.target as HTMLSelectElement).value as any; render(); };
 
-    // Refresh button
-    const refreshBtn = container.querySelector<HTMLButtonElement>('#btnRefreshReport');
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', async () => {
-        if (startDate > endDate) {
-          return;
-        }
-        currentActivities = await loadActivities();
-        render();
-      });
-    }
+    // Refresh action
+    const doRefresh = async () => {
+      if (startDate > endDate) return;
+      currentActivities = await loadActivities();
+      render();
+    };
+    ['#btnRefreshReport', '#btnRefreshReportMobile'].forEach(sel => {
+      container.querySelector<HTMLButtonElement>(sel)?.addEventListener('click', doRefresh);
+    });
 
-    // Print button
-    const printBtn = container.querySelector<HTMLButtonElement>('#btnPrintReport');
-    if (printBtn) {
-      printBtn.addEventListener('click', () => {
-        if (startDate > endDate) {
-          return;
+    // Print action
+    const doPrint = () => {
+      if (startDate > endDate) return;
+      const rows = getFilteredRows();
+      const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
+      const html = generateEightColumnHtmlReport({
+        startDate,
+        endDate,
+        rows,
+        departmentName: currentSignatory.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
+        signatory: currentSignatory,
+        isStaging
+      });
+
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+        }, 300);
+      } else {
+        const printContainer = container.querySelector('#printContainer');
+        if (printContainer) {
+          printContainer.innerHTML = html;
+          window.print();
         }
+      }
+    };
+    ['#btnPrintReport', '#btnPrintReportMobile'].forEach(sel => {
+      container.querySelector<HTMLButtonElement>(sel)?.addEventListener('click', doPrint);
+    });
+
+    // Export XLSX action
+    const doDownloadXlsx = async () => {
+      if (startDate > endDate) return;
+      try {
         const rows = getFilteredRows();
-        const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
-        const html = generateEightColumnHtmlReport({
+        const periodLabel = formatIndonesianDateSpan(startDate, endDate);
+        const isStaging = typeof import.meta !== 'undefined' && (
+          import.meta.env?.MODE === 'staging' ||
+          (typeof window !== 'undefined' && window.location.hostname.includes('staging'))
+        );
+        const buffer = await generateEightColumnXlsx({
+          departmentName: currentSignatory.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
+          periodLabel,
           startDate,
           endDate,
           rows,
-          departmentName: currentSignatory.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
-          signatory: currentSignatory,
           isStaging
         });
 
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-          printWindow.document.write(html);
-          printWindow.document.close();
-          printWindow.focus();
-          setTimeout(() => {
-            printWindow.print();
-          }, 300);
-        } else {
-          // Fallback in-page
-          const printContainer = container.querySelector('#printContainer');
-          if (printContainer) {
-            printContainer.innerHTML = html;
-            window.print();
-          }
-        }
-      });
-    }
-
-    // Export XLSX button
-    const xlsxBtn = container.querySelector<HTMLButtonElement>('#btnDownloadXlsx');
-    if (xlsxBtn) {
-      xlsxBtn.addEventListener('click', async () => {
-        if (startDate > endDate) {
-          return;
-        }
-        try {
-          const rows = getFilteredRows();
-          const periodLabel = formatIndonesianDateSpan(startDate, endDate);
-          const isStaging = typeof import.meta !== 'undefined' && (
-            import.meta.env?.MODE === 'staging' ||
-            (typeof window !== 'undefined' && window.location.hostname.includes('staging'))
-          );
-          const buffer = await generateEightColumnXlsx({
-            departmentName: currentSignatory.department || 'DINAS KOPERASI DAN USAHA MIKRO KOTA BATAM',
-            periodLabel,
-            startDate,
-            endDate,
-            rows,
-            isStaging
-          });
-
-          const blob = new Blob([buffer], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `Laporan_Agenda_Batam_${startDate}_sd_${endDate}.xlsx`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        } catch (err) {
-          alert(`Gagal membuat file Excel: ${err}`);
-        }
-      });
-    }
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Laporan_Agenda_Batam_${startDate}_sd_${endDate}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert(`Gagal membuat file Excel: ${err}`);
+      }
+    };
+    ['#btnDownloadXlsx', '#btnDownloadXlsxMobile'].forEach(sel => {
+      container.querySelector<HTMLButtonElement>(sel)?.addEventListener('click', doDownloadXlsx);
+    });
 
     // Image exports: PNG & JPG
     const handleAdminImageExport = async (fmt: 'png' | 'jpg') => {
@@ -544,15 +608,12 @@ export async function mountReportsPage(
       }
     };
 
-    const adminPngBtn = container.querySelector<HTMLButtonElement>('#btnDownloadAdminPng');
-    if (adminPngBtn) {
-      adminPngBtn.addEventListener('click', () => handleAdminImageExport('png'));
-    }
-
-    const adminJpgBtn = container.querySelector<HTMLButtonElement>('#btnDownloadAdminJpg');
-    if (adminJpgBtn) {
-      adminJpgBtn.addEventListener('click', () => handleAdminImageExport('jpg'));
-    }
+    ['#btnDownloadAdminPng', '#btnDownloadAdminPngMobile'].forEach(sel => {
+      container.querySelector<HTMLButtonElement>(sel)?.addEventListener('click', () => handleAdminImageExport('png'));
+    });
+    ['#btnDownloadAdminJpg', '#btnDownloadAdminJpgMobile'].forEach(sel => {
+      container.querySelector<HTMLButtonElement>(sel)?.addEventListener('click', () => handleAdminImageExport('jpg'));
+    });
 
     // Migration Dry Run
     const dryRunBtn = container.querySelector('#btnRunDryRun');

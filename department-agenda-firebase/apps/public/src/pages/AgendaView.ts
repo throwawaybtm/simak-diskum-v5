@@ -4,7 +4,25 @@
  */
 
 import type { PublicActivityDTO } from '@department-agenda/shared';
+import {
+  renderDateInputField,
+  formatIndonesianDate,
+  formatIndonesianDateSpan
+} from '@department-agenda/shared';
 import type { PublicActivityFilterOptions } from '../components/PublicController';
+
+function formatAttendeeChip(label: string): string {
+  if (!label) return '';
+  const parenMatch = label.match(/^([^(]+)\(([^)]+)\)$/);
+  if (parenMatch) {
+    return `<span class="attendee-chip"><strong class="attendee-name">${parenMatch[1].trim()}</strong> <span class="attendee-role">(${parenMatch[2].trim()})</span></span>`;
+  }
+  const dashMatch = label.match(/^([^\u2014\-]+)[\u2014\-]\s*(.+)$/);
+  if (dashMatch) {
+    return `<span class="attendee-chip"><strong class="attendee-name">${dashMatch[2].trim()}</strong> <span class="attendee-role">(${dashMatch[1].trim()})</span></span>`;
+  }
+  return `<span class="attendee-chip"><strong class="attendee-name">${label}</strong></span>`;
+}
 
 export interface AgendaViewProps {
   activities: PublicActivityDTO[];
@@ -35,11 +53,14 @@ export function renderAgendaView(props: AgendaViewProps): string {
         const statusIndonesian = isCancelled ? 'Dibatalkan' : (act.status === 'COMPLETED' ? 'Selesai' : 'Terjadwal');
         const locTypeIndonesian = act.locationType === 'OFFICE' ? 'Kantor Dinas'
           : (act.locationType === 'ONLINE' ? 'Daring' : 'Luar Kantor');
+        const humanDate = act.startDate && act.endDate && act.startDate !== act.endDate
+          ? formatIndonesianDateSpan(act.startDate, act.endDate)
+          : (act.startDate ? formatIndonesianDate(act.startDate) : act.dateDisplay);
 
         return `
           <div class="agenda-item-card ${isCancelled ? 'card-cancelled' : ''}" data-open-detail="${act.id}">
             <div class="agenda-item-left">
-              <span class="agenda-date-badge">${act.dateDisplay}</span>
+              <span class="agenda-date-badge">${humanDate}</span>
               <span class="agenda-time-text">${act.timeDisplay}</span>
             </div>
 
@@ -61,7 +82,7 @@ export function renderAgendaView(props: AgendaViewProps): string {
                 <span>📍 <strong>${act.locationName}</strong> (${locTypeIndonesian})</span>
                 <span>🏛️ ${act.organizerName}</span>
                 ${act.attendeeLabels && act.attendeeLabels.length > 0
-                  ? `<span>👥 ${act.attendeeLabels.join(', ')}</span>`
+                  ? `<div class="agenda-attendees-list">👥 ${act.attendeeLabels.map(formatAttendeeChip).join(' ')}</div>`
                   : ''}
               </div>
             </div>
@@ -116,13 +137,23 @@ export function renderAgendaView(props: AgendaViewProps): string {
           <!-- Date Range: From -->
           <div class="form-group col-date">
             <label for="inputFilterStartDate">Dari Tanggal:</label>
-            <input type="date" id="inputFilterStartDate" value="${filters.startDate || ''}">
+            ${renderDateInputField({
+              id: 'inputFilterStartDate',
+              value: filters.startDate || '',
+              placeholder: 'dd/mm/yyyy',
+              ariaLabel: 'Dari Tanggal'
+            })}
           </div>
 
           <!-- Date Range: To -->
           <div class="form-group col-date">
             <label for="inputFilterEndDate">Sampai Tanggal:</label>
-            <input type="date" id="inputFilterEndDate" value="${filters.endDate || ''}">
+            ${renderDateInputField({
+              id: 'inputFilterEndDate',
+              value: filters.endDate || '',
+              placeholder: 'dd/mm/yyyy',
+              ariaLabel: 'Sampai Tanggal'
+            })}
           </div>
 
           <!-- Sort Option (QA-07: Default Newest-First) -->

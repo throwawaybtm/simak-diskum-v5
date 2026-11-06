@@ -150,6 +150,14 @@ function renderPage(container: HTMLElement, context: MasterDataContext) {
     tableHtml = renderTableContent(context);
   }
 
+  const addLabels: Record<MasterTab, string> = {
+    employees: 'Tambah Pegawai',
+    departments: 'Tambah Bidang',
+    locations: 'Tambah Lokasi',
+    organizers: 'Tambah Penyelenggara',
+    categories: 'Tambah Kategori'
+  };
+
   container.innerHTML = `
     <div class="master-data-page">
       <div class="page-header">
@@ -159,7 +167,7 @@ function renderPage(container: HTMLElement, context: MasterDataContext) {
         </div>
         <div class="header-actions">
           <button type="button" class="btn btn-primary" id="btnAddMasterRecord">
-            ➕ Tambah ${tabTitles[state.activeTab].label.split(' ')[0]}
+            ➕ ${addLabels[state.activeTab]}
           </button>
         </div>
       </div>
@@ -212,39 +220,64 @@ function renderTableContent(context: MasterDataContext): string {
     if (sorted.length === 0) return '<div class="empty-state">Tidak ada data pegawai yang ditemukan.</div>';
 
     return `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Nama Pegawai / Pejabat</th>
-            <th>Jabatan</th>
-            <th>Bidang / Bagian</th>
-            <th>Status</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${sorted.map((emp, i) => `
-            <tr class="${emp.active === false ? 'row-inactive' : ''}">
-              <td>${i + 1}</td>
-              <td><strong>${emp.name}</strong></td>
-              <td>${emp.position}</td>
-              <td>${deptMap.get(emp.departmentId) || '-'}</td>
-              <td>
-                <span class="badge ${emp.active !== false ? 'badge-active' : 'badge-inactive'}">
-                  ${emp.active !== false ? 'Aktif' : 'Nonaktif'}
-                </span>
-              </td>
-              <td>
-                <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${emp.id}">Edit</button>
-                <button type="button" class="btn btn-sm ${emp.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${emp.id}" data-active="${emp.active !== false}">
-                  ${emp.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
-                </button>
-              </td>
+      <div class="desktop-only table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Pegawai / Pejabat</th>
+              <th>Jabatan</th>
+              <th>Bidang / Bagian</th>
+              <th>Status</th>
+              <th>Aksi</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${sorted.map((emp, i) => `
+              <tr class="${emp.active === false ? 'row-inactive' : ''}">
+                <td>${i + 1}</td>
+                <td><strong>${emp.name}</strong></td>
+                <td>${emp.position}</td>
+                <td>${deptMap.get(emp.departmentId) || '-'}</td>
+                <td>
+                  <span class="badge ${emp.active !== false ? 'badge-active' : 'badge-inactive'}">
+                    ${emp.active !== false ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${emp.id}">Edit</button>
+                  <button type="button" class="btn btn-sm ${emp.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${emp.id}" data-active="${emp.active !== false}">
+                    ${emp.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="mobile-only master-cards-container">
+        ${sorted.map((emp, i) => `
+          <div class="master-record-card ${emp.active === false ? 'card-inactive' : ''}">
+            <div class="master-card-header">
+              <span class="master-card-num">#${i + 1}</span>
+              <span class="badge ${emp.active !== false ? 'badge-active' : 'badge-inactive'}">
+                ${emp.active !== false ? 'Aktif' : 'Nonaktif'}
+              </span>
+            </div>
+            <h4 class="master-card-title">${emp.name}</h4>
+            <div class="master-card-details">
+              <div>💼 <strong>Jabatan:</strong> ${emp.position}</div>
+              <div>🏛️ <strong>Bidang/Bagian:</strong> ${deptMap.get(emp.departmentId) || '-'}</div>
+            </div>
+            <div class="master-card-actions">
+              <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${emp.id}">Edit</button>
+              <button type="button" class="btn btn-sm ${emp.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${emp.id}" data-active="${emp.active !== false}">
+                ${emp.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
     `;
   }
 
@@ -257,35 +290,56 @@ function renderTableContent(context: MasterDataContext): string {
     if (sorted.length === 0) return '<div class="empty-state">Tidak ada data bidang yang ditemukan.</div>';
 
     return `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Nama Bidang / Bagian</th>
-            <th>Status</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${sorted.map((d, i) => `
-            <tr class="${d.active === false ? 'row-inactive' : ''}">
-              <td>${i + 1}</td>
-              <td><strong>${d.name}</strong></td>
-              <td>
-                <span class="badge ${d.active !== false ? 'badge-active' : 'badge-inactive'}">
-                  ${d.active !== false ? 'Aktif' : 'Nonaktif'}
-                </span>
-              </td>
-              <td>
-                <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${d.id}">Edit</button>
-                <button type="button" class="btn btn-sm ${d.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${d.id}" data-active="${d.active !== false}">
-                  ${d.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
-                </button>
-              </td>
+      <div class="desktop-only table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Bidang / Bagian</th>
+              <th>Status</th>
+              <th>Aksi</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${sorted.map((d, i) => `
+              <tr class="${d.active === false ? 'row-inactive' : ''}">
+                <td>${i + 1}</td>
+                <td><strong>${d.name}</strong></td>
+                <td>
+                  <span class="badge ${d.active !== false ? 'badge-active' : 'badge-inactive'}">
+                    ${d.active !== false ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${d.id}">Edit</button>
+                  <button type="button" class="btn btn-sm ${d.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${d.id}" data-active="${d.active !== false}">
+                    ${d.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="mobile-only master-cards-container">
+        ${sorted.map((d, i) => `
+          <div class="master-record-card ${d.active === false ? 'card-inactive' : ''}">
+            <div class="master-card-header">
+              <span class="master-card-num">#${i + 1}</span>
+              <span class="badge ${d.active !== false ? 'badge-active' : 'badge-inactive'}">
+                ${d.active !== false ? 'Aktif' : 'Nonaktif'}
+              </span>
+            </div>
+            <h4 class="master-card-title">${d.name}</h4>
+            <div class="master-card-actions">
+              <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${d.id}">Edit</button>
+              <button type="button" class="btn btn-sm ${d.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${d.id}" data-active="${d.active !== false}">
+                ${d.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
     `;
   }
 
@@ -298,39 +352,64 @@ function renderTableContent(context: MasterDataContext): string {
     if (sorted.length === 0) return '<div class="empty-state">Tidak ada data lokasi yang ditemukan.</div>';
 
     return `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Nama Tempat / Ruangan</th>
-            <th>Tipe Lokasi</th>
-            <th>Ruangan Rapat Bookable?</th>
-            <th>Status</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${sorted.map((loc, i) => `
-            <tr class="${loc.active === false ? 'row-inactive' : ''}">
-              <td>${i + 1}</td>
-              <td><strong>${loc.name}</strong></td>
-              <td><span class="badge badge-category">${loc.type}</span></td>
-              <td>${loc.isBookableRoom ? '✅ Ya (Pemicu Bentrok)' : '— Tidak'}</td>
-              <td>
-                <span class="badge ${loc.active !== false ? 'badge-active' : 'badge-inactive'}">
-                  ${loc.active !== false ? 'Aktif' : 'Nonaktif'}
-                </span>
-              </td>
-              <td>
-                <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${loc.id}">Edit</button>
-                <button type="button" class="btn btn-sm ${loc.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${loc.id}" data-active="${loc.active !== false}">
-                  ${loc.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
-                </button>
-              </td>
+      <div class="desktop-only table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Tempat / Ruangan</th>
+              <th>Tipe Lokasi</th>
+              <th>Ruangan Rapat Bookable?</th>
+              <th>Status</th>
+              <th>Aksi</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${sorted.map((loc, i) => `
+              <tr class="${loc.active === false ? 'row-inactive' : ''}">
+                <td>${i + 1}</td>
+                <td><strong>${loc.name}</strong></td>
+                <td><span class="badge badge-category">${loc.type}</span></td>
+                <td>${loc.isBookableRoom ? '✅ Ya (Pemicu Bentrok)' : '— Tidak'}</td>
+                <td>
+                  <span class="badge ${loc.active !== false ? 'badge-active' : 'badge-inactive'}">
+                    ${loc.active !== false ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${loc.id}">Edit</button>
+                  <button type="button" class="btn btn-sm ${loc.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${loc.id}" data-active="${loc.active !== false}">
+                    ${loc.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="mobile-only master-cards-container">
+        ${sorted.map((loc, i) => `
+          <div class="master-record-card ${loc.active === false ? 'card-inactive' : ''}">
+            <div class="master-card-header">
+              <span class="master-card-num">#${i + 1}</span>
+              <span class="badge ${loc.active !== false ? 'badge-active' : 'badge-inactive'}">
+                ${loc.active !== false ? 'Aktif' : 'Nonaktif'}
+              </span>
+            </div>
+            <h4 class="master-card-title">${loc.name}</h4>
+            <div class="master-card-details">
+              <div>🏷️ <strong>Tipe:</strong> <span class="badge badge-category">${loc.type}</span></div>
+              <div>📅 <strong>Ruangan Bookable:</strong> ${loc.isBookableRoom ? '✅ Ya (Pemicu Bentrok)' : '— Tidak'}</div>
+            </div>
+            <div class="master-card-actions">
+              <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${loc.id}">Edit</button>
+              <button type="button" class="btn btn-sm ${loc.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${loc.id}" data-active="${loc.active !== false}">
+                ${loc.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
     `;
   }
 
@@ -343,35 +422,56 @@ function renderTableContent(context: MasterDataContext): string {
     if (sorted.length === 0) return '<div class="empty-state">Tidak ada data penyelenggara yang ditemukan.</div>';
 
     return `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Nama Penyelenggara Kedinasan</th>
-            <th>Status</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${sorted.map((org, i) => `
-            <tr class="${org.active === false ? 'row-inactive' : ''}">
-              <td>${i + 1}</td>
-              <td><strong>${org.name}</strong></td>
-              <td>
-                <span class="badge ${org.active !== false ? 'badge-active' : 'badge-inactive'}">
-                  ${org.active !== false ? 'Aktif' : 'Nonaktif'}
-                </span>
-              </td>
-              <td>
-                <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${org.id}">Edit</button>
-                <button type="button" class="btn btn-sm ${org.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${org.id}" data-active="${org.active !== false}">
-                  ${org.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
-                </button>
-              </td>
+      <div class="desktop-only table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Penyelenggara Kedinasan</th>
+              <th>Status</th>
+              <th>Aksi</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${sorted.map((org, i) => `
+              <tr class="${org.active === false ? 'row-inactive' : ''}">
+                <td>${i + 1}</td>
+                <td><strong>${org.name}</strong></td>
+                <td>
+                  <span class="badge ${org.active !== false ? 'badge-active' : 'badge-inactive'}">
+                    ${org.active !== false ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${org.id}">Edit</button>
+                  <button type="button" class="btn btn-sm ${org.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${org.id}" data-active="${org.active !== false}">
+                    ${org.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="mobile-only master-cards-container">
+        ${sorted.map((org, i) => `
+          <div class="master-record-card ${org.active === false ? 'card-inactive' : ''}">
+            <div class="master-card-header">
+              <span class="master-card-num">#${i + 1}</span>
+              <span class="badge ${org.active !== false ? 'badge-active' : 'badge-inactive'}">
+                ${org.active !== false ? 'Aktif' : 'Nonaktif'}
+              </span>
+            </div>
+            <h4 class="master-card-title">${org.name}</h4>
+            <div class="master-card-actions">
+              <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${org.id}">Edit</button>
+              <button type="button" class="btn btn-sm ${org.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${org.id}" data-active="${org.active !== false}">
+                ${org.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
     `;
   }
 
@@ -384,47 +484,79 @@ function renderTableContent(context: MasterDataContext): string {
     if (sorted.length === 0) return '<div class="empty-state">Tidak ada data kategori yang ditemukan.</div>';
 
     return `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Nama Kategori</th>
-            <th>Warna Label</th>
-            <th>Status</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${sorted.map((cat, i) => {
-            const rawColor = (cat as any).colorHex || (cat as any).color;
-            const isValidHex = typeof rawColor === 'string' && /^#[0-9a-fA-F]{6}$/i.test(rawColor);
-            const colorHtml = isValidHex
-              ? `<span class="color-pill" style="display:inline-block; width:16px; height:16px; border-radius:50%; background-color:${rawColor}; margin-right:6px; vertical-align:middle; border:1px solid rgba(0,0,0,0.15);"></span><code>${rawColor}</code>`
-              : `<span class="badge badge-neutral" style="background:#f1f5f9; color:#64748b; font-size:0.8rem; padding:0.2rem 0.5rem; border-radius:4px;">Belum diatur</span>`;
+      <div class="desktop-only table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Kategori</th>
+              <th>Warna Label</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sorted.map((cat, i) => {
+              const rawColor = (cat as any).colorHex || (cat as any).color;
+              const isValidHex = typeof rawColor === 'string' && /^#[0-9a-fA-F]{6}$/i.test(rawColor);
+              const colorHtml = isValidHex
+                ? `<span class="color-pill" style="display:inline-block; width:16px; height:16px; border-radius:50%; background-color:${rawColor}; margin-right:6px; vertical-align:middle; border:1px solid rgba(0,0,0,0.15);"></span><code>${rawColor}</code>`
+                : `<span class="badge badge-neutral" style="background:#f1f5f9; color:#64748b; font-size:0.8rem; padding:0.2rem 0.5rem; border-radius:4px;">Belum diatur</span>`;
 
-            return `
-              <tr class="${cat.active === false ? 'row-inactive' : ''}">
-                <td>${i + 1}</td>
-                <td><strong>${cat.name}</strong></td>
-                <td>
-                  ${colorHtml}
-                </td>
-                <td>
-                  <span class="badge ${cat.active !== false ? 'badge-active' : 'badge-inactive'}">
-                    ${cat.active !== false ? 'Aktif' : 'Nonaktif'}
-                  </span>
-                </td>
-                <td>
-                  <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${cat.id}">Edit</button>
-                  <button type="button" class="btn btn-sm ${cat.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${cat.id}" data-active="${cat.active !== false}">
-                    ${cat.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
-                  </button>
-                </td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
+              return `
+                <tr class="${cat.active === false ? 'row-inactive' : ''}">
+                  <td>${i + 1}</td>
+                  <td><strong>${cat.name}</strong></td>
+                  <td>
+                    ${colorHtml}
+                  </td>
+                  <td>
+                    <span class="badge ${cat.active !== false ? 'badge-active' : 'badge-inactive'}">
+                      ${cat.active !== false ? 'Aktif' : 'Nonaktif'}
+                    </span>
+                  </td>
+                  <td>
+                    <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${cat.id}">Edit</button>
+                    <button type="button" class="btn btn-sm ${cat.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${cat.id}" data-active="${cat.active !== false}">
+                      ${cat.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+                    </button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="mobile-only master-cards-container">
+        ${sorted.map((cat, i) => {
+          const rawColor = (cat as any).colorHex || (cat as any).color;
+          const isValidHex = typeof rawColor === 'string' && /^#[0-9a-fA-F]{6}$/i.test(rawColor);
+          const colorHtml = isValidHex
+            ? `<span class="color-pill" style="display:inline-block; width:16px; height:16px; border-radius:50%; background-color:${rawColor}; margin-right:6px; vertical-align:middle; border:1px solid rgba(0,0,0,0.15);"></span><code>${rawColor}</code>`
+            : `<span class="badge badge-neutral" style="background:#f1f5f9; color:#64748b; font-size:0.8rem; padding:0.2rem 0.5rem; border-radius:4px;">Belum diatur</span>`;
+
+          return `
+            <div class="master-record-card ${cat.active === false ? 'card-inactive' : ''}">
+              <div class="master-card-header">
+                <span class="master-card-num">#${i + 1}</span>
+                <span class="badge ${cat.active !== false ? 'badge-active' : 'badge-inactive'}">
+                  ${cat.active !== false ? 'Aktif' : 'Nonaktif'}
+                </span>
+              </div>
+              <h4 class="master-card-title">${cat.name}</h4>
+              <div class="master-card-details">
+                <div>🎨 <strong>Warna:</strong> ${colorHtml}</div>
+              </div>
+              <div class="master-card-actions">
+                <button type="button" class="btn btn-sm btn-secondary btn-edit-master" data-id="${cat.id}">Edit</button>
+                <button type="button" class="btn btn-sm ${cat.active !== false ? 'btn-danger' : 'btn-secondary'} btn-toggle-master" data-id="${cat.id}" data-active="${cat.active !== false}">
+                  ${cat.active !== false ? 'Nonaktifkan' : 'Aktifkan'}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
     `;
   }
 

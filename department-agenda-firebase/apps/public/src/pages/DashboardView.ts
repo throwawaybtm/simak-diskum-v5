@@ -4,7 +4,7 @@
  */
 
 import type { PublicActivityDTO } from '@department-agenda/shared';
-import { formatIndonesianDate, formatAnnouncementDate } from '@department-agenda/shared';
+import { formatIndonesianDate, formatAnnouncementDate, renderDateInputField } from '@department-agenda/shared';
 
 export interface DashboardViewProps {
   todayActivities: PublicActivityDTO[];
@@ -206,7 +206,12 @@ export function renderDashboardView(props: DashboardViewProps): string {
             </h4>
             <p class="widget-desc">Pilih tanggal untuk langsung membuka agenda kegiatan pada hari tersebut:</p>
             <div class="jump-date-group">
-              <input type="date" id="inputJumpDate" value="${todayDateStr}">
+              ${renderDateInputField({
+                id: 'inputJumpDate',
+                value: todayDateStr,
+                placeholder: 'dd/mm/yyyy',
+                className: 'jump-date-input-wrap'
+              })}
               <button type="button" class="btn btn-secondary btn-sm" id="btnJumpToDate">Buka Tanggal</button>
             </div>
           </div>

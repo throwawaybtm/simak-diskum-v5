@@ -15,6 +15,8 @@ import {
   ensureIndonesianDateFormat,
   parseWibDate,
   addDaysToWibDate,
+  bindDateInputField,
+  validateDateRange,
   captureClientPerformance,
   type ClientPerformanceSnapshot
 } from '@department-agenda/shared';
@@ -235,18 +237,22 @@ function renderDashboardRoute(container: HTMLElement): void {
     });
   }
 
-  const inputJumpDate = document.getElementById('inputJumpDate') as HTMLInputElement | null;
+  const jumpDateCtrl = bindDateInputField('inputJumpDate', {
+    required: true
+  });
   const btnJumpToDate = document.getElementById('btnJumpToDate');
-  if (btnJumpToDate && inputJumpDate) {
+  if (btnJumpToDate) {
     btnJumpToDate.addEventListener('click', () => {
-      const val = inputJumpDate.value;
-      if (val) {
-        selectedDate = val;
-        const p = parseWibDate(val);
-        calendarYear = p.year;
-        calendarMonth = p.month;
-        calendarMode = 'day';
-        window.location.hash = '#calendar';
+      if (jumpDateCtrl.validate()) {
+        const val = jumpDateCtrl.getValue();
+        if (val) {
+          selectedDate = val;
+          const p = parseWibDate(val);
+          calendarYear = p.year;
+          calendarMonth = p.month;
+          calendarMode = 'day';
+          window.location.hash = '#calendar';
+        }
       }
     });
   }
@@ -415,11 +421,37 @@ function renderAgendaRoute(container: HTMLElement): void {
   const keywordInput = document.getElementById('agendaSearchInput') as HTMLInputElement | null;
   const categorySelect = document.getElementById('selectFilterCategory') as HTMLSelectElement | null;
   const statusSelect = document.getElementById('selectFilterStatus') as HTMLSelectElement | null;
-  const startDateInput = document.getElementById('inputFilterStartDate') as HTMLInputElement | null;
-  const endDateInput = document.getElementById('inputFilterEndDate') as HTMLInputElement | null;
   const sortSelect = document.getElementById('selectSortOption') as HTMLSelectElement | null;
   const btnReset = document.getElementById('btnResetFilters');
   const btnApply = document.getElementById('btnApplyFilters');
+
+  const startDateCtrl = bindDateInputField('inputFilterStartDate', {
+    onChange: (val) => {
+      const endVal = endDateCtrl.getValue();
+      if (val && endVal && !validateDateRange(val, endVal)) {
+        startDateCtrl.setError('Tanggal mulai tidak boleh melebihi tanggal akhir');
+        return;
+      }
+      startDateCtrl.clearError();
+      endDateCtrl.clearError();
+      agendaFilters.startDate = val;
+      renderAgendaResultsOnly();
+    }
+  });
+
+  const endDateCtrl = bindDateInputField('inputFilterEndDate', {
+    onChange: (val) => {
+      const startVal = startDateCtrl.getValue();
+      if (startVal && val && !validateDateRange(startVal, val)) {
+        endDateCtrl.setError('Tanggal akhir tidak boleh mendahului tanggal mulai');
+        return;
+      }
+      startDateCtrl.clearError();
+      endDateCtrl.clearError();
+      agendaFilters.endDate = val;
+      renderAgendaResultsOnly();
+    }
+  });
 
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   if (keywordInput) {
@@ -446,20 +478,6 @@ function renderAgendaRoute(container: HTMLElement): void {
     });
   }
 
-  if (startDateInput) {
-    startDateInput.addEventListener('change', () => {
-      agendaFilters.startDate = startDateInput.value;
-      renderAgendaResultsOnly();
-    });
-  }
-
-  if (endDateInput) {
-    endDateInput.addEventListener('change', () => {
-      agendaFilters.endDate = endDateInput.value;
-      renderAgendaResultsOnly();
-    });
-  }
-
   if (sortSelect) {
     sortSelect.addEventListener('change', () => {
       agendaFilters.sort = sortSelect.value as any;
@@ -469,11 +487,20 @@ function renderAgendaRoute(container: HTMLElement): void {
 
   if (btnApply) {
     btnApply.addEventListener('click', () => {
+      const sValid = startDateCtrl.validate();
+      const eValid = endDateCtrl.validate();
+      if (!sValid || !eValid) return;
+      const sVal = startDateCtrl.getValue();
+      const eVal = endDateCtrl.getValue();
+      if (sVal && eVal && !validateDateRange(sVal, eVal)) {
+        endDateCtrl.setError('Rentang tanggal tidak valid (tanggal mulai > tanggal akhir)');
+        return;
+      }
       if (keywordInput) agendaFilters.keyword = keywordInput.value;
       if (categorySelect) agendaFilters.category = categorySelect.value;
       if (statusSelect) agendaFilters.status = statusSelect.value;
-      if (startDateInput) agendaFilters.startDate = startDateInput.value;
-      if (endDateInput) agendaFilters.endDate = endDateInput.value;
+      agendaFilters.startDate = sVal;
+      agendaFilters.endDate = eVal;
       if (sortSelect) agendaFilters.sort = sortSelect.value as any;
       renderApp();
     });
@@ -489,6 +516,8 @@ function renderAgendaRoute(container: HTMLElement): void {
         endDate: '',
         sort: 'NEWEST'
       };
+      startDateCtrl.setValue('');
+      endDateCtrl.setValue('');
       renderApp();
     });
   }

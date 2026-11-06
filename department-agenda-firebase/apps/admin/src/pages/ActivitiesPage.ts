@@ -54,6 +54,49 @@ export function renderActivitiesPage(activities: ActivityDocument[], initialSort
       }).join('')
     : `<tr><td colspan="7" class="text-center" style="padding: 2.5rem 1rem; color: #64748b;">Belum ada kegiatan tersimpan di database. Silakan klik "Tambah Kegiatan".</td></tr>`;
 
+  const cardsHtml = sortedActivities.length > 0
+    ? sortedActivities.map(act => {
+        const isCancelled = act.status === 'CANCELLED';
+        const dateSpan = formatIndonesianDateSpan(act.startDate, act.endDate);
+        const timeStr = formatTimeDisplay(act.startTime, act.endTime, act.openEnded);
+        const stage = act.administrativeStage || 'INITIAL_ENTRY';
+        const stageInfo = stageMap[stage] || stageMap.INITIAL_ENTRY;
+        const agendaNumber = act.invitationLetter?.agendaNumber || '';
+        const statusIndonesian = isCancelled ? 'Dibatalkan' : (act.status === 'COMPLETED' ? 'Selesai' : 'Terjadwal');
+
+        return `
+          <div class="activity-mgmt-card ${isCancelled ? 'card-cancelled' : ''}" data-activity-row data-id="${act.id}" data-startdate="${act.startDate}" data-starttime="${act.startTime || ''}" data-status="${act.status}" data-stage="${stage}" data-title="${act.title.toLowerCase()}" data-agenda="${agendaNumber.toLowerCase()}">
+            <div class="card-mgmt-header">
+              <span class="card-mgmt-date">${dateSpan}</span>
+              <span class="status-badge status-${act.status.toLowerCase()}">${statusIndonesian}</span>
+            </div>
+
+            <h4 class="card-mgmt-title ${isCancelled ? 'text-strikethrough' : ''}">${act.title}</h4>
+
+            <div class="card-mgmt-time">⏰ ${timeStr}</div>
+
+            <div class="card-mgmt-meta">
+              <div class="card-meta-row">
+                <span class="stage-badge stage-${stageInfo.cls}">${stageInfo.label}</span>
+                <span class="card-version-pill">Versi ${act.version}</span>
+              </div>
+              ${agendaNumber ? `<div class="act-agenda-no">📜 No. Agenda: <strong>${agendaNumber}</strong></div>` : ''}
+              ${(!act.attendeeIds || act.attendeeIds.length === 0) ? '<span class="tag-missing">⚠️ Belum Ada Peserta</span>' : ''}
+              ${stage === 'ADMIN_COMPLETE' && act.invitationLetter?.missingDocumentReason ? '<span class="tag-missing">ℹ️ Pengecualian Surat</span>' : ''}
+              ${act.privateNotes ? '<span class="tag-private">🔒 Ada Catatan Privat</span>' : ''}
+              ${act.cancelReason ? `<span class="tag-cancel">Batal: ${act.cancelReason}</span>` : ''}
+            </div>
+
+            <div class="card-mgmt-actions">
+              <a href="#activities/edit/${act.id}" class="btn-sm btn-edit" aria-label="Edit agenda: ${act.title}">Edit</a>
+              <a href="#activities/duplicate/${act.id}" class="btn-sm btn-duplicate" data-duplicate-id="${act.id}" aria-label="Duplikat agenda: ${act.title}">Duplikat</a>
+              <button type="button" class="btn-sm btn-delete" data-delete-id="${act.id}" aria-label="Hapus agenda: ${act.title}">Hapus</button>
+            </div>
+          </div>
+        `;
+      }).join('')
+    : `<div class="empty-state-card" style="padding: 2.5rem 1rem; text-align: center; color: #64748b;">Belum ada kegiatan tersimpan di database. Silakan klik "Tambah Kegiatan".</div>`;
+
   return `
     <div class="page-container activities-page">
       <div class="page-header">
@@ -97,38 +140,56 @@ export function renderActivitiesPage(activities: ActivityDocument[], initialSort
       </div>
 
       <div class="panel">
-        <div class="table-scroll-hint" aria-hidden="true">
-          <span>👉 Geser tabel ke kanan untuk melihat semua kolom & aksi</span>
-        </div>
-        <div class="table-responsive">
-          <table class="data-table activities-table">
-            <thead>
-              <tr>
-                <th>Hari / Tanggal</th>
-                <th>Waktu (WIB)</th>
-                <th>Judul Kegiatan & No. Agenda</th>
-                <th>Tahap Administrasi</th>
-                <th>Status</th>
-                <th>Versi</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="activitiesTableBody">
-              ${rowsHtml}
-              ${activities.length > 0 ? `
-                <tr id="emptySearchRow" style="display: none;">
-                  <td colspan="7" class="text-center" style="padding: 2.5rem 1rem; background: #fafafa;">
-                    <div style="font-size: 1.5rem; margin-bottom: 0.35rem;">🔍</div>
-                    <div style="font-weight: 600; font-size: 1rem; color: #1e293b; margin-bottom: 0.25rem;">Tidak ada kegiatan yang sesuai dengan pencarian atau filter.</div>
-                    <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 1rem;">Coba ubah kata kunci atau atur ulang filter.</div>
-                    <button type="button" id="btnResetActivityFilter" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem;">
-                      <span>🔄</span> Atur Ulang Filter
-                    </button>
-                  </td>
+        <div class="desktop-only">
+          <div class="table-scroll-hint" aria-hidden="true">
+            <span>👉 Geser tabel ke kanan untuk melihat semua kolom & aksi</span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table activities-table">
+              <thead>
+                <tr>
+                  <th>Hari / Tanggal</th>
+                  <th>Waktu (WIB)</th>
+                  <th>Judul Kegiatan & No. Agenda</th>
+                  <th>Tahap Administrasi</th>
+                  <th>Status</th>
+                  <th>Versi</th>
+                  <th>Aksi</th>
                 </tr>
-              ` : ''}
-            </tbody>
-          </table>
+              </thead>
+              <tbody id="activitiesTableBody">
+                ${rowsHtml}
+                ${activities.length > 0 ? `
+                  <tr id="emptySearchRow" style="display: none;">
+                    <td colspan="7" class="text-center" style="padding: 2.5rem 1rem; background: #fafafa;">
+                      <div style="font-size: 1.5rem; margin-bottom: 0.35rem;">🔍</div>
+                      <div style="font-weight: 600; font-size: 1rem; color: #1e293b; margin-bottom: 0.25rem;">Tidak ada kegiatan yang sesuai dengan pencarian atau filter.</div>
+                      <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 1rem;">Coba ubah kata kunci atau atur ulang filter.</div>
+                      <button type="button" id="btnResetActivityFilter" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                        <span>🔄</span> Atur Ulang Filter
+                      </button>
+                    </td>
+                  </tr>
+                ` : ''}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="mobile-only">
+          <div class="activities-cards-container" id="activitiesCardsContainer">
+            ${cardsHtml}
+            ${activities.length > 0 ? `
+              <div id="emptySearchCard" class="empty-search-card" style="display: none; padding: 2rem 1rem; text-align: center; background: #fafafa; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                <div style="font-size: 1.5rem; margin-bottom: 0.35rem;">🔍</div>
+                <div style="font-weight: 600; font-size: 1rem; color: #1e293b; margin-bottom: 0.25rem;">Tidak ada kegiatan yang sesuai dengan pencarian atau filter.</div>
+                <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 1rem;">Coba ubah kata kunci atau atur ulang filter.</div>
+                <button type="button" id="btnResetActivityFilterMobile" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <span>🔄</span> Atur Ulang Filter
+                </button>
+              </div>
+            ` : ''}
+          </div>
         </div>
       </div>
     </div>

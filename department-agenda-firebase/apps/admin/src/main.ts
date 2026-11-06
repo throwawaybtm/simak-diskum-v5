@@ -491,7 +491,7 @@ async function router() {
     ]);
     if (sessionToken !== activeSessionEpoch || (currentAuthState !== 'AUTHENTICATED_ADMIN' && currentAuthState !== 'AUTHENTICATED_EDITOR')) return;
     contentContainer.innerHTML = renderDashboardPage(activities, currentLookups.locations);
-  } else if (hash === 'activities') {
+  } else if (hash === 'activities' || hash === 'agenda') {
     const [{ renderActivitiesPage }, activities] = await Promise.all([
       import('./pages/ActivitiesPage'),
       loadActivities()
@@ -560,9 +560,15 @@ async function router() {
     });
   } else {
     contentContainer.innerHTML = `
-      <div class="panel">
-        <h3>Modul "${hash}"</h3>
-        <p>Modul ini siap dikembangkan pada tahapan berikutnya sesuai jadwal Gate.</p>
+      <div class="panel not-found-panel">
+        <div class="not-found-content">
+          <div class="not-found-icon">🔍</div>
+          <h3>Halaman Tidak Ditemukan</h3>
+          <p>Halaman atau modul "<strong>${hash}</strong>" tidak ditemukan pada sistem SIMAK DISKUM.</p>
+          <div class="not-found-actions">
+            <a href="#dashboard" class="btn btn-primary">Kembali ke Dashboard</a>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -573,13 +579,14 @@ function bindActivitiesListEvents() {
   const stageSelect = document.getElementById('filterStageSelect') as HTMLSelectElement | null;
   const sortSelect = document.getElementById('selectActivitySort') as HTMLSelectElement | null;
   const tbody = document.getElementById('activitiesTableBody');
+  const cardsContainer = document.getElementById('activitiesCardsContainer');
   const emptySearchRow = document.getElementById('emptySearchRow');
+  const emptySearchCard = document.getElementById('emptySearchCard');
   const resetBtn = document.getElementById('btnResetActivityFilter');
+  const resetBtnMobile = document.getElementById('btnResetActivityFilterMobile');
 
-  const reorderRows = (sort: string) => {
-    if (!tbody) return;
-    const rows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr[data-activity-row]'));
-    rows.sort((a, b) => {
+  const sortElements = <T extends HTMLElement>(items: T[], sort: string): T[] => {
+    return items.sort((a, b) => {
       const dateA = a.getAttribute('data-startdate') || '';
       const dateB = b.getAttribute('data-startdate') || '';
       const timeA = a.getAttribute('data-starttime') || '00:00';
@@ -628,15 +635,25 @@ function bindActivitiesListEvents() {
       }
       return 0;
     });
+  };
 
-    rows.forEach(r => tbody.appendChild(r));
-    if (emptySearchRow) tbody.appendChild(emptySearchRow);
+  const reorderRows = (sort: string) => {
+    if (tbody) {
+      const rows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr[data-activity-row]'));
+      sortElements(rows, sort).forEach(r => tbody.appendChild(r));
+      if (emptySearchRow) tbody.appendChild(emptySearchRow);
+    }
+    if (cardsContainer) {
+      const cards = Array.from(cardsContainer.querySelectorAll<HTMLElement>('div[data-activity-row]'));
+      sortElements(cards, sort).forEach(c => cardsContainer.appendChild(c));
+      if (emptySearchCard) cardsContainer.appendChild(emptySearchCard);
+    }
   };
 
   const applyFilters = () => {
     const query = (searchInput?.value || '').trim().toLowerCase();
     const stage = stageSelect?.value || 'ALL';
-    const rows = document.querySelectorAll<HTMLTableRowElement>('tr[data-activity-row]');
+    const rows = document.querySelectorAll<HTMLElement>('[data-activity-row]');
 
     let visibleCount = 0;
     rows.forEach(row => {
@@ -652,13 +669,15 @@ function bindActivitiesListEvents() {
       if (isVisible) visibleCount++;
     });
 
-    const emptyActivitiesRow = document.getElementById('emptyActivitiesRow');
+    const isFiltered = Boolean(query || stage !== 'ALL');
+    const tableRows = tbody ? tbody.querySelectorAll<HTMLTableRowElement>('tr[data-activity-row]') : [];
+    const visibleTableRows = Array.from(tableRows).filter(r => r.style.display !== 'none');
+
     if (emptySearchRow) {
-      const isFiltered = Boolean(query || stage !== 'ALL');
-      emptySearchRow.style.display = (visibleCount === 0 && (rows.length > 0 || isFiltered)) ? '' : 'none';
-      if (emptyActivitiesRow) {
-        emptyActivitiesRow.style.display = (visibleCount === 0 && !isFiltered) ? '' : 'none';
-      }
+      emptySearchRow.style.display = (visibleTableRows.length === 0 && (tableRows.length > 0 || isFiltered)) ? '' : 'none';
+    }
+    if (emptySearchCard) {
+      emptySearchCard.style.display = (visibleTableRows.length === 0 && (tableRows.length > 0 || isFiltered)) ? '' : 'none';
     }
   };
 
@@ -671,15 +690,16 @@ function bindActivitiesListEvents() {
     });
   }
 
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (searchInput) searchInput.value = '';
-      if (stageSelect) stageSelect.value = 'ALL';
-      if (sortSelect) sortSelect.value = 'NEWEST';
-      reorderRows('NEWEST');
-      applyFilters();
-    });
-  }
+  const resetHandler = () => {
+    if (searchInput) searchInput.value = '';
+    if (stageSelect) stageSelect.value = 'ALL';
+    if (sortSelect) sortSelect.value = 'NEWEST';
+    reorderRows('NEWEST');
+    applyFilters();
+  };
+
+  if (resetBtn) resetBtn.addEventListener('click', resetHandler);
+  if (resetBtnMobile) resetBtnMobile.addEventListener('click', resetHandler);
 
   document.querySelectorAll<HTMLButtonElement>('button[data-delete-id]').forEach(btn => {
     btn.onclick = async () => {

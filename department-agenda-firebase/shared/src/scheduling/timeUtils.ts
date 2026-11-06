@@ -365,3 +365,96 @@ export function formatDynamicScheduleTitlePeriod(startDate: string, endDate: str
     return 'BULAN OKTOBER 2026';
   }
 }
+
+/**
+ * Checks whether a given calendar year is a leap year.
+ */
+export function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+}
+
+/**
+ * Returns the exact number of days in a given calendar month (1-12) and year.
+ * Correctly accounts for February in leap years.
+ */
+export function getDaysInMonth(year: number, month: number): number {
+  if (month < 1 || month > 12) return 0;
+  if (month === 2) {
+    return isLeapYear(year) ? 29 : 28;
+  }
+  if (month === 4 || month === 6 || month === 9 || month === 11) {
+    return 30;
+  }
+  return 31;
+}
+
+/**
+ * Converts a canonical ISO date string (YYYY-MM-DD) into user-facing dd/mm/yyyy.
+ * Zero-pads day and month.
+ * e.g. "2026-10-30" -> "30/10/2026"
+ * e.g. "2026-05-04" -> "04/05/2026"
+ */
+export function formatDdmmyyyy(isoDate: string): string {
+  if (!isoDate || typeof isoDate !== 'string') return '';
+  const trimmed = isoDate.trim();
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return trimmed;
+  const [, y, m, d] = match;
+  return `${d}/${m}/${y}`;
+}
+
+/**
+ * Parses and strictly validates a user-input dd/mm/yyyy string into canonical YYYY-MM-DD.
+ * Supports '/' or '-' delimiters.
+ * Strictly validates calendar correctness (leap years, month days, year bounds 1900-2100).
+ * Rejects impossible dates such as "31/02/2026", "29/02/2025", "31/04/2026".
+ * Returns canonical YYYY-MM-DD or null if invalid.
+ */
+export function parseDdmmyyyy(displayDate: string): string | null {
+  if (!displayDate || typeof displayDate !== 'string') return null;
+  const trimmed = displayDate.trim();
+  const match = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (!match) return null;
+
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
+
+  if (isNaN(year) || year < 1900 || year > 2100) return null;
+  if (isNaN(month) || month < 1 || month > 12) return null;
+
+  const maxDays = getDaysInMonth(year, month);
+  if (isNaN(day) || day < 1 || day > maxDays) return null;
+
+  const yStr = String(year).padStart(4, '0');
+  const mStr = String(month).padStart(2, '0');
+  const dStr = String(day).padStart(2, '0');
+  return `${yStr}-${mStr}-${dStr}`;
+}
+
+/**
+ * Strictly verifies whether a display string conforms to a valid dd/mm/yyyy date.
+ */
+export function isValidDdmmyyyy(displayDate: string): boolean {
+  return parseDdmmyyyy(displayDate) !== null;
+}
+
+/**
+ * Validates a start date and end date pair.
+ * Checks date validity and ensures startDate <= endDate.
+ */
+export function validateDateRange(
+  startDateIso: string,
+  endDateIso: string
+): { valid: boolean; error?: string } {
+  if (!startDateIso || !endDateIso) {
+    return { valid: false, error: 'Tanggal mulai dan tanggal akhir wajib diisi.' };
+  }
+  if (startDateIso > endDateIso) {
+    return {
+      valid: false,
+      error: 'Tanggal mulai tidak boleh lebih besar dari tanggal akhir.'
+    };
+  }
+  return { valid: true };
+}
