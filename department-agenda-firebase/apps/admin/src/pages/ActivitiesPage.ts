@@ -65,7 +65,7 @@ export function renderActivitiesPage(activities: ActivityDocument[], initialSort
         const statusIndonesian = isCancelled ? 'Dibatalkan' : (act.status === 'COMPLETED' ? 'Selesai' : 'Terjadwal');
 
         return `
-          <div class="activity-mgmt-card ${isCancelled ? 'card-cancelled' : ''}" data-activity-row data-id="${act.id}" data-startdate="${act.startDate}" data-starttime="${act.startTime || ''}" data-status="${act.status}" data-stage="${stage}" data-title="${act.title.toLowerCase()}" data-agenda="${agendaNumber.toLowerCase()}">
+          <div class="activity-mgmt-card activity-management-card ${isCancelled ? 'card-cancelled' : ''}" data-activity-row data-id="${act.id}" data-startdate="${act.startDate}" data-starttime="${act.startTime || ''}" data-status="${act.status}" data-stage="${stage}" data-title="${act.title.toLowerCase()}" data-agenda="${agendaNumber.toLowerCase()}">
             <div class="card-mgmt-header">
               <span class="card-mgmt-date">${dateSpan}</span>
               <span class="status-badge status-${act.status.toLowerCase()}">${statusIndonesian}</span>

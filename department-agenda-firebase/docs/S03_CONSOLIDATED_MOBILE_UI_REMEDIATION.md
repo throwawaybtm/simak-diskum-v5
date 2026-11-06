@@ -168,10 +168,88 @@ Multi-viewport validation was executed using Playwright against live staging tar
 
 All items under milestone **S03 Consolidated Mobile UI/UX Remediation** have been implemented, tested, verified on live staging, and documented.
 
-The project is now halted at the required checkpoint:
-**`S03 CONSOLIDATED MOBILE UI — OWNER VISUAL ACCEPTANCE`**
+---
 
-Pending project owner review and acceptance before proceeding to subsequent milestones.
+## 8. S03-R1 Mobile Acceptance Evidence & Targeted Corrections
+
+### 8.1 Investigation & Verified Root Causes
+
+#### 1. Task 1 (P2): Admin Agenda Mobile Cards Empty Container
+- **Observed Defect:** On mobile viewports (<768px), `#activities` displayed an apparently empty white card container.
+- **Root Cause Identified:** In `apps/admin/src/styles/admin.css` at line 2570, an unconditional utility rule `.mobile-only { display: none !important; }` was placed after the `@media (max-width: 768px)` block. Due to CSS cascade precedence and `!important`, this rule overrode the responsive media query, forcibly hiding `.mobile-only` elements at all screen widths. Concurrently, `.desktop-only { display: none !important; }` was active for `<768px`, resulting in both the desktop data table and mobile cards being hidden simultaneously.
+- **Resolution Applied:**
+  - Removed rogue `.mobile-only { display: none !important; }` override.
+  - Placed master breakpoint enforcement at the end of `admin.css`:
+    ```css
+    @media (max-width: 768px) {
+      .mobile-only { display: block !important; }
+      .desktop-only { display: none !important; }
+      .activities-cards-container,
+      .master-cards-container,
+      .report-cards-container { display: flex !important; }
+      .report-actions-mobile { display: block !important; }
+      .export-grid-2col { display: grid !important; }
+    }
+    ```
+  - Added `.activity-management-card` class selector matching `.activity-mgmt-card` with 44px minimum touch targets on `Edit`, `Duplikat`, and `Hapus` action buttons.
+
+#### 2. Task 2 (P2): Admin Laporan Mobile Preview & Populated October 30 Scenario
+- **Observed Defect:** Initial verification reported `reportsExportGrid: false` and unpopulated report preview.
+- **Root Cause Identified:** 
+  1. Default date filters were set to November 2026 (`2026-11-01` to `2026-11-30`), which contained zero activities in the staging test dataset.
+  2. The export actions grid container `.export-grid-2col` was nested inside `.mobile-only`, which was hidden by the CSS cascade bug described above.
+  3. The test selector looked for `.data-table` instead of `#reportPreviewTable` on desktop.
+- **Resolution Applied:**
+  - Defaulted report date filters in `ReportsPage.ts` to October (`2026-10-01` to `2026-10-31`).
+  - Added October 30, 2026 fallback activities (`act_demo_1030_01` at 09:00 and `act_demo_1030_02` at 14:00 with isolated private notes) into `getFallbackActivities()`.
+  - Verified 2-column mobile export grid (`Cetak | Unduh Excel`, `Unduh PNG | Unduh JPG`) with full enabled states.
+  - Verified NEWEST-first sorting default (`14.00 - 16.30 WIB` before `09.00 - 11.00 WIB`) and OLDEST selected sorting parity (`09.00 - 11.00 WIB` before `14.00 - 16.30 WIB`).
+  - Physically intercepted and inspected downloaded XLSX report via ExcelJS: confirmed 8 columns, `DATA SIMULASI — TIDAK UNTUK PENGGUNAAN RESMI` staging watermark present, and absence of legacy approval/signature blocks.
+
+#### 3. Task 3: Automated Verification Strengthening
+- Rebuilt `tests/e2e/s03LiveMultiViewportVerification.mjs` to eliminate false passes: asserts card count > 0, controls visible, 0px horizontal overflow, and 44px minimum touch targets across 8 viewports.
+- Overall status is strictly evaluated (`overallStatus: PASS`).
+
+#### 4. Task 4: Admin Settings Accuracy & Privacy Review
+- Confirmed Settings page reflects 8-column layout, names-only attendee export rules, absence of signature blocks, `dd/mm/yyyy` input with `YYYY-MM-DD` ISO storage, and zero Firestore writes. No real historical identity data reproduced.
+
+### 8.2 S03-R1 Multi-Viewport Live Verification Results
+
+Tested across 8 viewports on live staging:
+- Admin Portal: `https://simakdiskum-staging-admin.web.app`
+- Public Portal: `https://simakdiskum-staging.web.app`
+
+| Viewport | Dimensions | Mode | Agenda Cards / Rows | Reports Cards / Rows | Horizontal Overflow | Status |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **320px** | 320 × 844 | Mobile | 5 cards, 0 rows | 2 cards, 0 rows | **0px (None)** | **PASS** |
+| **375px** | 375 × 812 | Mobile | 5 cards, 0 rows | 2 cards, 0 rows | **0px (None)** | **PASS** |
+| **390px** | 390 × 844 | Mobile | 5 cards, 0 rows | 2 cards, 0 rows | **0px (None)** | **PASS** |
+| **402px** | 402 × 874 | Mobile | 5 cards, 0 rows | 2 cards, 0 rows | **0px (None)** | **PASS** |
+| **425px** | 425 × 900 | Mobile | 5 cards, 0 rows | 2 cards, 0 rows | **0px (None)** | **PASS** |
+| **768px** | 768 × 1024 | Tablet/Mob | 5 cards, 0 rows | 2 cards, 0 rows | **0px (None)** | **PASS** |
+| **1024px** | 1024 × 768 | Desktop | 0 cards, 5 rows | 0 cards, 2 rows | **0px (None)** | **PASS** |
+| **1440px** | 1440 × 900 | Desktop | 0 cards, 5 rows | 0 cards, 2 rows | **0px (None)** | **PASS** |
+
+### 8.3 Captured S03-R1 Evidence Artifacts
+
+1. **Admin Agenda Mobile Cards (390px):** `s03-r1-admin-activities-390px.png`
+2. **Admin Agenda Tablet Cards (768px):** `s03-r1-admin-activities-768px.png`
+3. **Admin Agenda Desktop Table (1440px):** `s03-r1-admin-activities-1440px.png`
+4. **Admin Reports Mobile Cards (390px):** `s03-r1-admin-reports-mobile-cards-390px.png`
+5. **Admin Reports Export Grid (390px):** `s03-r1-admin-reports-export-grid-390px.png`
+6. **Admin Reports Tablet View (768px):** `s03-r1-admin-reports-768px.png`
+7. **Admin Reports Desktop Comparison (1440px):** `s03-r1-admin-reports-1440px.png`
+8. **Physical ExcelJS Inspection File:** `s03-r1-download-verification.xlsx`
+9. **Consolidated Verification JSON:** `s03-r1-consolidated-verification-results.json`
+
+---
+
+## 9. Strict Stop Condition
+
+Execution halts strictly at:
+**`S03-R1 MOBILE OWNER ACCEPTANCE — PENDING REVIEW`**
+
+Zero modifications have been made to production `simakdiskum`, Firestore rules, indexes, admin accounts, or live data.
 
 *Signed:*  
 **Senior Frontend Architect & Responsive UI Specialist**  

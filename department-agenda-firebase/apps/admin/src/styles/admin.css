@@ -2567,8 +2567,9 @@ td.action-cell {
    S03 CONSOLIDATED RESPONSIVE COMPONENTS & UTILITIES
    ==================================================== */
 
+/* Desktop base visibility (>768px) */
 .mobile-only {
-  display: none !important;
+  display: none;
 }
 .desktop-only {
   display: block;
@@ -2651,7 +2652,8 @@ td.action-cell {
   gap: 1rem;
   width: 100%;
 }
-.activity-mgmt-card {
+.activity-mgmt-card,
+.activity-management-card {
   background: white;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -2661,7 +2663,8 @@ td.action-cell {
   gap: 0.65rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
-.activity-mgmt-card.card-cancelled {
+.activity-mgmt-card.card-cancelled,
+.activity-management-card.card-cancelled {
   background: #fef2f2;
   border-color: #fecaca;
 }
@@ -2916,5 +2919,49 @@ td.action-cell {
   align-items: center;
   justify-content: center;
   padding: 0.65rem 1.5rem;
+}
+
+/* ====================================================
+   S03-R1 FINAL MASTER RESPONSIVE BREAKPOINT ENFORCEMENT
+   Threshold: 768px (Mobile & Tablet <= 768px vs Desktop > 768px)
+   ==================================================== */
+@media (max-width: 768px) {
+  .mobile-only {
+    display: block !important;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+  .activities-cards-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    width: 100% !important;
+  }
+  .master-cards-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.85rem !important;
+    width: 100% !important;
+  }
+  .report-cards-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    width: 100% !important;
+  }
+  .report-actions-mobile {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+  .export-grid-2col {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
 }
 

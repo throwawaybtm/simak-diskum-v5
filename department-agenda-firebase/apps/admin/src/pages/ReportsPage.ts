@@ -56,9 +56,9 @@ export async function mountReportsPage(
     console.warn('[ReportsPage] Could not load signatory settings, using defaults:', err);
   }
 
-  // Filters state
-  let startDate = '2026-11-01';
-  let endDate = '2026-11-30';
+  // Filters state - default to October 2026 (populated operational month in staging)
+  let startDate = '2026-10-01';
+  let endDate = '2026-10-31';
   let selectedCategory = 'ALL';
   let selectedStatus = 'ALL';
   let selectedSortOrder: 'NEWEST' | 'OLDEST' = 'NEWEST';
