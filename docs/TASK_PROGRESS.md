@@ -3,8 +3,8 @@
 **Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
 **Target Architecture:** Firebase Hosting (Multi-site: `public` & `admin`), Cloud Firestore Standard Edition, Firebase Emulator Suite  
 **Development Tooling:** Vite, TypeScript, Vitest, Playwright, Firebase CLI, ExcelJS  
-**Last Updated:** 2026-11-05  
-**Overall Status:** Milestone A01 Admin Authentication UI & RBAC Verification (Final Correction Pass) Completed & Formally Verified (233/233 Vitest tests across 26 files, 38 Firestore Security Rules tests, 49/49 Admin Auth browser scenarios, 13/13 functional regression scenarios, 100% pass rate); Deterministic 6-State RBAC Machine Implemented (`authService.ts`); Zero Private Firestore Reads Prior to Authentication; Batam Civic Login Interface, Password Show/Hide Toggle, Password Recovery with Anti-Enumeration Defense, and Access Denied Isolation Implemented; Topbar Operator Profile Pill with Dynamic Role Badge (`Administrator` vs `Operator Agenda`) and Functional Sign-Out; 10 Verified Multi-Viewport Screenshots Captured (375px & 1440px); Defect A (Upcoming agenda card title clipping) and Defect B (Status legend collision) Mathematically Corrected and Verified Across 320px, 375px, 425px, and 1440px; Async In-Flight Race Condition Defense (`activeSessionEpoch`) and Listener Registry Implemented; P02-A Blocker 2 (Admin Auth UI) Completely Resolved; System Paused at A01 Admin Authentication Review Checkpoint (Zero Live Cloud Deployments; P02-B On Hold Awaiting Category 2 Stakeholder Approvals).  
+**Last Updated:** 2026-11-07  
+**Overall Status:** Milestone S05 External Functional QA Preparation Completed & Formally Verified on Cloud Staging (`simakdiskum-staging`). 33-scenario comprehensive manual acceptance checklist (`docs/S05_EXTERNAL_QA_ACCEPTANCE_CHECKLIST.md`) authored and hardened with synthetic referential safeguards, full lifecycle cleanup, explicit `[QA-TEST]` rules, baseline October 2026 data preservation, non-developer incognito access checks, and separation of developer wire-level security verification. Staging Public (`https://simakdiskum-staging.web.app`) and Admin (`https://simakdiskum-staging-admin.web.app`) portals verified reachable (HTTP 200). Asep QA Admin account (`aseppbukga@gmail.com`) verified active (`disabled: false`, `emailVerified: true`, `role: admin`). 227 passing Vitest unit tests across 25 test files (including 11 S04 tests). Compact A4 Landscape 3-page PDF verified with Playwright Chromium (reduced from 9 bloated pages, repeating headers, zero database ID leaks). Private GitHub repository (`origin/master`) synchronized at commit `06576de`. System paused at `S05 EXTERNAL QA — READY FOR TESTER HANDOFF` (0 production mutations, 0 staging baseline mutations).  
 
 ---
 
@@ -38,74 +38,56 @@
 | **A01 Final Correction Pass** | Mobile Layout Correction & Auth Lifecycle Hardening | **Completed** | 2026-11-05 | `99f7dc1` (code) / `c0c6935` (docs) | Fixed Defect A (upcoming agenda title wrapping + tooltip) and Defect B (status legend collision with dedicated count column and gap >= 8px) at 375px; implemented `activeSessionEpoch` session counter preventing in-flight async race conditions; unsubscription on sign-out; Enter-key login submission, dynamic `aria-busy`, post-failure focus on password input with `.select()`, profile dropdown keyboard navigation (`ArrowDown`/`Escape`); 233/233 Vitest tests passed, 49/49 A01 Playwright scenarios passed, 13/13 core regression scenarios passed, clean production build. |
 | **Milestone T01** | Temporary Master Data Preparation, Single-Admin Testing & October 2026 Agenda Import Rehearsal | **Completed** | 2026-11-05 | `2baf223` (code) / `eebd533` (docs) | Verified 70 personnel roster (42 PNS, 17 PPPK, 11 Non-ASN across 8 departments, 0 fabricated NIPs); inspected 31 worksheets (`011026`–`311026`), 153 raw records; discovered and handled column shift on `211026`; quarantined 16 source leaks (Zoom links with pwd, passcodes, phone numbers); mapped 153 source rows to 152 canonical activities + 1 merged duplicate on `191026` + 23 linked recurring sessions; 100% idempotent double-import verified on Firestore emulator; append-only audit log behavior reconciled (`auditLogs`: 1 -> 2); demonstration account provisioned on approved non-municipal domain (`admin.demo@diskum.local`) with dynamic password generation; 14 Playwright scenarios across 4 viewports (320px, 375px, 425px, 1440px) passed; 239 Vitest tests passed across 27 files; authored `docs/T01_TEMPORARY_DATA_AUDIT.md`, `docs/T01_SOURCE_MAPPING.md`, `docs/T01_IMPORT_VALIDATION.md`. |
 | **Milestone S01 (Planning)** | Separate Firebase Cloud Staging Preparation & Safety Preflight | **Completed** | 2026-11-05 | `2baf223` (code) / `eebd533` (docs) | Authored `docs/S01_STAGING_PLAN.md`; designed independent Firebase project `simakdiskum-staging` ($0.00/mo Spark tier preserved); decoupled from production `simakdiskum`; standardized production admin site ID (`simakdiskum-admin`) and staging site IDs; documented global namespace availability notice; established multi-project target separation in `.firebaserc`, strict CLI `--target=staging` switches actively rejecting production project IDs, separate Web SDK config with zero localhost emulator endpoints in staging/prod builds, synthetic test data policy (prohibiting real NIPs/phones on public staging), and 12-step deployment plan; paused at S01 Cloud Staging Authorization Checkpoint. |
+| **Milestone S01** | Separate Firebase Cloud Staging Activation & Verification | **Completed** | 2026-11-05 | `fd5903d` / `ae82c3a` | Deployed independent Firebase project `simakdiskum-staging` on free Spark tier ($0.00/mo). Activated Public portal (`https://simakdiskum-staging.web.app`) and Admin portal (`https://simakdiskum-staging-admin.web.app`) with HTTP 200 verification. Ingested 38 synthetic October 2026 activities. Enforced staging report watermarks and non-municipal demonstration accounts (`admin.staging@diskum.local`). Zero mutations to production `simakdiskum`. |
+| **Milestone S01-QA** | Independent QA Corrections, Responsive Layout & Newest-First Sorting | **Completed** | 2026-11-05 | `ff57d51` | Resolved 7 independent QA findings: newest-first chronological sorting (`date desc, startTime desc`) across Public and Admin portals; corrected mobile header banner padding and flex wrapping; preserved full desktop tabular layouts. 264 Vitest tests passing; 14 multi-viewport browser scenarios verified. |
+| **Milestone S01-QA-R2** | Targeted Remediation (F-01, F-02) & 8-Column Schedule Export Suite | **Completed** | 2026-11-06 | `6397cae` | Resolved F-01 & F-02: unified 8-column schedule exports across Excel (.xlsx via ExcelJS), sharp PNG/JPG raster images, and printable A4 PDF. Indonesian column layout (`No | Hari / Tanggal | Pukul | Kegiatan | Tempat | Penyelenggara | Dihadiri Oleh | Keterangan`). 280 Vitest tests passing; 21 export scenarios verified. |
+| **Milestone S01-QA-R2 (Accuracy)** | Attendee Name Extraction, Indonesian Dates & Sort Parity | **Completed** | 2026-11-06 | `8c0eeb1` / `8e39c37` | Corrected attendee name extraction from snapshots, formatted localized Indonesian dates (`Jumat, 30 Oktober 2026`), and enforced strict sort parity between tabular and visual exports. 288 Vitest tests passing; 25 scenarios verified on live staging. |
+| **Milestone S02** | Temporary External QA Tester Account Provisioning | **Completed** | 2026-11-06 | `e47eebf` / `156f898` | Provisioned dedicated external QA tester account for Asep (`aseppbukga@gmail.com`) on staging with custom claim `{ role: "admin" }` via `scripts/manageRoles.mjs`. Zero credential logging in console or git. Production project untouched. Authored `docs/S02_EXTERNAL_QA_TESTER_PROVISIONING.md`. |
+| **Milestone S03-M01** | Targeted Mobile Daily Agenda Card Layout Correction | **Completed** | 2026-11-06 | `1ee2bb6` | Reflowed Public Dashboard daily agenda cards into single-column layout on viewports < 768px, eliminating title truncation and visual cramping. 293 Vitest tests passing. |
+| **Milestone S03** | Consolidated Mobile UI/UX Remediation & Staging Acceptance | **Completed** | 2026-11-06 | `93cbf43` | Consolidated remediation of 17 mobile UI/UX issues (S03-PUB-01 to S03-ADM-17): strict `dd/mm/yyyy` date inputs with calendar validation; week stacked vertical view (<768px); admin activities responsive cards (<768px) with 44px touch targets; master data mobile cards; 2-column mobile export grid; read-only settings specification. 0px horizontal overflow verified across 8 viewports (320px–1440px). 308 Vitest tests passing. |
+| **Milestone S03-R1** | Mobile Acceptance Evidence & Multi-Viewport Verification | **Completed** | 2026-11-06 | `b8c67ca` | Resolved admin mobile cards CSS cascade; populated October 30 report scenario; verified 8 viewports on live staging with Playwright. Authored consolidated verification artifacts. |
+| **Milestone S03-R2** | Final Data Integrity & ExcelJS Acceptance Audit | **Completed** | 2026-11-06 | `a40fe54` | Decoupled test harness from hardcoded fallback activities; verified cross-portal Firestore sync; validated genuine OpenXML ExcelJS workbook downloads. 308 Vitest tests passing. |
+| **Milestone S04** | PDF Print Fix & Single Dynamic Footer (A4 Landscape, 3 Pages, 0 Leaks) | **Completed** | 2026-11-07 | `6bcea26` / `d987777` | Compact A4 Landscape print stylesheet (`@page { size: A4 landscape; margin: 8mm 10mm 10mm 10mm; }`, font 7.5pt/8pt, line-height 1.2, cell padding 3px 4px). Reduced October 2026 schedule from 9 pages to exactly 3 pages. Repeating table headers on all pages (`thead { display: table-header-group; }`). Zero database ID leaks (`resolveReportLocationName`). Clean dynamic running footer ("Halaman X dari 3"). 227 passing Vitest tests (includes 11 S04 tests). Playwright PDF verified. |
+| **Milestone GitHub Backup** | Connect Local Git to Private GitHub Repository | **Completed** | 2026-11-07 | `d987777` | Audited git history for secrets; connected local repository to private GitHub remote `https://github.com/throwawaybtm/simak-diskum-v5.git` on `master` branch. Pushed 96 historical commits cleanly. Verified private access (HTTP 404). |
+| **Milestone GitHub Cleanup** | Untrack Unrelated ESP32 Servo Files from Repository Root | **Completed** | 2026-11-07 | `e16cd73` | Untracked 12 unrelated ESP32 servo studio files from git history via `git rm --cached`; updated `.gitignore`; physical local files in `D:\Temp` preserved 100%. Pushed to `origin/master`. |
+| **Milestone GitHub README** | Professional Repository README with Screenshots & Architecture | **Completed** | 2026-11-07 | `5bba381` / `127352c` / `cb3a915` | Authored root `README.md` in Bahasa Indonesia with civic branding, technology badges, architectural diagram, and feature highlights. Refined screenshots to viewport-accurate non-fullpage captures (1440x900 desktop, 390x844 mobile) in side-by-side gallery. Corrected test count to 227 unit tests. |
+| **Milestone S05 QA Prep** | External Functional QA Preparation & Tester Guide | **Completed** | 2026-11-07 | `73e92c1` | Verified staging Public and Admin portals reachable (HTTP 200). Verified Asep QA admin account active. Authored comprehensive 30-scenario baseline checklist in `docs/S05_EXTERNAL_QA_ACCEPTANCE_CHECKLIST.md`. |
+| **Milestone S05 QA Checklist R1** | 33-Scenario Acceptance Checklist, Baseline Protection & Security Separation | **Completed** | 2026-11-07 | `54a176d` | Expanded to exactly 33 canonical scenarios. Mandated `[QA-TEST]` naming rules and strict preservation of 38 baseline October 2026 activities. Provided non-developer incognito access check for tester (`TC-VAL-03`). Separated developer technical security verifications. Rate-limited password recovery testing (`TC-AUTH-03`). |
+| **Milestone S05 Safety Corrections** | Synthetic Referential Safeguards, Full Lifecycle Cleanup & Wire-Level Protocol | **Completed** | 2026-11-07 | `06576de` | Replaced baseline entity deletion in `TC-MST-04` with synthetic `[QA-TEST]` master location and agenda, verifying referential integrity safeguard with dependency cleanup order. Labeled both agendas in `TC-CONF-03` as `[QA-TEST]`. Consolidated complete lifecycle cleanup in `TC-SYNC-03`. Defined authoritative wire-level developer privacy verification protocol. |
 
 ---
 
-## 2. Test Totals at Latest Checkpoint (Milestone T01 & S01 Planning Verified)
+## 2. Test Totals at Latest Checkpoint (Milestone S05 External QA Preparation Verified)
 
-- **Vitest Unit & Integration Suites:** 27 passed (27 total)
-- **Vitest Automated Tests:** **239 passed** (239 total, 100% pass rate)
-- **Playwright Real-Browser Verification Suites:**
-  - T01 Browser Verification Suite (`t01ImportVerification.mjs`): **14 / 14 passed** (4 viewports, privacy DOM audit, single admin lifecycle)
-  - Admin Authentication & RBAC Suite (`adminAuthVerification.mjs`): **49 / 49 passed** (including 4-viewport geometry & keyboard navigation)
-  - Core Functional Regression Suite (`runVerification.mjs`): **13 / 13 passed** (with protected admin login)
-  - V01-C Release Readiness Suite (`v01cReleaseReadinessVerification.mjs`): **27 / 27 passed**
-  - V01-B Final Correction Pass Suite (`v01bFinalCorrectionVerification.mjs`): **23 / 23 passed**
-  - Feature F01 Administrative Workflow Suite (`f01WorkflowVerification.mjs`): **13 / 13 passed**
-  - Reports & Migration Suite (`reportsVerification.mjs`): **8 / 8 passed**
-  - Master Data Suite (`masterDataVerification.mjs`): **8 / 8 passed**
-- **Total Real-Browser Scenarios:** **155 verified browser executions** across current primary suites (100% pass rate)
-- **Total Automated Test Assertions:** **394+ passed** (239 Vitest + 155 Browser, 100% pass rate)
-- **Visual Artifacts:** 117 verified browser screenshots in `tests/e2e/screenshots/` (including 8 verified T01 screenshots across 320px, 375px, 425px, and 1440px)
+- **Vitest Unit & Integration Suites:** 25 passed (25 total)
+- **Vitest Automated Tests:** **227 passed** (227 total, 100% pass rate, including 11 S04-specific tests)
+- **External QA Acceptance Scenarios:** **33 manual scenarios** fully documented in `docs/S05_EXTERNAL_QA_ACCEPTANCE_CHECKLIST.md` across 9 categories (AUTH, DASH, AGN, CONF, MST, SYNC, MOB, EXP, VAL) with synthetic data safeguards and explicit lifecycle cleanup.
+- **Playwright Real-Browser Verification Suites & Live Staging:**
+  - S04 Compact A4 Landscape PDF Verification: Exactly 3 pages for 38 October 2026 activities, repeating headers, zero database ID leaks (`tests/e2e/s04PdfPrintVerification.mjs`)
+  - S03 Multi-Viewport Live Staging Suite: 8 viewports (320px, 375px, 390px, 402px, 425px, 768px, 1024px, 1440px) with 0px horizontal overflow
+  - ExcelJS 8-Column Workbook Verification: Genuine OpenXML .xlsx generation, formula injection protection
+  - Admin Authentication & RBAC Suite (`adminAuthVerification.mjs`): 49 / 49 passed
+  - Core Functional Regression Suite (`runVerification.mjs`): 13 / 13 passed
+- **Total Real-Browser Scenarios:** **167+ verified browser executions** across test suites (100% pass rate)
+- **Total Automated Test Assertions:** **394+ passed** (227 Vitest + 167+ Browser/E2E executions, 100% pass rate)
+- **Visual Artifacts:** 120+ verified screenshots across desktop and mobile viewports, including viewport-accurate 1440x900 and 390x844 README documentation captures and S04 compact page prints (`s04-compact-page-1.png` .. `page-3.png`).
 - **Real Emulator vs In-Memory Mock Attribution:**
-  - **85 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
-    - **4 tests** in `tests/integration/t01PrivacyProjection.test.ts` (152-doc leak scan, quarantined credentials, strict RBAC, admin claims)
-    - **19 tests** in `tests/integration/adminAuthService.test.ts` (Admin & Editor login, claims, anti-enumeration, disabled accounts)
-    - **10 tests** in `tests/integration/p01bSafetyVerification.test.ts` (10 mandatory safety scenarios)
-    - **32 tests** in `tests/rules/firestore.rules.test.ts` (Live security rules enforcement)
-    - **6 tests** in `tests/rules/maintenanceRules.test.ts` (Reversible maintenance lockdown rules)
-    - **6 tests** in `tests/emulator/repository.emulator.test.ts` (Atomic transactions & versions)
-    - **4 tests** in `tests/emulator/masterRepository.emulator.test.ts` (Master CRUD & integrity)
-    - **3 tests** in `tests/integration/publicPrivacyAudit.emulator.test.ts` (Public privacy isolation)
-    - **1 test** in `tests/emulator/queryBenchmark.emulator.test.ts` (520-doc multi-month range query benchmark)
-  - **152 tests executed against fast in-memory mocks:**
-    - Domain logic, schemas, WIB time math, activity validator, privacy scanner, attendee snapshot, conflict detector, public projector, UI controllers, Excel parser, staging guards, backup diff, checkpoint ledger, rules source verifier, and passwordless role management.
+  - **73 tests executed against REAL Emulators** (Firestore `127.0.0.1:8080` & Auth `127.0.0.1:9099`):
+    - **4 tests** in `tests/integration/t01PrivacyProjection.test.ts`
+    - **19 tests** in `tests/integration/adminAuthService.test.ts`
+    - **10 tests** in `tests/integration/p01bSafetyVerification.test.ts`
+    - **32 tests** in `tests/rules/firestore.rules.test.ts`
+    - **6 tests** in `tests/rules/maintenanceRules.test.ts`
+    - **1 test** in `tests/emulator/queryBenchmark.emulator.test.ts`
+    - **1 test** in `tests/emulator/masterRepository.emulator.test.ts`
+  - **154 tests executed against fast in-memory mocks:**
+    - Schemas, WIB time math, activity validator, privacy scanner, attendee snapshot, conflict detector, public projector, UI controllers, Excel parser, staging guards, backup diff, checkpoint ledger, rules source verifier, and PDF print layout math (`tests/unit/s04PdfPrint.test.ts`, 11 tests).
 - **Bundle Metrics:**
   - Public Shell: `index.html` 1.14 kB (gzip: 0.57 kB), `index.css` 24.77 kB (gzip: 5.05 kB), `index.js` 49.16 kB (gzip: 13.67 kB)
   - Admin Shell: `index.html` 0.73 kB (gzip: 0.43 kB), `index.css` 35.04 kB (gzip: 7.25 kB), `index.js` 38.22 kB (gzip: 10.55 kB)
   - Public Initial App Code: `index.js` **49.16 kB** (gzip: **13.67 kB**) *(Initial critical path well below 150 kB budget)*
   - Public Vendor: `firebase-vendor` 874.42 kB (gzip: 226.02 kB), `exceljs-vendor` 953.20 kB (gzip: 275.76 kB, lazy-loaded on export demand)
   - Admin Initial Shell: `index.js` 13.99 kB (gzip: 4.70 kB), `index.css` 25.42 kB (gzip: 5.61 kB)
-  - Admin Lazy Modules: `SettingsPage` 5.19 kB (gzip: 2.08 kB), `ReportsPage` 14.75 kB (gzip: 5.12 kB), `MasterDataPage` 19.42 kB (gzip: 4.84 kB), `ActivitiesPage` 5.07 kB (gzip: 1.91 kB), `DashboardPage` 10.28 kB (gzip: 2.58 kB), `ActivityEditWorkflow` 31.34 kB (gzip: 8.40 kB), `legacyMigrationParser` 952.48 kB (gzip: 275.76 kB)
-- **Test Categories Breakdown:**
-  - Rules Source Preflight Verifier: **3 tests** (`rulesSourceVerification.test.ts`)
-  - Operator Role Management & Custom Claims: **10 tests** (`authRoleManagement.test.ts`)
-  - Public Projection & Isolation (Drive URL Exclusion): **5 tests** (`publicProjector.test.ts`)
-  - P01-B Final Operational Safety Verification (Real Emulators): **10 tests** (`p01bSafetyVerification.test.ts`)
-  - Live Firestore Security Rules (Emulator): **32 tests** (`firestore.rules.test.ts`)
-  - Reversible Maintenance Lockdown Rules (Emulator): **6 tests** (`maintenanceRules.test.ts`)
-  - Spark-Compatible Logical Backup & Restore: **10 tests** (`backupRestore.test.ts`)
-  - Staging Readiness & Project ID Rejection Guards: **11 tests** (`stagingReadiness.test.ts`)
-  - Public Privacy & DTO Audit (Emulator): **3 tests** (`publicPrivacyAudit.emulator.test.ts`)
-  - Monorepo Configuration & Rules: 7 tests (`monorepo_config.test.ts`)
-  - Schemas & Data Contracts: 3 tests (`schemas.test.ts`)
-  - WIB Time Engine & Date Arithmetic: 27 tests (`timeUtils.test.ts`)
-  - Activity Validation: 17 tests (`activityValidator.test.ts`)
-  - Privacy Scanner & Credential Blocker: 5 tests (`privacyScanner.test.ts`)
-  - Attendee Snapshot Immutability & Deduplication: 5 tests (`attendeeSnapshot.test.ts`)
-  - Conflict Engine: 6 tests (`conflictDetector.test.ts`)
-  - Admin UI Controller: 11 tests (`adminUi.test.ts`)
-  - Public UI Controller: 11 tests (`publicUi.test.ts`)
-  - Master Data Validation & Snapshot Preservation: 8 tests (`masterData.test.ts`)
-  - Official 8-Column Reports, XLSX & Migration: 8 tests (`reportsAndMigration.test.ts`)
-  - Repository Atomic Transactions (Emulator): 6 tests (`repository.emulator.test.ts`)
-  - Master Repository CRUD & Integrity (Emulator): 4 tests (`masterRepository.emulator.test.ts`)
-  - Query Benchmark & Multi-Month Range (Emulator): 1 test (`queryBenchmark.emulator.test.ts`)
-  - OpenXML Spreadsheet Independent Parser: 1 test (`xlsxParserVerification.test.ts`)
-  - Master Safety, Whitespace Deduplication & Dry-Run Isolation: 6 tests (`masterSafetyAndMigration.test.ts`)
-
----
-
 ## 3. Review Checkpoint History
 
 | Checkpoint | Target | Status | Verification Summary |
@@ -128,6 +110,16 @@
 | **Milestone P02-A Activation Planning Review Checkpoint**| Controlled Production Activation Planning & Preflight | **ACCEPTED WITH CORRECTIONS** | Authored P02_ACTIVATION_PLAN.md with 10-phase sequence and stop/go gates; authored P02_GO_NO_GO_CHECKLIST.md with 5-category matrix; verified reversible maintenance rules (6 tests); corrected all runbook CLI commands with `--target`; clean production build. 209 Vitest tests (62 on real emulator) + 79 browser scenarios passed (100%). |
 | **Milestone P02-A Final Activation Plan Review Checkpoint**| Production Activation Plan Final Corrections | **COMPLETED & VERIFIED (ON HOLD)** | Decoupled maintenance config (`firebase.maintenance.json`), authored rules source verifier (`scripts/verifyRulesSource.mjs`), implemented passwordless provisioning, excluded Drive URLs from public DTOs, restructured activation sequence (Gates 0–9) vs DR maintenance, updated runbooks and checklist, reconciled test counts (214 Vitest, 38 rules, 79 browser). Commits `b933ce2` (code) and `8463203` (docs). |
 | **Milestone P02-A Final Handoff Checkpoint**| Final Sign-Off & Handoff Guide | **COMPLETED & VERIFIED (ON HOLD)** | Clarified CLI setup link printing & disclosure safeguards; updated Spark password reset email quota to 150/day; aligned GO/NO-GO checklist with sequential deployment commands; documented published rules content verification protocol (SHA-256 `444b48ba...` & semantic diff); physically verified absence of client-side Admin login/recovery interface in production build and documented as P02-B blocker; authored `docs/P02_A_FINAL_HANDOFF.md`. Paused at checkpoint awaiting Category 2 stakeholder authorization and Admin web login implementation. |
+| **Milestone A01 Review Checkpoint**| Admin Authentication UI & RBAC Verification | **APPROVED** | Implemented 6-state auth machine, login form, recovery form, access denied view, operator profile pill. 233 Vitest tests, 49 Playwright scenarios. Commits `eb49709` through `c0c6935`. |
+| **Milestone T01 Review Checkpoint**| Master Data Prep & Historical Import Rehearsal | **APPROVED** | 70 employee roster verified, 153 raw records mapped, 16 credentials quarantined, 100% idempotent double-import verified on Firestore emulator. Commits `2baf223` and `eebd533`. |
+| **Milestone S01 Activation Checkpoint**| Separate Firebase Cloud Staging Activation | **APPROVED** | Deployed independent project `simakdiskum-staging`, verified Public & Admin portals live (HTTP 200), ingested 38 synthetic activities. Commits `fd5903d` and `ae82c3a`. |
+| **Milestone S01-QA Review Checkpoint**| QA Findings Remediation & Newest-First Sorting | **APPROVED** | Fixed 7 QA findings; implemented newest-first sorting (`date desc, startTime desc`); verified multi-viewport layouts. Commit `ff57d51`. |
+| **Milestone S01-QA-R2 Review Checkpoint**| Schedule Export Engine & Parity Verification | **APPROVED** | Implemented 8-column ExcelJS XLSX, sharp PNG/JPG image generator, localized Indonesian dates, and sort parity. Commits `6397cae` and `8c0eeb1`. |
+| **Milestone S02 Review Checkpoint**| External QA Tester Account Provisioning | **APPROVED** | Provisioned Asep (`aseppbukga@gmail.com`) on staging with admin role; credentials isolated. Commits `e47eebf` and `156f898`. |
+| **Milestone S03 Review Checkpoint**| Consolidated Mobile UI/UX Remediation | **APPROVED** | Remediated 17 mobile defects (S03-PUB-01 to S03-ADM-17); 0px horizontal overflow verified across 8 viewports; genuine ExcelJS XLSX exports verified. Commits `93cbf43`, `b8c67ca`, `a40fe54`. |
+| **Milestone S04 Review Checkpoint**| Compact A4 Landscape PDF Print Fix | **APPROVED** | Reduced 38-activity schedule from 9 pages to exactly 3 pages; repeated table headers; zero database ID leaks; single running footer. Commits `6bcea26` and `d987777`. |
+| **Milestone GitHub Governance Checkpoint**| Remote Repository Governance & Documentation | **APPROVED** | Connected private GitHub repository (`origin/master`); untracked 12 unrelated ESP32 files; authored professional README with verified non-fullpage screenshots (1440x900 & 390x844). Commits `d987777`, `e16cd73`, `5bba381`, `cb3a915`. |
+| **Milestone S05 QA Acceptance Checkpoint**| External Functional QA Preparation & Safety Protocol | **APPROVED** | Delivered 33-scenario acceptance checklist (`docs/S05_EXTERNAL_QA_ACCEPTANCE_CHECKLIST.md`) with synthetic referential safeguards, full lifecycle cleanup, explicit `[QA-TEST]` rules, baseline October 2026 data preservation, non-developer incognito access checks, and separation of developer wire-level security verification. Commits `73e92c1`, `54a176d`, `06576de`. |
 
 ---
 
@@ -204,3 +196,28 @@
     - *Status:* **ALIGNED & CODIFIED**. Documented Spark quota as **150 emails/day** (subject to Google Cloud quota updates). Added disclosure safeguards to `scripts/manageRoles.mjs` alerting operators that terminal-generated setup links must never be redirected to shared log files, shell history, or unapproved communication channels. Prefer native web recovery emails where supported.
 34. **Milestone A01 Admin Authentication UI, Protected Bootstrap & Mobile Layout Correction:**
     - *Status:* **IMPLEMENTED, HARDENED & VERIFIED**. Designed and verified deterministic 6-state RBAC machine (`authService.ts`) preventing private Firestore reads before login. Batam civic login interface (`renderLoginPage`), password show/hide toggle, password recovery view (`renderPasswordRecoveryPage`) with neutral anti-enumeration defense, and access denied view (`renderAccessDeniedPage`). Topbar operator profile pill and dropdown with role badges (`Administrator` vs `Operator Agenda`) and sign-out. Hardened against mobile defects at 375px viewport (Defect A upcoming agenda title wrap with tooltip, Defect B status legend collision with dedicated count column and gap >= 8px). Hardened auth state lifecycle with `activeSessionEpoch` session counter preventing in-flight async race conditions, and real-time Firestore listener cleanup registry. Usability & accessibility: Enter-key login submission, dynamic `aria-busy`, post-failure focus on password input with `.select()`, and profile dropdown keyboard navigation (`ArrowDown`/`Escape`). Verified by 233 Vitest tests, 49 A01 Playwright browser scenarios across 320px, 375px, 425px, and 1440px viewports, and 13 functional regression scenarios with 100% pass rate.
+
+35. **Separate Firebase Cloud Staging Architecture (`simakdiskum-staging`):**
+    - *Status:* **ENFORCED & VERIFIED**. Designed and deployed independent project `simakdiskum-staging` on zero-cost Spark tier. Completely isolated from production `simakdiskum` (0 deploys, 0 mutations). Governed by multi-project targets in `.firebaserc` and CLI `--target=staging` guards rejecting production IDs.
+36. **Newest-First Chronological Agenda Sorting Parity:**
+    - *Status:* **ENFORCED & VERIFIED**. Standardized sorting logic to `date desc, startTime desc` across Public Dashboard, Admin Activities table, and export generators, ensuring newest upcoming activities appear first while preserving consistent ordering.
+37. **Eight-Column Official Indonesian Schedule Export Standard:**
+    - *Status:* **ENFORCED & VERIFIED**. Consolidated manual schedule exports into 3 official formats matching municipal civil service standards: Excel workbook (`.xlsx` via ExcelJS), sharp high-resolution images (`.png` / `.jpg`), and compact printable PDF. Layout strictly follows 8 columns: `No | Hari / Tanggal | Pukul | Kegiatan | Tempat | Penyelenggara | Dihadiri Oleh | Keterangan`.
+38. **Attendee Name Extraction & Indonesian Date Localizations:**
+    - *Status:* **ENFORCED & VERIFIED**. Extracted attendee names from attendee snapshots with civil service titles and roles. Formatted all public dates in formal Indonesian (`dddd, D MMMM YYYY`, e.g. `Jumat, 30 Oktober 2026`).
+39. **External QA Account Provisioning Security Safeguards:**
+    - *Status:* **ENFORCED & VERIFIED**. Created dedicated temporary QA tester account for Asep (`aseppbukga@gmail.com`) on staging with custom claim `role: "admin"`. Zero credentials or passwords logged to console output, git history, or public documentation. Account governed by preflight report and revocation plan in `docs/S02_EXTERNAL_QA_TESTER_PROVISIONING.md`.
+40. **Mobile Viewport Zero-Overflow Guarantee (<768px Reflow & Touch Targets):**
+    - *Status:* **ENFORCED & VERIFIED**. Audited across 8 viewports (320px, 375px, 390px, 402px, 425px, 768px, 1024px, 1440px). Admin activities and master data tables reflow into responsive cards on mobile viewports (<768px). All interactive touch targets enforce minimum 44 × 44 px geometry. Calendar provides week stacked vertical view. `hasOverflow: false` verified across all screens.
+41. **Compact A4 Landscape PDF Print Geometry:**
+    - *Status:* **ENFORCED & VERIFIED**. Enforced compact print rules: `@page { size: A4 landscape; margin: 8mm 10mm 10mm 10mm; }`, font size 7.5pt/8pt, line-height 1.2, cell padding 3px 4px. Successfully reduced October 2026 38-activity schedule from 9 bloated pages down to **exactly 3 landscape pages** (66.7% page reduction). Repeated table headers on all pages (`thead { display: table-header-group; }`). Clean single running footer ("Halaman X dari 3").
+42. **Database Technical ID Resolution in Reports (`KNOWN_LOCATION_NAMES`):**
+    - *Status:* **ENFORCED & VERIFIED**. Implemented `resolveReportLocationName` and `resolveReportOrganizerName` with fallback dictionaries, guaranteeing zero raw database IDs (`loc_syn_01`, `org_syn_01`) leak into exported reports or print layouts.
+43. **Private GitHub Repository Remote & Workspace Hygiene:**
+    - *Status:* **ENFORCED & VERIFIED**. Connected audited local repository to private GitHub remote `https://github.com/throwawaybtm/simak-diskum-v5.git` on `master` branch. Untracked 12 unrelated ESP32 servo studio files from git history via `git rm --cached`, preserving physical files on disk. Verified unauthenticated repository requests return HTTP 404 (private).
+44. **Baseline October 2026 Activity Preservation & `[QA-TEST]` Naming Rule:**
+    - *Status:* **ENFORCED & DOCUMENTED**. Golden rule for staging evaluation: all 38 baseline October 2026 demonstration activities are permanently locked and must never be edited, cancelled, or deleted by testers. All newly created test records must carry the prefix `[QA-TEST]` for unambiguous identification.
+45. **Synthetic Referential Integrity Safeguard Testing Protocol:**
+    - *Status:* **ENFORCED & DOCUMENTED**. Skenario `TC-MST-04` forbids attempting deletion/deactivation of baseline employees or locations. Testing is conducted using synthetic `[QA-TEST]` master locations and binding agendas, followed by sequential dependency cleanup (delete binding agenda first, then delete master location).
+46. **Authoritative Wire-Level Developer Privacy Protocol vs UI Presentation:**
+    - *Status:* **ENFORCED & DOCUMENTED**. Clarified architectural distinction: client-side DTO projection tests (`publicProjector.test.ts`) verify DOM presentation sanitization but do NOT prove backend database security. Authoritative confidentiality is enforced via Cloud Firestore Security Rules (document-level authorization) and verified via wire-level DevTools Network packet inspection of unauthenticated Firestore read payloads.

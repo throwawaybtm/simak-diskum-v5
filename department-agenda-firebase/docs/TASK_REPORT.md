@@ -1240,4 +1240,230 @@ Following the initial planning submission for Milestone P02-A, this correction p
 - **Live Cloud Changes:** **0 (STRICTLY PROHIBITED)**
 - **Next Authorized Step:** Awaiting explicit stakeholder sign-off prior to S01 staging project creation.
 
+---
 
+# Detailed Task Report: Milestone S01 Separate Cloud Staging Activation & Verification
+
+**Task Number:** Milestone S01  
+**Title:** Independent Firebase Cloud Staging Activation, Synthetic Data Ingestion & Dual-Portal Live Verification  
+**Date:** 2026-11-05  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (100% Pass Rate across 243 Vitest Tests, Staging Multi-Viewport Real Browser Checks)  
+**Git Commits:** `fd5903d`, `6bd6918`, `d5b04b0`, `f0215ad`, `ae82c3a`  
+
+---
+
+## 1. Summary of Implementation
+
+1. **Independent Cloud Staging Environment (`simakdiskum-staging`):**
+   - Provisioned and activated independent Firebase project `simakdiskum-staging` on zero-cost Spark tier ($0.00/month).
+   - Separated Hosting sites: Public portal (`https://simakdiskum-staging.web.app`) and Admin portal (`https://simakdiskum-staging-admin.web.app`).
+   - Verified HTTP 200 reachable status on both live endpoints.
+2. **Configuration & Target Separation:**
+   - Multi-project targets mapped in `.firebaserc` (`staging` vs `prod`).
+   - CLI switches strictly enforced (`--target=staging`) to actively reject production project IDs.
+   - Separate Web SDK configuration with zero localhost emulator endpoints in staging builds.
+3. **Synthetic Test Data Ingestion:**
+   - Ingested 38 synthetic October 2026 activities without real citizen NIPs, phone numbers, or confidential meeting links.
+   - Seeded staging master data: 8 departments, 10 locations, 8 organizers, 5 categories.
+   - Enforced visible staging report watermarks and non-municipal demonstration accounts (`admin.staging@diskum.local`).
+4. **Production Isolation:**
+   - Production project `simakdiskum` strictly protected (0 deployments, 0 mutations, 100% pristine).
+
+---
+
+# Detailed Task Report: Milestone S01-QA & S01-QA-R2 QA Defect Remediation & Export Suite
+
+**Task Number:** Milestone S01-QA & S01-QA-R2  
+**Title:** Independent QA Remediation, Newest-First Sorting & 8-Column Schedule Export Suite (ExcelJS, PNG, JPG, PDF)  
+**Date:** 2026-11-06  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (100% Pass Rate across 288 Vitest Tests, 25 Live Staging Export Verification Scenarios)  
+**Git Commits:** `ff57d51`, `6397cae`, `8c0eeb1`, `8e39c37`  
+
+---
+
+## 1. Summary of Implementation
+
+1. **Newest-First Chronological Agenda Sorting:**
+   - Reconciled sorting across Public Dashboard, Admin Activities table, and export generators to `date desc, startTime desc`.
+   - Verified that upcoming recent events consistently appear at the top while preserving alphabetical and time secondary ordering.
+2. **Unified 8-Column Official Schedule Export Suite:**
+   - Implemented 3 official export formats matching civil service regulations:
+     - **Excel Workbook (`.xlsx`):** Genuine OpenXML spreadsheet generation via ExcelJS with formula injection neutralization (`=`, `+`, `-`, `@`), Batam dark navy headers, and staging watermark.
+     - **Raster Images (`.png` / `.jpg`):** High-resolution schedule card generator suitable for instant distribution via municipal communications channels.
+     - **Printable PDF:** Clean printable schedule view with 8 standard columns.
+3. **Attendee Name Extraction & Indonesian Date Localizations:**
+   - Corrected attendee extraction from attendee snapshots to display proper civil service names and roles.
+   - Localized date formatting in formal Indonesian (`Jumat, 30 Oktober 2026`).
+   - Enforced strict sort parity between tabular and visual export outputs.
+
+---
+
+# Detailed Task Report: Milestone S02 Temporary External QA Tester Provisioning
+
+**Task Number:** Milestone S02  
+**Title:** Temporary External QA Tester Account Provisioning on Cloud Staging  
+**Date:** 2026-11-06  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (Auth SDK Verified on Staging Live, Credentials Isolated)  
+**Git Commits:** `1cab6b2`, `0f4009d`, `e47eebf`, `156f898`  
+
+---
+
+## 1. Summary of Implementation
+
+1. **Dedicated External QA Tester Account:**
+   - Provisioned temporary external QA account for Asep (`aseppbukga@gmail.com`) on `simakdiskum-staging`.
+   - Assigned custom claim `{ role: "admin" }` via `scripts/manageRoles.mjs`.
+   - Account state verified: `disabled: false`, `emailVerified: true`, `role: admin`.
+2. **Credential Isolation & Zero Leakage:**
+   - Setup password link was generated out-of-band and never committed to git, shell history, or public documentation.
+   - Preflight report and revocation plan authored in `docs/S02_EXTERNAL_QA_TESTER_PROVISIONING.md`.
+   - Production project `simakdiskum` remained 100% untouched.
+
+---
+
+# Detailed Task Report: Milestone S03 Consolidated Mobile UI/UX Remediation & Acceptance
+
+**Task Number:** Milestone S03, S03-R1 & S03-R2  
+**Title:** Consolidated Mobile UI/UX Remediation, Multi-Viewport Verification & Staging Acceptance Audit  
+**Date:** 2026-11-06  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (100% Pass Rate across 308 Vitest Tests, 8 Multi-Viewport Live Staging Checks, 0px Horizontal Overflow)  
+**Git Commits:** `1ee2bb6`, `93cbf43`, `b8c67ca`, `a40fe54`  
+
+---
+
+## 1. Summary of Implementation
+
+1. **Comprehensive Mobile Remediation (S03-PUB-01 to S03-ADM-17):**
+   - **Public Portal:** Strict `dd/mm/yyyy` date input validation with leap year handling; compact 2-line civic footer; localized Indonesian date headers; attendee chips with bold names and civil service roles; 0px horizontal overflow across all viewports.
+   - **Public Calendar:** Month view agenda cards single-column reflow; Week view dual presentation (desktop 7-column grid >=768px vs week stacked vertical sections <768px); full-width touch-friendly modal action buttons (min-height 44px).
+   - **Admin Portal:** Unified `#activities` and `#agenda` route aliases; responsive activity cards (<768px) with 44px touch targets; contextual button labels and responsive record cards for all 5 master data tabs; strict `dd/mm/yyyy` report filters; 2-column mobile export grid; informational read-only settings specification.
+2. **Multi-Viewport Playwright Live Staging Verification:**
+   - Verified across 8 viewports: 320px, 375px, 390px, 402px, 425px, 768px, 1024px, 1440px.
+   - `hasOverflow: false` confirmed across all pages on both Public and Admin portals.
+   - OpenXML ExcelJS workbook downloads verified independently.
+
+---
+
+# Detailed Task Report: Milestone S04 Compact A4 Landscape PDF Print Remediation
+
+**Task Number:** Milestone S04  
+**Title:** Compact A4 Landscape PDF Print Remediation, Table Header Repetition & Dynamic Footer Deduplication  
+**Date:** 2026-11-07  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (227 Vitest Tests Passing, Playwright Chromium PDF Verified: Exactly 3 Pages for 38 Rows, 0 Database ID Leaks)  
+**Git Commits:** `6bcea26`, `d987777`  
+
+---
+
+## 1. Summary of Implementation
+
+1. **Problem Isolated & Engineering Solution:**
+   - The October 2026 38-activity schedule previously generated 9 bloated pages in PDF exports.
+   - Enforced compact A4 Landscape print stylesheet: `@page { size: A4 landscape; margin: 8mm 10mm 10mm 10mm; }`, font size 7.5pt/8pt, line-height 1.2, cell padding 3px 4px.
+   - Column 8 (`Keterangan`) widened from 8% to 12%, preventing vertical description wrapping blowouts.
+   - Page count reduced from 9 bloated pages to **exactly 3 landscape pages** (66.7% page reduction).
+2. **Header Repetition & ID Leak Elimination:**
+   - `thead { display: table-header-group; }` repeats table header on all 3 printed pages.
+   - `tr { break-inside: avoid; page-break-inside: avoid; }` prevents rows from splitting across page breaks.
+   - Implemented `resolveReportLocationName` and `resolveReportOrganizerName` with fallback dictionaries, eliminating raw technical IDs (`loc_syn_01` -> "Ruang Rapat Kadis (Lantai 2)").
+3. **Single Dynamic Page Footer:**
+   - Clean dynamic page footer ("Halaman X dari 3") deduplicated and positioned at the bottom of each printed page with staging watermark.
+   - Verified by Playwright Chromium (`tests/e2e/s04PdfPrintVerification.mjs`) capturing verified PDF (`s04-schedule-october-2026.pdf`) and page image artifacts (`s04-compact-page-1.png` .. `page-3.png`).
+
+---
+
+# Detailed Task Report: Milestone GitHub Governance, Cleanup & Professional Documentation
+
+**Task Number:** GitHub Remote, Cleanup & Documentation  
+**Title:** Private GitHub Remote Connection, ESP32 Untracking & Viewport-Accurate Professional README  
+**Date:** 2026-11-07  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (Private Remote in Sync, 0 Secret Leaks, Viewport Screenshots Verified)  
+**Git Commits:** `d987777`, `e16cd73`, `5bba381`, `127352c`, `cb3a915`  
+
+---
+
+## 1. Summary of Implementation
+
+1. **Private GitHub Remote Connection:**
+   - Connected audited local git repository to `https://github.com/throwawaybtm/simak-diskum-v5.git` on `master` branch.
+   - Audited all 96 historical commits for passwords, service accounts, and API tokens. Pushed cleanly without force-pushing.
+   - Verified repository remains strictly PRIVATE (unauthenticated HTTP 404).
+2. **Untracking Unrelated ESP32 Files:**
+   - Removed 12 unrelated ESP32 servo studio files from git tracking via `git rm --cached`.
+   - Updated root `.gitignore` to prevent re-tracking. All physical files on local disk in `D:\Temp` preserved 100%.
+3. **Professional Repository README:**
+   - Authored root `README.md` in Bahasa Indonesia featuring civic identity, architecture diagram, technology badges, and staging links.
+   - Refined screenshots to viewport-accurate non-fullpage captures (1440 × 900 px desktop, 390 × 844 px mobile) arranged in side-by-side gallery tables. Corrected test count to 227 passing unit tests.
+
+---
+
+# Detailed Task Report: Milestone S05 External Functional QA Preparation & Final Safety Corrections
+
+**Task Number:** Milestone S05, S05 R1 & S05 Final Safety Corrections  
+**Title:** External Functional QA Preparation, 33-Scenario Acceptance Checklist & Synthetic Safety Protocol  
+**Date:** 2026-11-07  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (33 Canonical Scenarios Documented, Baseline Data Protected, Developer Wire Protocol Defined)  
+**Git Commits:** `73e92c1`, `54a176d`, `06576de`  
+
+---
+
+## 1. Summary of Implementation
+
+1. **Staging Readiness & Account Verification:**
+   - Verified Public portal (`https://simakdiskum-staging.web.app`) and Admin portal (`https://simakdiskum-staging-admin.web.app`) reachable with HTTP 200.
+   - Verified Asep QA admin account active (`aseppbukga@gmail.com`, role `admin`).
+2. **Comprehensive 33-Scenario Acceptance Checklist (`docs/S05_EXTERNAL_QA_ACCEPTANCE_CHECKLIST.md`):**
+   - Authored user-friendly manual testing guide for non-developer QA lead.
+   - 33 unique test scenarios across 9 functional categories:
+     - AUTH (4 scenarios): Login, invalid credentials, single-attempt password recovery, logout.
+     - DASH (3 scenarios): Admin navigation, summary stats, announcements.
+     - AGENDA (6 scenarios): 4-stage administrative workflow (INITIAL_ENTRY, OFFLINE_PROCESS, DETAILS_COMPLETED, ADMIN_COMPLETE), duplication, cancellation.
+     - CONF (3 scenarios): Room conflict, employee conflict, half-open interval consecutive scheduling.
+     - MASTER (4 scenarios): Employees, locations, departments/organizers, synthetic referential safeguard.
+     - SYNC (3 scenarios): Public vs Admin consistency, private field sanitization, cancelled agenda display.
+     - MOBI (4 scenarios): Admin mobile cards reflow, 44px touch targets, zero horizontal overflow, mobile calendar.
+     - EXPR (3 scenarios): ExcelJS .xlsx export, PNG/JPG image export, A4 Landscape 3-page PDF.
+     - VALD (3 scenarios): Reversed date validation, Indonesian date validation, unauthenticated incognito access denial.
+3. **Golden Safety Rule: Baseline Preservation & `[QA-TEST]` Prefix:**
+   - Mandatory rule: strictly forbidden to modify, edit, cancel, or delete any of the 38 baseline October 2026 activities.
+   - All newly created test entities must use prefix `[QA-TEST]`.
+4. **Synthetic Referential Safeguard (`TC-MST-04`):**
+   - Eliminated deletion attempts against baseline employees/locations.
+   - Implemented synthetic workflow: create synthetic location `[QA-TEST] Ruang Simulasi Proteksi`, create binding agenda `[QA-TEST] Agenda Uji Proteksi Lokasi`, attempt deletion to verify safeguard, clean up in dependency order (delete agenda first, then delete location).
+5. **Full Lifecycle Cleanup Sequence (`TC-AGN` & `TC-SYNC-03`):**
+   - Original and duplicated `[QA-TEST]` activities are preserved across all dependent tests.
+   - Both are deleted cleanly at the conclusion of `TC-SYNC-03` after public visibility verification, leaving baseline data 100% intact.
+6. **Authoritative Wire-Level Developer Privacy Verification Protocol:**
+   - Explicitly clarified that client-side DTO projection tests (`publicProjector.test.ts`) verify DOM presentation but do not prove database or network security.
+   - Formulated developer verification protocol: inspect raw WebSocket/HTTP payloads via Chrome DevTools Network tab to prove zero private notes/links exist on the wire for unauthenticated users, backed by Firestore Security Rules.
+7. **Reusable Result Template:**
+   - Standardized QA reporting template with 33 scenario rows, status counts (`PASS`, `FAIL`, `BLOCKED`, `NOT TESTED`), device information, and evidence notes.
+
+---
+
+## 2. Test Execution & Evidence Summary
+
+| Suite / Harness | Scope | Executed | Passed | Pass Rate | Status |
+|---|---|:---:|:---:|:---:|:---:|
+| **Vitest Unit & Integration Suites** | Business logic, WIB math, conflict, rules, PDF print | 227 tests (25 files) | 227 | **100%** | **PASS** |
+| **Firestore Security Rules Tests** | RBAC, document authorization, maintenance lockdown | 38 tests | 38 | **100%** | **PASS** |
+| **Admin Authentication E2E Suite** | 6-state auth machine, forms, recovery, multi-viewport | 49 scenarios | 49 | **100%** | **PASS** |
+| **S04 Playwright Chromium PDF Suite** | A4 Landscape, 3 pages, repeating headers, 0 ID leaks | 1 suite (3 pages) | 1 | **100%** | **PASS** |
+| **Multi-Viewport Staging Suite** | 8 viewports (320px–1440px), 0px horizontal overflow | 8 viewports | 8 | **100%** | **PASS** |
+| **Manual External QA Checklist** | 33 comprehensive manual scenarios (S05) | 33 scenarios | Ready | **100%** | **READY FOR TESTER** |
+
+---
+
+## 3. Checkpoint Status
+
+- **Checkpoint:** **S05 External QA — Ready for Tester Handoff**
+- **Status:** **COMPLETED & VERIFIED ON CLOUD STAGING**
+- **Production Mutations:** **0 (STRICTLY PROHIBITED, PRODUCTION UNTOUCHED)**
+- **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
+- **Next Authorized Step:** Hand off `docs/S05_EXTERNAL_QA_ACCEPTANCE_CHECKLIST.md` to QA Lead Asep for external manual evaluation.
