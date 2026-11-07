@@ -8,7 +8,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-Hosting%20%26%20Auth-FFCA28?style=flat-square&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Firestore](https://img.shields.io/badge/Cloud%20Firestore-Standard-FFA000?style=flat-square&logo=firebase&logoColor=white)](https://firebase.google.com/docs/firestore)
-[![Vitest](https://img.shields.io/badge/Vitest-3.0-6E9F18?style=flat-square&logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-3.0%20(227%20tests)-6E9F18?style=flat-square&logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Playwright](https://img.shields.io/badge/Playwright-1.64-2EAD33?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Milestone](https://img.shields.io/badge/Status-Staging%20Verified%20(S04)-0284C7?style=flat-square)]()
 
@@ -51,7 +51,7 @@ Sistem ini mentransformasikan alur kerja lama berbasis *spreadsheet* menjadi apl
 - **🌐 Portal Publik Terbuka (Public Agenda Portal)**
   - Tampilan Kalender Bulanan, Mingguan, dan Harian yang interaktif.
   - Ringkasan agenda kedinasan hari ini dan pengumuman dinas resmi.
-  - Sanitasi proyeksi data publik (*strict privacy projection*) yang secara otomatis menyaring catatan privat dan kredensial rapat internal.
+  - Sanitasi proyeksi data publik (*strict privacy DTO projection*) pada layer aplikasi yang secara otomatis menyaring catatan privat dan kredensial rapat internal.
 - **🔍 Pencarian & Penyaringan Agenda Dinamis**
   - Penyaringan kegiatan instan berdasarkan rentang tanggal, kategori bidang, unit penyelenggara, dan status pelaksanaan.
   - Pencarian cepat berbasis teks dengan *instant feedback*.
@@ -71,41 +71,42 @@ Sistem ini mentransformasikan alur kerja lama berbasis *spreadsheet* menjadi apl
   - Peringatan dini (*conflict modal*) jika ruangan rapat yang sama telah dipesan atau personil yang bersangkutan telah memiliki penugasan lain pada waktu bersamaan.
 - **📊 Ekspor Jadwal Resmi 8 Kolom (Official 8-Column Schedule Export)**
   - **Excel Murni (`.xlsx`):** Dibuat menggunakan pustaka ExcelJS dengan *header formatting*, lebar kolom proporsional, dan *styling* warna resmi.
-  - **Dokumen PDF A4 Landscape:** Tata letak cetak kompak 3 halaman untuk rekapitulasi 38 agenda bulanan, pengulangan *table header* di setiap halaman cetak, resolusi nama lokasi/penyelenggara resmi (tanpa kebocoran ID database), serta penomoran halaman dinamis.
+  - **Dokumen PDF A4 Landscape:** Tata letak cetak kompak 3 halaman untuk rekapitulasi 38 agenda bulanan (Milestone S04), pengulangan *table header* di setiap halaman cetak, resolusi nama lokasi/penyelenggara resmi (tanpa kebocoran ID database), serta penomoran halaman dinamis ("Halaman X dari 3").
   - **Gambar Visual (`.png` / `.jpg`):** Untuk kebutuhan publikasi media informasi atau kanal pesan instan.
 - **📱 Antarmuka Responsif Modern (Mobile First Design)**
   - Tampilan kartu agenda adaptif (*mobile cards*) yang dirancang khusus untuk layar ponsel (320px, 375px, 390px, 425px) hingga layar desktop (1440px).
   - Desain identitas visual bernuansa khas Kota Batam dengan tipografi jernih dan aksesibilitas tinggi (WCAG 2.1 AA).
-- **🛡️ Keamanan Berlapis & Kontrol Akses (Role-Based Access Control)**
-  - Aturan keamanan Firestore (*Firestore Security Rules*) yang memvalidasi integritas data, format tanggal WIB, dan otorisasi sesi admin.
-  - Mekanisme *optimistic concurrency lockstep* (`expectedVersion`) untuk mencegah insiden penimpaan data saat diedit bersamaan.
+- **🛡️ Keamanan Berlapis, Kontrol Akses & Sanitasi Data**
+  - **Otorisasi Akses Dokumen Firestore:** *Firestore Security Rules* mengontrol otorisasi akses pada tingkat dokumen (*document-level access control*), memvalidasi otorisasi sesi admin, memblokir seluruh mutasi tulis oleh publik, dan memastikan integritas format data kedinasan.
+  - **Minimisasi Data & Proyeksi DTO Publik:** Penyaringan atribut privat (catatan internal, nomor surat rahasia, kredensial rapat) dikelola melalui arsitektur pemisahan struktur dokumen dan sanitasi proyeksi DTO (*Data Transfer Object projection*) pada layer aplikasi sebelum data disajikan ke portal publik.
+  - **Kontrol Konkurensi:** Mekanisme *optimistic concurrency lockstep* (`expectedVersion`) untuk mencegah insiden penimpaan data saat diedit bersamaan.
 
 ---
 
 ## 📸 Galeri Antarmuka
 
-Berikut adalah tangkapan layar langsung dari aplikasi SIMAK DISKUM v5.0 yang diambil pada lingkungan *staging* dan pengujian otomatis:
+Berikut adalah tangkapan layar langsung dari aplikasi SIMAK DISKUM v5.0 yang diambil pada lingkungan *staging* dan pengujian otomatis terkini (Milestone S03 dan S04):
 
 ### 1. Tampilan Desktop (Resolusi 1440px)
 
 | Portal Publik (Masyarakat & Mitra) | Portal Admin (Pengelola Agenda) |
 | :---: | :---: |
-| ![Portal Publik Desktop](department-agenda-firebase/tests/e2e/screenshots/s01-live-public-1440px.png) | ![Portal Admin Desktop](department-agenda-firebase/tests/e2e/screenshots/s01-live-admin-1440px.png) |
-| *Dashboard Portal Publik: Ringkasan Agenda Hari Ini, Kalender Kegiatan & Pengumuman Resmi* | *Dashboard Portal Admin: Kontrol Alur Kerja 4 Tahap, Daftar Agenda & Manajemen Status* |
+| ![Portal Publik Desktop](department-agenda-firebase/tests/e2e/screenshots/s03-public-dayview-1440px.png) | ![Portal Admin Desktop](department-agenda-firebase/tests/e2e/screenshots/s03-admin-activities-1440px.png) |
+| *Dashboard Portal Publik: Ringkasan Agenda Harian, Navigasi Kegiatan & Pengumuman Dinas (Milestone S03 Desktop)* | *Dashboard Portal Admin: Manajemen Agenda Kedinasan, Status Alur Kerja 4 Tahap & Tanggal Indonesia (Milestone S03 Desktop)* |
 
 ### 2. Kalender Interaktif & Format Ekspor Resmi
 
 | Kalender Bulanan Interaktif | Format Ekspor Jadwal Resmi 8 Kolom |
 | :---: | :---: |
-| ![Kalender Bulanan](department-agenda-firebase/tests/e2e/screenshots/public_02_calendar_month.png) | ![Format Ekspor 8 Kolom](department-agenda-firebase/tests/e2e/screenshots/report_01_layout.png) |
-| *Navigasi Kalender Bulanan Publik dengan Pemilahan Hari, Minggu, dan Detail Kegiatan* | *Format Laporan Resmi 8 Kolom (No, Tanggal, Pukul, Kegiatan, Tempat, Penyelenggara, Hadir, Keterangan)* |
+| ![Kalender Bulanan](department-agenda-firebase/tests/e2e/screenshots/public_02_calendar_month.png) | ![Format Ekspor 8 Kolom](department-agenda-firebase/tests/e2e/screenshots/s04-compact-page-1.png) |
+| *Navigasi Kalender Bulanan Publik dengan Pemilahan Hari, Minggu, dan Indikator Kategori Kegiatan* | *Format Cetak Jadwal Resmi 8 Kolom (Milestone S04): Standar A4 Landscape 3 Halaman, Header Berulang, Resolusi Nama Resmi & Watermark Staging* |
 
-### 3. Tampilan Responsif Mobile (Resolusi 375px)
+### 3. Tampilan Responsif Mobile (Resolusi 390px)
 
 | Tampilan Mobile Portal Publik | Tampilan Mobile Portal Admin |
 | :---: | :---: |
-| ![Mobile Publik](department-agenda-firebase/tests/e2e/screenshots/s01-live-public-375px.png) | ![Mobile Admin](department-agenda-firebase/tests/e2e/screenshots/s01-live-admin-375px.png) |
-| *Kartu Agenda Mobile Publik yang Bersih, Kompak, dan Bebas Horizontal Overflow* | *Manajemen Administrasi Agenda & Kartu Pengaturan pada Layar Gawai Ponsel* |
+| ![Mobile Publik](department-agenda-firebase/tests/e2e/screenshots/s03-public-dayview-390px.png) | ![Mobile Admin](department-agenda-firebase/tests/e2e/screenshots/s03-admin-activities-390px.png) |
+| *Tampilan Mobile Portal Publik: Kartu Agenda Harian Adaptif, Tata Letak Ergonomis & Bebas Overflow Horizontal (S03-M01)* | *Tampilan Mobile Portal Admin: Kartu Manajemen Agenda Responsif dengan Tombol Aksi Edit, Duplikat & Hapus (Touch Target 44px)* |
 
 ---
 
@@ -126,14 +127,14 @@ graph TD
 
     subgraph Firebase Cloud Services
         AUTH[Firebase Authentication<br/>Admin Identity & Session Guard]
-        FS[(Cloud Firestore<br/>Standard Edition<br/>Security Rules & Lockstep Concurrency)]
+        FS[(Cloud Firestore<br/>Standard Edition<br/>Document-Level Security Rules & Version Lock)]
         HOST[Firebase Multi-Site Hosting<br/>Public & Admin Targets]
     end
 
     PUB --> SHR
     ADM --> SHR
 
-    PUB -.->|Read-Only Projected DTOs| FS
+    PUB -.->|Read-Only Sanitized DTOs| FS
     ADM -->|Authenticated CRUD & Version Lock| FS
     ADM -->|Credential Verification| AUTH
     HOST --> PUB
@@ -141,7 +142,7 @@ graph TD
 ```
 
 ### Pemisahan Portal Publik & Portal Admin:
-- **`apps/public`**: Aplikasi berbasis web yang ditujukan untuk masyarakat umum. Menggunakan koneksi *read-only* ke Firestore dengan penyaringan atribut data sensitif (*zero private notes, zero confidential letters*).
+- **`apps/public`**: Aplikasi berbasis web yang ditujukan untuk masyarakat umum. Menggunakan koneksi *read-only* ke Firestore dengan penyaringan atribut data sensitif melalui sanitasi proyeksi DTO (*strict public DTO projection* — menjamin *zero private notes* dan *zero internal meeting credentials* pada sisi konsumsi publik).
 - **`apps/admin`**: Aplikasi berbasis web internal yang memerlukan otentikasi admin. Memiliki kontrol penuh untuk pengoperasian CRUD agenda, pengelolaan data master, evaluasi konflik jadwal, dan penerbitan laporan.
 - **`shared`**: Pustaka logika bisnis murni (*pure business logic*) yang digunakan bersama oleh portal publik dan admin. Menjamin keseragaman validasi waktu Asia/Jakarta (WIB), kalkulasi interval bentrok, skema validasi, serta pembuatan berkas ekspor Excel/PDF.
 
@@ -166,11 +167,11 @@ Sistem saat ini dapat dievaluasi langsung pada lingkungan *Cloud Staging*:
 |:---|:---|:---|
 | **Frontend Framework** | **Vite 6.0** & **TypeScript 5.7** | Pembuatan bundel cepat, *type-safe*, arsitektur modular tanpa ketergantungan framework berat (*vanilla web performance*). |
 | **Cloud Hosting** | **Firebase Hosting (Multi-site)** | Pengiriman aset cepat melalui CDN global dengan target terpisah untuk publik dan admin. |
-| **Cloud Database** | **Cloud Firestore (Standard Edition)** | Basis data dokumen NoSQL terkelola dengan sinkronisasi *real-time* dan aturan keamanan ketat. |
+| **Cloud Database** | **Cloud Firestore (Standard Edition)** | Basis data dokumen NoSQL terkelola dengan sinkronisasi *real-time* dan aturan keamanan tingkat dokumen. |
 | **Autentikasi** | **Firebase Authentication** | Manajemen sesi admin terenkripsi dan perlindungan *route* internal. |
 | **Ekspor Data** | **ExcelJS 4.4** & **HTML Print CSS** | Pustaka pembangkit OpenXML `.xlsx` asli serta tata letak cetak PDF standar A4 Landscape. |
-| **Unit Testing** | **Vitest 3.0** | Pengujian logika bisnis, kalkulasi waktu, deteksi konflik, dan aturan Firestore (25 test suite). |
-| **End-to-End Testing** | **Playwright 1.64** | Pengujian otomatis skenario antarmuka, responsivitas multi-viewport, dan verifikasi ekspor. |
+| **Unit Testing** | **Vitest 3.0** | Pengujian logika bisnis, kalkulasi waktu, deteksi konflik, dan aturan Firestore (227 unit tests, 25 test suite). |
+| **End-to-End Testing** | **Playwright 1.64** | Pengujian otomatis skenario antarmuka, responsivitas multi-viewport, dan verifikasi ekspor PDF. |
 
 ---
 
@@ -189,8 +190,8 @@ Pengembangan SIMAK DISKUM v5.0 dijalankan melalui tahapan *milestone* terukur de
 | **Milestone T01** | Penyiapan dataset demonstrasi Oktober 2026 dan pengujian akun admin tunggal. | 239 Unit / 155 E2E | Disetujui |
 | **Milestone S01 & QA** | Penyediaan *Cloud Staging* mandiri (`simakdiskum-staging`), perbaikan multi-viewport, dan integrasi ExcelJS. | 288 Unit / 155 E2E | Terverifikasi |
 | **Milestone S02** | Pengadaan akun tester eksternal sementara untuk evaluasi QA terisolasi. | 289 Unit / Live Auth | Terverifikasi |
-| **Milestone S03** | Remediasi antarmuka mobile kartu agenda (320px–768px), audit paritas data lintas portal. | 308 Unit / Multi-view | Disetujui |
-| **Milestone S04** | Perbaikan cetak PDF A4 Landscape (tepat 3 halaman untuk 38 agenda, pengulangan header tabel, resolusi nama lokasi/penyelenggara, dan footer bersih tunggal). | 238 Unit / Playwright PDF | Terverifikasi |
+| **Milestone S03** | Remediasi antarmuka mobile kartu agenda (320px–768px), audit paritas data lintas portal, dan eliminasi horizontal overflow. | 216 Unit / 8 Multi-Viewport Live Staging Checks | Disetujui |
+| **Milestone S04** | Perbaikan cetak PDF A4 Landscape (tepat 3 halaman untuk 38 agenda, pengulangan header tabel di setiap halaman, resolusi nama lokasi/penyelenggara resmi tanpa kebocoran ID database, dan pembersihan footer ganda). | 227 Unit (termasuk 11 tes baru S04) / Playwright Chromium PDF Verified | Terverifikasi |
 | **Milestone S05** | **Tahap Berikutnya:** Pengujian Fungsional Eksternal (*External Functional QA*) & Uji Keterimaan Pengguna Akhir. | *Upcoming* | *Direncanakan* |
 
 ---
@@ -222,7 +223,7 @@ npm run dev:admin
 
 ### 3. Menjalankan Rangkaian Pengujian
 ```bash
-# Menjalankan seluruh Unit & Integration Test via Vitest
+# Menjalankan seluruh Unit & Integration Test via Vitest (227 tests passing)
 npm test
 
 # Menjalankan pengujian dalam mode pantau (watch mode)
@@ -264,9 +265,9 @@ npm run emulators
    - Data jadwal dinas yang saat ini terpasang pada lingkungan *staging* (Oktober 2026) merupakan **data sintetik/tiruan** yang disusun untuk keperluan pengujian alur kerja, validasi deteksi bentrok, dan uji responsivitas antarmuka.
 3. **Batas Lingkungan Produksi (Production Boundaries):**
    - Proyek Firebase Produksi (`simakdiskum`) berstatus **terlindungi penuh** (*strictly untouched*). Tidak ada *deployment*, mutasi skema, atau manipulasi data yang dilakukan pada lingkungan produksi sebelum seluruh tahapan penerimaan selesai.
-4. **Keamanan Basis Data (Firestore Security Rules):**
-   - Mencegah segala bentuk mutasi tulis pada koleksi publik tanpa token otentikasi admin yang valid.
-   - Mencegah kebocoran data dokumen (*data leak prevention*) pada tingkatan aturan basis data.
+4. **Keamanan Basis Data & Privasi Data Publik:**
+   - **Kontrol Akses Tingkat Dokumen (*Document-Level Access Control*):** *Firestore Security Rules* mengendalikan otorisasi akses pada tingkat dokumen, memastikan hanya akun administrator resmi yang terotentikasi yang dapat melakukan mutasi tulis (CRUD), serta membatasi akses ke koleksi administratif internal.
+   - **Prinsip Minimisasi Data (*Public Data Minimization*):** Perlindungan terhadap catatan privat, nomor surat rahasia, dan kredensial rapat diwujudkan melalui arsitektur pemisahan struktur dokumen dan sanitasi proyeksi DTO (*projection layer*) di sisi aplikasi sebelum disajikan ke ruang publik. Aturan keamanan basis data tidak mengasumsikan kontrol keamanan pada tingkat *field* individual, melainkan mengandalkan isolasi dokumen dan sanitasi DTO yang terverifikasi.
 
 ---
 
@@ -278,5 +279,5 @@ npm run emulators
 ---
 
 <div align="center">
-  <sub>© 2026 Dinas Koperasi dan Usaha Mikro Kota Batam. Hak Cipta Dilindungi Undang-Undang.</sub>
+  <sub>SIMAK DISKUM v5.0 — Proyek pengembangan sistem agenda kedinasan untuk kebutuhan demonstrasi dan evaluasi. Belum merupakan sistem produksi resmi.</sub>
 </div>
