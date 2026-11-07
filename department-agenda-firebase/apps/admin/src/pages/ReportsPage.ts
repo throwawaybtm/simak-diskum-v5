@@ -501,7 +501,10 @@ export async function mountReportsPage(
     const doPrint = () => {
       if (startDate > endDate) return;
       const rows = getFilteredRows();
-      const isStaging = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'staging';
+      const isStaging = typeof import.meta !== 'undefined' && (
+        import.meta.env?.MODE === 'staging' ||
+        (typeof window !== 'undefined' && window.location.hostname.includes('staging'))
+      );
       const html = generateEightColumnHtmlReport({
         startDate,
         endDate,

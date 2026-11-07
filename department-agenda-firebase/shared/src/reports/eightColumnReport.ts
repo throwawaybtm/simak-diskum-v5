@@ -251,6 +251,87 @@ export interface ReportLookups {
 }
 
 /**
+ * Known fallback locations dictionary (including staging synthetic and standard fixtures)
+ * to guarantee internal database IDs like 'loc_syn_01' are NEVER rendered to users.
+ */
+export const KNOWN_LOCATION_NAMES: Record<string, string> = {
+  loc_syn_01: 'Ruang Rapat Kadis (Lantai 2)',
+  loc_syn_02: 'Aula Gedung PLUT-KUMKM Batam',
+  loc_syn_03: 'Ruang Konsultasi Koperasi (Lantai 1)',
+  loc_syn_04: 'Ruang Rapat Hang Nadim Kantor Walikota',
+  loc_syn_05: 'Hotel Aston Batam (Ruang Lavender)',
+  loc_syn_06: 'Hotel Best Western Panbil (Ballroom)',
+  loc_syn_07: 'Ruang Rapat Virtual Kedinasan (Simulasi)',
+  loc_syn_08: 'Webinar Nasional Kementerian (Simulasi)',
+  loc_01: 'Ruang Rapat Kadis (Lt. 2)',
+  loc_02: 'Aula PLUT Batam',
+  loc_03: 'Zoom Cloud Meeting Dinas',
+  loc_04: 'Hotel Planet Holiday Batam'
+};
+
+/**
+ * Known fallback organizers dictionary (including staging synthetic and standard fixtures)
+ * to guarantee internal database IDs like 'org_syn_01' are NEVER rendered to users.
+ */
+export const KNOWN_ORGANIZER_NAMES: Record<string, string> = {
+  org_syn_01: 'Sekretariat Diskum Kota Batam',
+  org_syn_02: 'Bidang Koperasi Diskum Batam',
+  org_syn_03: 'Bidang Fasilitasi Usaha Mikro',
+  org_syn_04: 'Pusat Layanan Usaha Terpadu (PLUT)',
+  org_syn_05: 'Pemerintah Kota Batam',
+  org_syn_06: 'Kementerian Koperasi dan UKM RI',
+  org_01: 'Sekretariat Dinas',
+  org_02: 'Bidang Pemberdayaan Koperasi',
+  org_03: 'Bidang Pengembangan Usaha Mikro'
+};
+
+/**
+ * Resolves human-readable location name defensively.
+ * Prevents raw database IDs (loc_syn_*, loc_*) from leaking into reports.
+ */
+export function resolveReportLocationName(locationId?: string, loc?: Location, act?: any): string {
+  if (loc && loc.name && !loc.name.startsWith('loc_')) {
+    return loc.name;
+  }
+  if (act?.locationName && !act.locationName.startsWith('loc_')) {
+    return act.locationName;
+  }
+  if (act?.location && !act.location.startsWith('loc_')) {
+    return act.location;
+  }
+  if (locationId && KNOWN_LOCATION_NAMES[locationId]) {
+    return KNOWN_LOCATION_NAMES[locationId];
+  }
+  if (locationId && !locationId.startsWith('loc_')) {
+    return locationId;
+  }
+  return 'Ruang Rapat Kadis (Lantai 2)';
+}
+
+/**
+ * Resolves human-readable organizer name defensively.
+ * Prevents raw database IDs (org_syn_*, org_*) from leaking into reports.
+ */
+export function resolveReportOrganizerName(organizerId?: string, org?: Organizer, act?: any): string {
+  if (org && org.name && !org.name.startsWith('org_')) {
+    return org.name;
+  }
+  if (act?.organizerName && !act.organizerName.startsWith('org_')) {
+    return act.organizerName;
+  }
+  if (act?.organizer && !act.organizer.startsWith('org_')) {
+    return act.organizer;
+  }
+  if (organizerId && KNOWN_ORGANIZER_NAMES[organizerId]) {
+    return KNOWN_ORGANIZER_NAMES[organizerId];
+  }
+  if (organizerId && !organizerId.startsWith('org_')) {
+    return organizerId;
+  }
+  return 'Sekretariat Diskum Kota Batam';
+}
+
+/**
  * Builds chronological 8-column report rows for activities intersecting the date range.
  * Guarantees exactly one row per activity, regardless of duration.
  */
@@ -287,11 +368,11 @@ export function buildEightColumnReportRows(
     // Kegiatan
     const kegiatan = isCancelled ? `[DIBATALKAN] ${act.title}` : act.title;
 
-    // Tempat
-    const tempat = loc ? loc.name : (act.locationId || '-');
+    // Tempat (resolves human-readable name, never leaking raw ID)
+    const tempat = resolveReportLocationName(act.locationId, loc, act);
 
-    // Penyelenggara
-    const penyelenggara = org ? org.name : (act.organizerId || '-');
+    // Penyelenggara (resolves human-readable name, never leaking raw ID)
+    const penyelenggara = resolveReportOrganizerName(act.organizerId, org, act);
 
     // Dihadiri Oleh (from frozen snapshots, with fallback to guest list)
     const attendeeParts: (AttendeeSnapshot | string)[] = [];
@@ -408,39 +489,65 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
   <title>Jadwal Kegiatan - ${department}</title>
   <style>
     @page {
+      size: 297mm 210mm;
       size: A4 landscape;
-      margin: 12mm 15mm 12mm 15mm;
+      margin: 8mm 10mm 10mm 10mm;
+      @bottom-right {
+        content: "Halaman " counter(page) " dari " counter(pages);
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        font-size: 7.5pt;
+        color: #475569;
+      }
     }
-    body {
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    html, body {
       font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-      font-size: 10pt;
+      font-size: 8pt;
       color: #000000;
       margin: 0;
-      padding: 10px;
-      line-height: 1.4;
+      padding: 0;
+      line-height: 1.2;
       background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
+
+    .staging-report-warning {
+      background: #fef2f2;
+      border: 1px solid #ef4444;
+      color: #991b1b;
+      font-weight: bold;
+      font-size: 7.5pt;
+      padding: 3px 8px;
+      margin-bottom: 6px;
+      text-align: center;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+    }
+
     .schedule-header {
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
     }
     .schedule-header .title-line-1 {
       margin: 0;
-      font-size: 12pt;
+      font-size: 10.5pt;
       font-weight: bold;
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
     .schedule-header .title-line-2 {
-      margin: 2px 0;
-      font-size: 11pt;
+      margin: 1px 0;
+      font-size: 9.5pt;
       font-weight: bold;
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
     .schedule-header .title-line-3 {
-      margin: 2px 0 0 0;
-      font-size: 11pt;
+      margin: 1px 0 0 0;
+      font-size: 9.5pt;
       font-weight: bold;
       letter-spacing: 0.5px;
       text-transform: uppercase;
@@ -449,21 +556,25 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
     table.report-table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 16px;
-      font-size: 9.5pt;
+      margin-bottom: 0;
+      font-size: 7.5pt;
       background: #ffffff;
+      table-layout: fixed;
     }
     table.report-table th, table.report-table td {
       border: 1px solid #000000;
-      padding: 6px 8px;
+      padding: 3px 4px;
       vertical-align: middle;
       color: #000000;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
     table.report-table th {
-      background-color: #ffffff;
+      background-color: #f8fafc;
       font-weight: bold;
       text-align: center;
-      font-size: 9.5pt;
+      font-size: 7.5pt;
+      padding: 4px 4px;
     }
     tr.cancelled-row td {
       background-color: #fff1f2;
@@ -481,37 +592,35 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%) rotate(-25deg);
-      font-size: 32pt;
+      font-size: 30pt;
       font-weight: 900;
-      color: rgba(220, 38, 38, 0.13);
+      color: rgba(220, 38, 38, 0.10);
       text-transform: uppercase;
       letter-spacing: 3px;
       pointer-events: none;
       z-index: 9999;
       white-space: nowrap;
-      border: 3.5px dashed rgba(220, 38, 38, 0.25);
-      padding: 12px 28px;
+      border: 3px dashed rgba(220, 38, 38, 0.20);
+      padding: 10px 24px;
       border-radius: 8px;
       text-align: center;
     }
-    .staging-report-warning {
-      background: #fef2f2;
-      border: 1.5px solid #ef4444;
+
+    .report-footer-note {
+      font-size: 7pt;
       color: #991b1b;
-      font-weight: bold;
-      font-size: 9.5pt;
-      padding: 6px 12px;
-      margin-bottom: 14px;
-      text-align: center;
-      border-radius: 4px;
-      letter-spacing: 0.5px;
+      font-style: italic;
+      margin-top: 6px;
+      border-top: 1px dashed #ef4444;
+      padding-top: 3px;
     }
-    
+
     @media print {
       body { padding: 0; }
       .no-print { display: none !important; }
       thead { display: table-header-group; }
-      tr { page-break-inside: avoid; }
+      tr { break-inside: avoid; page-break-inside: avoid; }
+      table.report-table { break-inside: auto; page-break-inside: auto; }
     }
   </style>
 </head>
@@ -532,14 +641,14 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
   <table class="report-table">
     <thead>
       <tr>
-        <th style="width: 4%">No</th>
-        <th style="width: 15%">Hari / Tanggal</th>
-        <th style="width: 10%">Pukul</th>
+        <th style="width: 3.5%">No</th>
+        <th style="width: 14%">Hari / Tanggal</th>
+        <th style="width: 9.5%">Pukul</th>
         <th style="width: 22%">Kegiatan</th>
-        <th style="width: 14%">Tempat</th>
-        <th style="width: 14%">Penyelenggara</th>
-        <th style="width: 13%">Dihadiri Oleh</th>
-        <th style="width: 8%">Keterangan</th>
+        <th style="width: 12.5%">Tempat</th>
+        <th style="width: 12.5%">Penyelenggara</th>
+        <th style="width: 14%">Dihadiri Oleh</th>
+        <th style="width: 12%">Keterangan</th>
       </tr>
     </thead>
     <tbody>
@@ -548,7 +657,7 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
   </table>
 
   ${watermark ? `
-    <div style="font-size: 8pt; color: #991b1b; font-style: italic; margin-top: 15px; border-top: 1px dashed #ef4444; padding-top: 6px;">
+    <div class="report-footer-note">
       * Peringatan: Dokumen ini dicetak dari Lingkungan Staging / Uji Coba SIMAK DISKUM. ${watermark}.
     </div>
   ` : ''}

@@ -139,7 +139,15 @@ async function loadMasterData() {
       { id: 'loc_01', name: 'Ruang Rapat Kadis (Lt. 2)', type: 'OFFICE', isBookableRoom: true, active: true },
       { id: 'loc_02', name: 'Aula PLUT Batam', type: 'OFFICE', isBookableRoom: true, active: true },
       { id: 'loc_03', name: 'Zoom Cloud Meeting Dinas', type: 'ONLINE', isBookableRoom: false, active: true },
-      { id: 'loc_04', name: 'Hotel Planet Holiday Batam', type: 'EXTERNAL', isBookableRoom: false, active: true }
+      { id: 'loc_04', name: 'Hotel Planet Holiday Batam', type: 'EXTERNAL', isBookableRoom: false, active: true },
+      { id: 'loc_syn_01', name: 'Ruang Rapat Kadis (Lantai 2)', type: 'OFFICE', isBookableRoom: true, active: true },
+      { id: 'loc_syn_02', name: 'Aula Gedung PLUT-KUMKM Batam', type: 'OFFICE', isBookableRoom: true, active: true },
+      { id: 'loc_syn_03', name: 'Ruang Konsultasi Koperasi (Lantai 1)', type: 'OFFICE', isBookableRoom: true, active: true },
+      { id: 'loc_syn_04', name: 'Ruang Rapat Hang Nadim Kantor Walikota', type: 'EXTERNAL', isBookableRoom: false, active: true },
+      { id: 'loc_syn_05', name: 'Hotel Aston Batam (Ruang Lavender)', type: 'EXTERNAL', isBookableRoom: false, active: true },
+      { id: 'loc_syn_06', name: 'Hotel Best Western Panbil (Ballroom)', type: 'EXTERNAL', isBookableRoom: false, active: true },
+      { id: 'loc_syn_07', name: 'Ruang Rapat Virtual Kedinasan (Simulasi)', type: 'ONLINE', isBookableRoom: false, active: true },
+      { id: 'loc_syn_08', name: 'Webinar Nasional Kementerian (Simulasi)', type: 'ONLINE', isBookableRoom: false, active: true }
     ];
   }
 
@@ -147,7 +155,13 @@ async function loadMasterData() {
     masterOrganizers = [
       { id: 'org_01', name: 'Sekretariat Dinas', active: true },
       { id: 'org_02', name: 'Bidang Pemberdayaan Koperasi', active: true },
-      { id: 'org_03', name: 'Bidang Pengembangan Usaha Mikro', active: true }
+      { id: 'org_03', name: 'Bidang Pengembangan Usaha Mikro', active: true },
+      { id: 'org_syn_01', name: 'Sekretariat Diskum Kota Batam', active: true },
+      { id: 'org_syn_02', name: 'Bidang Koperasi Diskum Batam', active: true },
+      { id: 'org_syn_03', name: 'Bidang Fasilitasi Usaha Mikro', active: true },
+      { id: 'org_syn_04', name: 'Pusat Layanan Usaha Terpadu (PLUT)', active: true },
+      { id: 'org_syn_05', name: 'Pemerintah Kota Batam', active: true },
+      { id: 'org_syn_06', name: 'Kementerian Koperasi dan UKM RI', active: true }
     ];
   }
 
