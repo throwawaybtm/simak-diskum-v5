@@ -50,3 +50,11 @@ Test Design/
 *.blend
 2026-11-04-department-agenda-firebase-plan.md
 
+# ESP32-C6 Servo Studio unrelated project
+/firmware/
+/src/
+/tests/
+/main.py
+/requirements.txt
+/build_exe.bat
+
