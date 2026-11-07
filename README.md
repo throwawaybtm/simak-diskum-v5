@@ -85,28 +85,28 @@ Sistem ini mentransformasikan alur kerja lama berbasis *spreadsheet* menjadi apl
 
 ## 📸 Galeri Antarmuka
 
-Berikut adalah tangkapan layar langsung dari aplikasi SIMAK DISKUM v5.0 yang diambil pada lingkungan *staging* dan pengujian otomatis terkini (Milestone S03 dan S04):
+Berikut adalah tangkapan layar langsung dari aplikasi SIMAK DISKUM v5.0 yang diambil pada lingkungan *staging* dengan ukuran *browser viewport* presisi (`fullPage: false`), tanpa gambar vertikal berlebih atau *stitched pages*:
 
-### 1. Tampilan Desktop (Resolusi 1440px)
+### 1. Tampilan Desktop Utama (1440 × 900 px)
 
 | Portal Publik (Masyarakat & Mitra) | Portal Admin (Pengelola Agenda) |
 | :---: | :---: |
-| ![Portal Publik Desktop](department-agenda-firebase/tests/e2e/screenshots/s03-public-dayview-1440px.png) | ![Portal Admin Desktop](department-agenda-firebase/tests/e2e/screenshots/s03-admin-activities-1440px.png) |
-| *Dashboard Portal Publik: Ringkasan Agenda Harian, Navigasi Kegiatan & Pengumuman Dinas (Milestone S03 Desktop)* | *Dashboard Portal Admin: Manajemen Agenda Kedinasan, Status Alur Kerja 4 Tahap & Tanggal Indonesia (Milestone S03 Desktop)* |
+| ![Portal Publik Desktop](department-agenda-firebase/tests/e2e/screenshots/s03-public-dashboard-1440px.png) | ![Portal Admin Desktop](department-agenda-firebase/tests/e2e/screenshots/s03-admin-activities-1440px.png) |
+| *Dashboard Portal Publik: Ringkasan Agenda Hari Ini, Kalender Kegiatan & Pengumuman Dinas (1440 × 900 px)* | *Dashboard Portal Admin: Manajemen Agenda Kedinasan, Status Alur Kerja 4 Tahap & Tanggal Indonesia (1440 × 900 px)* |
 
-### 2. Kalender Interaktif & Format Ekspor Resmi
+### 2. Kalender Interaktif & Laporan 8 Kolom (1440 × 900 px)
 
-| Kalender Bulanan Interaktif | Format Ekspor Jadwal Resmi 8 Kolom |
+| Kalender Bulanan Interaktif | Format Laporan Jadwal Resmi 8 Kolom |
 | :---: | :---: |
-| ![Kalender Bulanan](department-agenda-firebase/tests/e2e/screenshots/public_02_calendar_month.png) | ![Format Ekspor 8 Kolom](department-agenda-firebase/tests/e2e/screenshots/s04-compact-page-1.png) |
-| *Navigasi Kalender Bulanan Publik dengan Pemilahan Hari, Minggu, dan Indikator Kategori Kegiatan* | *Format Cetak Jadwal Resmi 8 Kolom (Milestone S04): Standar A4 Landscape 3 Halaman, Header Berulang, Resolusi Nama Resmi & Watermark Staging* |
+| ![Kalender Bulanan](department-agenda-firebase/tests/e2e/screenshots/s03-public-calendar-1440px.png) | ![Laporan Resmi 8 Kolom](department-agenda-firebase/tests/e2e/screenshots/s03-admin-reports-1440px.png) |
+| *Navigasi Kalender Bulanan Publik dengan Pemilahan Hari, Minggu, dan Indikator Kategori (1440 × 900 px)* | *Format Laporan Resmi 8 Kolom: Pratinjau Tabel Laporan, Tombol Ekspor Resmi & Tanpa Kebocoran ID (1440 × 900 px)* |
 
-### 3. Tampilan Responsif Mobile (Resolusi 390px)
+### 3. Tampilan Responsif Mobile (390 × 844 px)
 
 | Tampilan Mobile Portal Publik | Tampilan Mobile Portal Admin |
 | :---: | :---: |
-| ![Mobile Publik](department-agenda-firebase/tests/e2e/screenshots/s03-public-dayview-390px.png) | ![Mobile Admin](department-agenda-firebase/tests/e2e/screenshots/s03-admin-activities-390px.png) |
-| *Tampilan Mobile Portal Publik: Kartu Agenda Harian Adaptif, Tata Letak Ergonomis & Bebas Overflow Horizontal (S03-M01)* | *Tampilan Mobile Portal Admin: Kartu Manajemen Agenda Responsif dengan Tombol Aksi Edit, Duplikat & Hapus (Touch Target 44px)* |
+| <img src="department-agenda-firebase/tests/e2e/screenshots/s03-public-dashboard-390px.png" alt="Mobile Publik" width="280" /> | <img src="department-agenda-firebase/tests/e2e/screenshots/s03-admin-activities-390px.png" alt="Mobile Admin" width="280" /> |
+| *Tampilan Mobile Portal Publik: Kartu Agenda Harian Adaptif & Bebas Overflow Horizontal (390 × 844 px)* | *Tampilan Mobile Portal Admin: Kartu Manajemen Agenda dengan Tombol Edit, Duplikat & Hapus (390 × 844 px)* |
 
 ---
 
