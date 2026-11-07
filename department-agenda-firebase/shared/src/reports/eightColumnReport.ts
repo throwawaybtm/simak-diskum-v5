@@ -492,6 +492,15 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
       size: 297mm 210mm;
       size: A4 landscape;
       margin: 8mm 10mm 10mm 10mm;
+      ${watermark ? `
+      @bottom-left {
+        content: "* Dokumen ini dicetak dari Lingkungan Staging SIMAK DISKUM (DATA SIMULASI)";
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        font-size: 7pt;
+        color: #991b1b;
+        font-style: italic;
+      }
+      ` : ''}
       @bottom-right {
         content: "Halaman " counter(page) " dari " counter(pages);
         font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
@@ -606,15 +615,6 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
       text-align: center;
     }
 
-    .report-footer-note {
-      font-size: 7pt;
-      color: #991b1b;
-      font-style: italic;
-      margin-top: 6px;
-      border-top: 1px dashed #ef4444;
-      padding-top: 3px;
-    }
-
     @media print {
       body { padding: 0; }
       .no-print { display: none !important; }
@@ -655,12 +655,6 @@ export function generateEightColumnHtmlReport(options: HtmlReportOptions): strin
       ${tableRowsHtml || '<tr><td colspan="8" class="text-center" style="padding: 20px;">Tidak ada agenda kegiatan pada periode ini.</td></tr>'}
     </tbody>
   </table>
-
-  ${watermark ? `
-    <div class="report-footer-note">
-      * Peringatan: Dokumen ini dicetak dari Lingkungan Staging / Uji Coba SIMAK DISKUM. ${watermark}.
-    </div>
-  ` : ''}
 </body>
 </html>
   `.trim();

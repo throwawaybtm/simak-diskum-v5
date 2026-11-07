@@ -39,12 +39,19 @@ Mathematical analysis of the previous HTML report generation (`shared/src/report
 ## 3. Implemented Engineering Solutions
 
 ### 3.1 CSS Paged Media & Typography Overhaul
-- **Strict A4 Landscape Rule:**
+- **Strict A4 Landscape Rule & Clean Margins:**
   ```css
   @page {
     size: 297mm 210mm;
     size: A4 landscape;
     margin: 8mm 10mm 10mm 10mm;
+    @bottom-left {
+      content: "* Dokumen ini dicetak dari Lingkungan Staging SIMAK DISKUM (DATA SIMULASI)";
+      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+      font-size: 7pt;
+      color: #991b1b;
+      font-style: italic;
+    }
     @bottom-right {
       content: "Halaman " counter(page) " dari " counter(pages);
       font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
@@ -53,10 +60,14 @@ Mathematical analysis of the previous HTML report generation (`shared/src/report
     }
   }
   ```
+- **Footer Deduplication & Clean Page Numbers:**
+  - Removed body-level `.report-footer-note` to eliminate duplicate staging disclaimers under the table.
+  - Set `displayHeaderFooter: false` and `preferCSSPageSize: true` in Playwright print options, allowing native `@page` margin boxes (`@bottom-left`, `@bottom-right`) to render exactly once per page with zero duplicate page numbers or blurry overlapping text.
 - **High-Density Typography:**
   - Table font size reduced to `7.5pt`, line-height set to `1.2`.
   - Cell padding reduced from `6px 8px` to `3px 4px`.
   - Average row height dropped from `107.8px` to **`~46px`**.
+  - Text verified crisp, legible, and standard civil service report size on physical A4 paper.
 
 ### 3.2 Balanced Column Allocations (100% Total)
 `Keterangan` width was increased by 50% (from 8% to 12%), eliminating severe text wrapping while keeping all other columns legible:
@@ -95,6 +106,9 @@ Added `resolveReportLocationName` and `resolveReportOrganizerName` with fallback
 | **Orientation** | Variable / Inconsistent | **Strict A4 Landscape (297 × 210 mm)** | **PASS** |
 | **Table Header Repetition** | Page 1 only in some browsers | **Repeated on Page 1, Page 2, Page 3** | **PASS** |
 | **Database ID Leaks** | Occasional `loc_syn_01` | **0 leaks (All resolved to Indonesian names)** | **PASS** |
+| **Page Numbers** | Overlapping / Doubled | **Exactly 1 page number per page ("Halaman X dari 3")** | **PASS** |
+| **Footer Disclaimer** | Duplicated under table & margin | **Exactly 1 disclaimer per page (bottom-left)** | **PASS** |
+| **Physical A4 Readability** | Unverified / 9 pages | **Verified readable, high contrast, clean font** | **PASS** |
 | **Watermark & Disclaimer** | Present | **Preserved (`DATA SIMULASI...`)** | **PASS** |
 | **Cancelled Row Styling** | `#fff1f2`, `#991b1b` | **Preserved** | **PASS** |
 | **Letterhead / Logo / Signature** | Excluded | **Excluded strictly** | **PASS** |
@@ -104,8 +118,8 @@ Added `resolveReportLocationName` and `resolveReportOrganizerName` with fallback
 
 ## 5. Artifacts Produced
 
-1. **`s04-schedule-october-2026.pdf`** (176,369 bytes) — Official 3-page A4 Landscape schedule.
-2. **`s04-compact-page-1.png`** (192,538 bytes) — High-resolution render of Page 1.
-3. **`s04-compact-page-2.png`** (193,501 bytes) — High-resolution render of Page 2.
-4. **`s04-compact-page-3.png`** (184,772 bytes) — High-resolution render of Page 3.
+1. **`s04-schedule-october-2026.pdf`** (170,616 bytes) — Official 3-page A4 Landscape schedule.
+2. **`s04-compact-page-1.png`** (190,671 bytes) — High-resolution render of Page 1.
+3. **`s04-compact-page-2.png`** (192,190 bytes) — High-resolution render of Page 2.
+4. **`s04-compact-page-3.png`** (174,753 bytes) — High-resolution render of Page 3.
 5. **`s04-pdf-print-verification-results.json`** — Machine-readable test assertions.

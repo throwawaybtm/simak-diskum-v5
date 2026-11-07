@@ -153,25 +153,13 @@ async function main() {
 
   await page.setContent(htmlReport, { waitUntil: 'networkidle' });
 
-  // Generate PDF with A4 Landscape dimensions and compact margins
+  // Generate PDF with A4 Landscape dimensions and compact margins using CSS @page rules
   const pdfBuffer = await page.pdf({
     format: 'A4',
     landscape: true,
     printBackground: true,
-    displayHeaderFooter: true,
-    headerTemplate: '<div></div>',
-    footerTemplate: `
-      <div style="font-family: Arial, sans-serif; font-size: 7.5pt; width: 100%; display: flex; justify-content: space-between; padding: 0 10mm; color: #475569;">
-        <span style="color: #991b1b; font-style: italic;">* Dokumen ini dicetak dari Lingkungan Staging SIMAK DISKUM (DATA SIMULASI)</span>
-        <span>Halaman <span class="pageNumber"></span> dari <span class="totalPages"></span></span>
-      </div>
-    `,
-    margin: {
-      top: '8mm',
-      bottom: '10mm',
-      left: '10mm',
-      right: '10mm'
-    }
+    displayHeaderFooter: false,
+    preferCSSPageSize: true
   });
 
   // Save PDF to artifact directory
@@ -296,7 +284,10 @@ async function main() {
       page3EndingSequence: page3Text.includes('Kamis, 1 Oktober 2026') && page3Text.includes('Koordinasi Awal Penyusunan Laporan Triwulanan'),
       cancelledStylingPresent: htmlReport.includes('tr.cancelled-row td') && htmlReport.includes('background-color: #fff1f2'),
       stagingWatermarkPresent: page1Text.includes('DATA SIMULASI') && htmlReport.includes('watermark-overlay'),
-      noLetterheadOrSignature: !htmlReport.includes('<img') && !htmlReport.includes('kop-surat') && !htmlReport.includes('tanda-tangan')
+      noLetterheadOrSignature: !htmlReport.includes('<img') && !htmlReport.includes('kop-surat') && !htmlReport.includes('tanda-tangan'),
+      singlePageNumberPerPage: [page1Text, page2Text, page3Text].every(t => (t.match(/Halaman\s+\d+\s+dari\s+\d+/g) || []).length === 1),
+      singleDisclaimerPerPage: [page1Text, page2Text, page3Text].every(t => (t.match(/Dokumen ini dicetak/g) || []).length === 1),
+      zeroDuplicateFooters: !htmlReport.includes('report-footer-note')
     },
     pageBreakdown: [
       { page: 1, textSnippet: page1Text.slice(0, 300) + '...' },

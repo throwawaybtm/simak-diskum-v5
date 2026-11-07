@@ -144,7 +144,9 @@ describe('SIMAK DISKUM v5.0 — S04 PDF Print Fix Tests', () => {
     expect(html).toContain('class="watermark-overlay"');
     expect(html).toContain('DATA SIMULASI — TIDAK UNTUK PENGGUNAAN RESMI');
     expect(html).toContain('class="staging-report-warning"');
-    expect(html).toContain('class="report-footer-note"');
+    expect(html).toContain('@bottom-left');
+    expect(html).toContain('@bottom-right');
+    expect(html).not.toContain('class="report-footer-note"');
   });
 
   describe('Location and Organizer Human-Readable Resolution (Requirement 9)', () => {
