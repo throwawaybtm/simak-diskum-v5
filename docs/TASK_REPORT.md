@@ -1725,3 +1725,78 @@ Strict governance boundaries remain enforced:
 - **Production Mutations:** **0 (STRICTLY OFF-LIMITS, PRODUCTION UNTOUCHED)**
 - **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
 - **Next Authorized Step:** Project Owner review of `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md` (R1) prior to scheduling the live client presentation with Dinas Koperasi dan Usaha Mikro Kota Batam leadership.
+
+
+---
+
+# Detailed Task Report: Milestone S06-A R2 Final Demo Safety Corrections (Module 5 Conflict Engine)
+
+**Task Number:** Milestone S06-A R2  
+**Title:** Final Demonstration Safety Corrections (Module 5 Conflict Engine & Firestore Write Guard)  
+**Date:** 2026-11-09  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (Module 5 Conflict Demo Overhauled, Save Workflow Technical Audit Completed, Intentional Conflict Staged, Non-Destructive Dismissal Protocol Enforced, Half-Open Intervals Documented with Unit Test Evidence, Screenshot Fallback Authorized, Zero Database Mutations)  
+**Deliverable Documents:**
+- `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md` (Refined Demonstration Packet & Presentation Guide)
+- `docs/TASK_PROGRESS.md` (Updated Project Ledger)
+- `docs/TASK_REPORT.md` (Updated Detailed Task Reports)
+
+---
+
+## 1. Executive Summary & Objective
+
+Following an independent technical review of commit `00ef46d`, Milestone S06-A R2 executes critical demonstration safety corrections in Module 5 of `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md`.
+
+The technical audit revealed that in `apps/admin/src/pages/ActivityEditWorkflow.ts` (lines 320–370), clicking the "Simpan Agenda" button (`btnSaveActivity`) invokes `saveWorkflowActivity()`, which executes validation, document refresh, and conflict evaluation. Crucially, if no conflicts remain, the workflow immediately calls `context.saveActivity()` and commits the record to Cloud Firestore. Similarly, confirming an override in the conflict modal also commits the record to Firestore. Therefore, describing this button as "Simpan/Validasi" or treating it as a harmless validation-only action presented a serious operational hazard of unintentional database writes during live client demonstrations.
+
+Milestone S06-A R2 eliminates this hazard by restructuring Module 5 and Section 6 of the demonstration packet to ensure strictly non-destructive presentation flows while preserving all 38 October 2026 baseline activities.
+
+---
+
+## 2. Key Corrections Executed
+
+### Task 1: Administrative Save Workflow Technical Audit
+- Audited `saveWorkflowActivity()` in `department-agenda-firebase/apps/admin/src/pages/ActivityEditWorkflow.ts`.
+- Confirmed execution sequence:
+  1. `validateActivityForm(currentFormState)` — checks required fields and chronology (`start < end`).
+  2. `context.refreshActivities()` — loads fresh activities from Firestore.
+  3. `evaluateActivityConflicts(candidateDoc, existingActivities, employees)` — detects room and attendee collisions.
+  4. If conflicts exist and `!currentFormState.conflictOverrideReason`: opens `showConflictModal()`. Dismissing the modal halts the save process.
+  5. If no conflicts exist: constructs `actDoc` and immediately calls `context.saveActivity(actDoc)`, creating a new document in the `activities` collection and updating `publicActivities` atomically.
+- Determined that clicking "Simpan Agenda" on a valid, conflict-free form (such as after adjusting the end time to non-overlapping hours) will write directly to Firestore.
+
+### Task 2: Module 5 Conflict Demonstration Overhaul
+- **Explicit Warning Banner:** Added a prominent warning at the beginning of Module 5 explicitly stating that clicking "Simpan Agenda" on a valid form will commit a live document to Firestore, and prohibiting any live saves during this module.
+- **Intentional Conflict Staging:** Instructed the presenter to create a synthetic unsaved activity deliberately colliding with baseline activity 3 (`Bimbingan Teknis Penguatan Kelembagaan Koperasi`, scheduled for 02/10/2026 from 10:00 to 12:00 WIB in Ruang Rapat Lt. 2). The candidate activity is set for 02/10/2026 10:30–12:30 WIB in the same room.
+- **Controlled Conflict Trigger:** Clicking "Simpan Agenda" invokes `saveWorkflowActivity()`, which detects the overlap and opens the `Peringatan Konflik Jadwal` modal dialog. The conflict dialog actively halts automatic saving.
+- **Mandatory Dismissal Protocol:** The presenter walks through the modal contents with the client, highlighting the colliding activity title, time, and room, and then explicitly dismisses the modal by clicking `✕` or `Batal` without entering an override reason or confirming an override.
+- **Safe Form Cancellation:** The presenter returns to the main activity form and clicks `Batal` (Cancel) to dismiss the form, ensuring zero documents are committed to Firestore.
+- **Verbal Explanation of Half-Open Intervals:** For demonstrating that back-to-back scheduling (e.g., an event starting at 12:00 when another ends at 12:00) is permitted, the presenter explains the half-open interval rule (`[start, end)`) verbally and references verified automated unit test evidence in `tests/unit/conflictDetector.test.ts`. The script strictly prohibits changing the time to `11:30` and clicking Save again.
+- **Authorized Screenshot Fallback:** Explicitly authorizes using pre-recorded screenshots of the conflict modal as a safe alternative if the presenter prefers zero live form interaction.
+
+### Task 3: Section 6 Safe Live-Action Protocol Alignment
+- Reconciled Rule 4 in Section 6 (`Aturan Protokol Demonstrasi`) with the updated Module 5 flow.
+- Mandated that the conflict modal must be dismissed without override, and the candidate form cancelled.
+- Re-emphasized that no live activity should be saved during Module 5.
+
+---
+
+## 3. Test Totals & Verification Matrix
+
+| Category | Harness / Suite | Scope | Status | Result |
+|---|---|---|:---:|:---:|
+| **Unit & Integration** | Vitest 3.0 | Business logic, WIB math, conflict detector, rules, PDF print math | Verified | **227 / 227 Passed (100%)** |
+| **Firestore Security Rules** | Firestore Rules Unit Tests | RBAC, Gate 5A lockstep, maintenance lockdown | Verified | **38 / 38 Passed (100%)** |
+| **Real Browser E2E** | Playwright Chromium | Admin auth, multi-viewport layout, PDF layout verification | Verified | **167+ Executions Passed (100%)** |
+| **External User Testing** | Informal Staging Evaluation | Real-world usability check by voluntary tester Asep | Completed | **Positive Verbal Feedback** |
+| **S06-A R2 Demonstration Packet** | Presentation Guide & Script | Overhauled Module 5 conflict demo, warning banner, screenshot fallback | Refined | **Ready for Presentation** |
+
+---
+
+## 4. Checkpoint Status
+
+- **Checkpoint:** **S06-A R2 Demonstration Safety — Owner Review**
+- **Status:** **COMPLETED & READY FOR PROJECT OWNER REVIEW**
+- **Production Mutations:** **0 (STRICTLY OFF-LIMITS, PRODUCTION UNTOUCHED)**
+- **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
+- **Next Authorized Step:** Project Owner review of `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md` (R2) prior to scheduling the live client presentation with Dinas Koperasi dan Usaha Mikro Kota Batam leadership.

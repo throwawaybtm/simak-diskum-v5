@@ -1,5 +1,5 @@
-# SIMAK DISKUM v5.0 — Paket Persiapan Demonstrasi Klien (Milestone S06-A R1)
-### Client Demonstration Packet & Stakeholder Presentation Guide (Accuracy & Safety Refinements)
+# SIMAK DISKUM v5.0 — Paket Persiapan Demonstrasi Klien (Milestone S06-A R2)
+### Client Demonstration Packet & Stakeholder Presentation Guide (Final Safety Refinements)
 
 **Sistem:** SIMAK DISKUM v5.0 (*Sistem Informasi Manajemen Agenda Kedinasan*)  
 **Instansi Klien:** Dinas Koperasi dan Usaha Mikro Kota Batam  
@@ -8,7 +8,7 @@
 - **Portal Publik Staging:** [https://simakdiskum-staging.web.app](https://simakdiskum-staging.web.app)  
 - **Portal Admin Staging:** [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app)  
 **Tanggal Dokumen:** 9 November 2026  
-**Status Dokumen:** **PAKET PERSIAPAN RESMI R1 — REVISI AKURASI & KESELAMATAN (SIAP TINJAUAN PEMILIK PROYEK)**  
+**Status Dokumen:** **PAKET PERSIAPAN RESMI R2 — PENYEMPURNAAN KESELAMATAN DEMO (SIAP TINJAUAN PEMILIK PROYEK)**  
 **Penyusun:** Tim Pengembang & Tim Penjaminan Mutu SIMAK DISKUM v5.0  
 
 ---
@@ -23,7 +23,7 @@
    - [Modul 2: Kalender Publik Interaktif & Pencarian Canggih](#modul-2-kalender-publik-interaktif--pencarian-canggih)
    - [Modul 3: Otentikasi Admin & Dashboard Eksekutif](#modul-3-otentikasi-admin--dashboard-eksekutif)
    - [Modul 4: Alur Kerja 4 Tahap Administrasi (Feature F01) & Panel Surat Undangan](#modul-4-alur-kerja-4-tahap-administrasi-feature-f01--panel-surat-undangan)
-   - [Modul 5: Mesin Deteksi Konflik Penjadwalan Otomatis (Simulasi Tanpa Simpan)](#modul-5-mesin-deteksi-konflik-penjadwalan-otomatis-simulasi-tanpa-simpan)
+   - [Modul 5: Mesin Deteksi Konflik Penjadwalan Otomatis (Simulasi Konflik Terkendali & Pembatalan Aman)](#modul-5-mesin-deteksi-konflik-penjadwalan-otomatis-simulasi-konflik-terkendali--pembatalan-aman)
    - [Modul 6: Manajemen Data Master & Pemaparan Perlindungan Referensial](#modul-6-manajemen-data-master--pemaparan-perlindungan-referensial)
    - [Modul 7: Paket Ekspor Resmi 8 Kolom (Excel, PNG, PDF A4 Landscape Kompak)](#modul-7-paket-ekspor-resmi-8-kolom-excel-png-pdf-a4-landscape-kompak)
    - [Modul 8: Adaptasi Responsif Multi-Perangkat (Desktop vs Ponsel)](#modul-8-adaptasi-responsif-multi-perangkat-desktop-vs-ponsel)
@@ -45,8 +45,8 @@ flowchart LR
         S05A["Pengujian Pengguna Informal<br/>(Verbal Positif - Sukarela Asep)"]
     end
 
-    subgraph S06A["Milestone S06-A (Saat Ini)"]
-        Packet["Penyusunan Paket Demonstrasi R1<br/>(S06_A_CLIENT_DEMONSTRATION_PACKET.md)"]
+    subgraph S06A["Milestone S06-A / R1 / R2 (Saat Ini)"]
+        Packet["Penyusunan Paket Demonstrasi R2<br/>(S06_A_CLIENT_DEMONSTRATION_PACKET.md)"]
         Prep["Verifikasi Akun & Lingkungan Staging"]
         Audit["Audit Skrip & Peta Data 38 Agenda"]
     end
@@ -130,7 +130,7 @@ Berikut adalah naskah pemaparan langkah-demi-langkah berdurasi **30–45 menit**
 [05:00 - 10:00] Portal Publik: Kalender Interaktif & Pencarian Canggih (Modul 2)
 [10:00 - 15:00] Portal Administrasi: Otentikasi & Dashboard Eksekutif (Modul 3)
 [15:00 - 23:00] Alur Kerja 4 Tahap Administrasi & Surat Undangan (Modul 4)
-[23:00 - 28:00] Deteksi Konflik Otomatis Ruangan & Personil (Simulasi Tanpa Simpan) (Modul 5)
+[23:00 - 28:00] Deteksi Konflik Otomatis Ruangan & Personil (Simulasi Terkendali & Batal) (Modul 5)
 [28:00 - 33:00] Manajemen Data Master & Pemaparan Perlindungan Referensial (Modul 6)
 [33:00 - 38:00] Paket Ekspor Resmi 8 Kolom: Excel, PNG & Cetak PDF A4 Kompak (Modul 7)
 [38:00 - 42:00] Pengujian Responsivitas Mobile pada Layar Ponsel (Modul 8)
@@ -225,29 +225,46 @@ Berikut adalah naskah pemaparan langkah-demi-langkah berdurasi **30–45 menit**
 
 ---
 
-### Modul 5: Mesin Deteksi Konflik Penjadwalan Otomatis (Simulasi Tanpa Simpan)
-- **Target URL:** [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app) (Menu Agenda -> Tambah Agenda Uji)
-- **Tujuan Pemaparan:** Membuktikan keandalan sistem dalam mencegah insiden tabrakan ruangan rapat dan penugasan personil ganda menggunakan simulasi formulir tanpa memutasi basis data.
-- **Langkah Peragaan (Simulasi Interaktif Unsaved Form):**
-  1. Klik tombol **+ Tambah Agenda**.
-  2. Masukkan judul demonstrasi: `[DEMO-LIVE] Simulasi Pengujian Bentrok Ruangan`.
-  3. Pilih tanggal yang telah memiliki agenda padat: **2 Oktober 2026**.
-  4. Masukkan jam yang bertabrakan dengan agenda `Rapat Evaluasi Realisasi Fisik dan Keuangan` (yang berlangsung pukul 09:00–11:30):
-     - Jam Mulai: `10:00`
-     - Jam Selesai: `12:00`
-  5. Pilih Ruangan: **Ruang Rapat Kadis (Lantai 2)** (`loc_syn_01`).
-  6. Pilih Personil yang ditugaskan: **Budi Simulasi, S.Sos** (`emp_syn_01`).
-  7. Klik tombol simpan/validasi:
-     - **Sistem Menampilkan Kotak Peringatan Bentrok (*Conflict Warning Dialog*):**
-       - Peringatan 1: *Ruangan "Ruang Rapat Kadis (Lantai 2)" sedang digunakan oleh kegiatan lain pada pukul 09:00–11:30.*
-       - Peringatan 2: *Pejabat "Budi Simulasi, S.Sos" telah memiliki penugasan lain pada rentang jam tersebut.*
-  8. Tunjukkan prinsip **Interval Berurutan (*Half-Open Interval*)**:
-     - Ubah jam mulai menjadi `11:30` (tepat saat rapat pertama selesai).
-     - Sistem secara cerdas mengizinkan jadwal tersebut karena acara sebelumnya telah berakhir pada menit tersebut tanpa tumpang tindih.
-  9. **TUTUP TANPA SIMPAN:** Klik tombol **Batal** pada formulir untuk membatalkan pendaftaran. Basis data staging tetap 100% bersih tanpa ada penambahan data uji baru.
-  10. *Catatan Prosedural:* Apabila pimpinan dinas secara khusus meminta pembuktian penyimpanan data hidup (*live write*), tindakan tersebut harus disetujui terpisah, wajib menggunakan awalan `[DEMO-LIVE]`, dan record tersebut dihapus setelahnya dengan catatan bahwa jejak log audit atau status riwayat tetap tercatat di sistem backend.
+### Modul 5: Mesin Deteksi Konflik Penjadwalan Otomatis (Simulasi Konflik Terkendali & Pembatalan Aman)
+- **Target URL:** [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app) (Menu Agenda -> Tambah Agenda)
+- **Tujuan Pemaparan:** Memperagakan keandalan sistem dalam mendeteksi bentrok jadwal ruangan dan personil secara terkendali tanpa mengeksekusi penulisan mutasi ke basis data Firestore.
+- **Peringatan Penting Perilaku Tombol Simpan:**
+  > [!WARNING]
+  > **PERINGATAN KRITIKAL OPERASIONAL:**
+  > Tombol **Simpan Agenda** pada formulir memicu fungsi `saveWorkflowActivity()`. Fungsi ini melakukan validasi dan pemindaian bentrok terhadap dokumen Firestore terkini:
+  > - **Jika Terdeteksi Bentrok Nyata:** Sistem secara aktif **MEMBLOKIR PENYIMPANAN OTOMATIS** dan memunculkan kotak dialog bentrok (*Conflict Warning Dialog*). Penyimpanan hanya dapat dieksekusi jika pengguna memasukkan alasan dan menekan tombol konfirmasi *override* pada dialog tersebut.
+  > - **Jika Formulir Valid & Tidak Ada Bentrok:** Sistem **LANGSUNG MENGEKSEKUSI PENULISAN DOKUMEN KE FIRESTORE** (`saveActivity()`).
+  > 
+  > **OLEH KARENA ITU:** Tombol Simpan **BUKAN** sekadar tombol validasi tanpa efek samping. Pemapar **DILARANG KERAS** mengklik tombol *Simpan Agenda* setelah mengubah jam kegiatan menjadi interval yang valid atau tidak bertabrakan!
+- **Prosedur Peragaan Terstandarisasi (Controlled Conflict Trigger & Safe Form Dismissal):**
+  1. Klik tombol **+ Tambah Agenda** untuk membuka formulir pendaftaran kegiatan baru.
+  2. Isi formulir dengan data sintetik yang sengaja dirancang bertabrakan penuh (*intentionally conflicting*):
+     - Judul Agenda: `[DEMO-LIVE] Simulasi Pengujian Bentrok Ruangan & Pejabat`
+     - Tanggal: **02/10/2026** (bertepatan dengan agenda baseline `Rapat Evaluasi Realisasi Fisik dan Keuangan Triwulan III` yang berlangsung pukul 09:00–11:30 WIB).
+     - Jam Pelaksanaan: Jam Mulai `10:00` | Jam Selesai `12:00` (rentang jam tumpang tindih secara langsung).
+     - Lokasi / Ruangan: **Ruang Rapat Kadis (Lantai 2)** (`loc_syn_01`).
+     - Pejabat / Personil: **Budi Simulasi, S.Sos** (`emp_syn_01`).
+     - Kategori: *Rapat Koordinasi Internal* | Penyelenggara: *Sekretariat Diskum*.
+  3. **Pemicu Dialog Bentrok Terkendali (*Controlled Conflict Trigger*):**
+     - Klik tombol **Simpan Agenda**.
+     - Jelaskan kepada pimpinan bahwa klik ini bertujuan memicu mesin pemindai bentrok. Karena terjadi bentrok ganda yang nyata pada ruangan rapat dan personil terdaftar, sistem secara otomatis **MENGHENTIKAN PENYIMPANAN KE BASIS DATA** dan memunculkan dialog peringatan bentrok (*Conflict Warning Dialog*).
+     - Tunjukkan rincian bentrok pada dialog:
+       - *Peringatan Ruangan:* Ruang Rapat Kadis (Lantai 2) sedang digunakan pada 02/10/2026 pukul 09:00–11:30 WIB.
+       - *Peringatan Personil:* Pejabat Budi Simulasi telah memiliki penugasan lain pada rentang jam tersebut.
+  4. **Penolakan Override & Penutupan Dialog Bentrok (*Dismiss Dialog Without Override*):**
+     - **WAJIB:** Klik tombol **Tutup / Batal (✕)** pada kotak dialog peringatan bentrok.
+     - **DILARANG KERAS** memasukkan alasan pemaksaan (*override reason*) atau mengklik tombol simpan paksa pada dialog bentrok tersebut.
+  5. **Pembatalan Formulir Utama (*Cancel Main Form Without Saving*):**
+     - Setelah kembali ke formulir utama, **LANGSUNG KLIK TOMBOL BATAL** pada bagian bawah formulir pendaftaran agenda untuk kembali ke daftar agenda.
+     - Basis data staging tetap 100% perawan dan bebas dari mutasi data baru.
+  6. **Pemaparan Logika Interval Berurutan (*Half-Open Interval*) Secara Verbal:**
+     - Sampaikan secara verbal kepada hadirin mengenai prinsip matematis *Half-Open Interval* yang diterapkan sistem: jika sebuah rapat berakhir pada pukul 11:30, sistem secara cerdas memperbolehkan rapat berikutnya dimulai tepat pada pukul 11:30 tanpa memicu alarm bentrok palsu.
+     - **PERINGATAN:** **JANGAN** mengubah jam ke 11:30 lalu mengklik Simpan lagi, karena sistem akan mendeteksi nol bentrok dan seketika menulis dokumen baru ke Firestore!
+     - Rujuk bukti pengujian matematis yang telah lulus verifikasi otomatis 100% pada test suite `tests/unit/conflictDetector.test.ts` (6 pengujian unit) dan skenario integrasi browser.
+  7. **Opsi Alternatif Tangkapan Layar Pra-Rekam (*Prerecorded Fallback*):**
+     - Apabila pemapar menghendaki keamanan mutlak atau waktu presentasi terbatas, pemapar dapat memperagakan tangkapan layar pra-rekam dari dialog bentrok tanpa membuka formulir interaktif di layar proyektor.
 - **Poin Narasi Pemapar:**
-  > *"Di masa lalu dengan spreadsheet biasa, sering terjadi insiden di mana dua bidang memesan Ruang Rapat Kadis pada jam yang sama, atau Kepala Dinas ditugaskan menghadiri dua acara sekaligus di lokasi berbeda. Di SIMAK DISKUM v5.0, sistem memiliki mesin deteksi bentrok otomatis yang langsung memberikan peringatan dini seketika saat operator mengisi jadwal, bahkan sebelum jadwal tersebut disimpan ke dalam sistem."*
+  > *"Bapak/Ibu Pimpinan, SIMAK DISKUM v5.0 memiliki mesin pengawal jadwal yang sangat ketat. Ketika operator mencoba mendaftarkan kegiatan yang menabrak ruangan rapat atau personil yang telah terisi jadwal lain, sistem seketika menghentikan proses penyimpanan dan memunculkan dialog peringatan bentrok seperti yang kita lihat di layar. Sistem juga menerapkan logika interval berurutan (half-open interval), di mana acara yang dimulai tepat pada menit acara sebelumnya berakhir tidak dianggap tabrakan. Perlindungan ini memastikan jadwal pimpinan dan fasilitas dinas tidak pernah bertabrakan."*
 
 ---
 
@@ -376,11 +393,11 @@ Guna menjaga integritas dan stabilitas lingkungan peragaan cloud staging, pemapa
                                    |
          +-------------------------+-------------------------+
          |                                                   |
-   [Mode Baca / Inspeksi]                             [Simulasi Tanpa Simpan]
+   [Mode Baca / Inspeksi]                             [Simulasi Konflik Terkendali]
          |                                                   |
   - Buka Detail Agenda                               - Isi formulir simulasi bentrok
-  - Buka Modal Edit Form                             - Peragakan dialog bentrok instan
-  - Tinjau Alur 4 Tahap                              - Tunjukkan interval half-open
+  - Buka Modal Edit Form                             - Klik Simpan untuk picu dialog
+  - Tinjau Alur 4 Tahap                              - TUTUP DIALOG BENTROK (✕) TANPA OVERRIDE
   - KLIK "BATAL" / "TUTUP"                           - KLIK "BATAL" PADA FORMULIR
   (Tanpa Simpan -> 100% Aman)                        (Zero Write -> Baseline Utuh)
 ```
@@ -388,8 +405,9 @@ Guna menjaga integritas dan stabilitas lingkungan peragaan cloud staging, pemapa
 1. **Prioritaskan Mode Baca (*Read-Only Inspection*):**
    - Saat memperagakan formulir edit agenda, alur kerja 4 tahap, dan panel surat undangan, pemapar cukup membuka data kegiatan baseline yang ada, menjelaskannya kepada hadirin, lalu menekan tombol **Batal / Tutup**.
    - Hindari menekan tombol *Simpan* pada 38 record baseline agar format aslinya tidak berubah.
-2. **Simulasi Bentrok Tanpa Simpan (*Unsaved Simulation*):**
-   - Peragaan deteksi bentrok ruangan dan personil pada Modul 5 dilakukan dengan mengisi tanggal dan jam bentrok pada formulir Tambah Agenda, menunjukkan dialog peringatan bentrok yang muncul seketika, dan kemudian menekan tombol **Batal**. Tindakan ini 100% aman dan membuktikan fungsionalitas tanpa memutasi basis data.
+2. **Simulasi Bentrok Terkendali (*Controlled Conflict Trigger & Safe Dismissal*):**
+   - Peragaan deteksi bentrok pada Modul 5 dilakukan dengan memasukkan tanggal dan jam yang sengaja bertabrakan penuh dengan kegiatan baseline (02/10/2026 10:00–12:00), mengklik Simpan untuk memperlihatkan dialog bentrok yang memblokir penyimpanan otomatis, menutup dialog bentrok tanpa mengonfirmasi *override*, dan membatalkan formulir utama.
+   - **PERINGATAN:** Dilarang mengklik Simpan pada jam yang valid/bebas bentrok (misal 11:30) karena tindakan tersebut akan langsung menulis data baru ke Firestore. Penjelasan prinsip *half-open interval* disampaikan secara verbal menggunakan bukti pengujian unit yang terverifikasi.
 3. **Ketentuan Khusus Jika Live Write Diminta:**
    - Apabila pemangku kepentingan secara khusus menghendaki pembuktian penyimpanan data hidup (*live write*), tindakan tersebut harus disetujui terpisah dan **WAJIB** menggunakan awalan: `[DEMO-LIVE] <Judul Kegiatan>`.
    - Record `[DEMO-LIVE]` tersebut segera dihapus setelah pembuktian selesai.
@@ -502,5 +520,5 @@ NIP. .....................................................................
 ---
 
 <div align="center">
-  <sub>SIMAK DISKUM v5.0 — Dokumen Paket Persiapan Demonstrasi Klien (Milestone S06-A R1).</sub>
+  <sub>SIMAK DISKUM v5.0 — Dokumen Paket Persiapan Demonstrasi Klien (Milestone S06-A R2).</sub>
 </div>
