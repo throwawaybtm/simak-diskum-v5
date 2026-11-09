@@ -8,7 +8,7 @@
 - Production: `simakdiskum` (**STRICTLY OFF-LIMITS — 0 ACCESS, 0 MUTATIONS**)
 - Cloud Staging: `simakdiskum-staging` (Active demonstration reference)
 - Local Verification: `demo-department-agenda` (Emulators: Firestore `8080`, Auth `9099`)  
-**Verified Git Release Commit:** `11d7684c666bd1c7c640eda584ae0b0083cfa6bf`  
+**Verified Git Release Commit:** `cc3a491ec3bdfb6229441b3ddff7d22399846e2e`  
 **Document Date:** November 9, 2026  
 **Status:** **ACCELERATED RELEASE READINESS EVALUATION COMPLETED**  
 **Lead Evaluator:** Principal Release Engineer & Security Architect  
@@ -79,22 +79,22 @@ The comprehensive executive handoff package, demonstration agenda, administrativ
 
 The demonstration packet prepared in Milestone S06-A (refined in R1 and R2) provides the exact walkthrough script:
 
-### 3.1 Demonstration Structure:
-1. **Module 1: Opening & Architectural Grounding (5 min):** Explain the modern, cost-free Firebase Spark architecture, municipal data privacy, and mobile responsiveness.
-2. **Module 2: Public Portal Citizen View (8 min):** Barelang Bridge branding, 4 metric cards, Today's Agendas in WIB, 4 calendar view options (Month, Week, Day, List).
-3. **Module 3: Administrative Access & Executive Dashboard (7 min):** Role-based login, role badge pill, CSS-only donut chart, 4-stage administrative progress cards.
-4. **Module 4: 4-Stage Agenda Administrative Lifecycle (Feature F01) (10 min):** Walk through INITIAL_ENTRY $\rightarrow$ OFFLINE_PROCESS $\rightarrow$ DETAILS_COMPLETED $\rightarrow$ ADMIN_COMPLETE.
+### 3.1 Demonstration Structure (45-Minute Total Duration):
+1. **Module 1: Opening & Architectural Grounding (3 min):** Explain the modern, cost-free Firebase Spark architecture, municipal data privacy, and mobile responsiveness.
+2. **Module 2: Public Portal Citizen View (7 min):** Barelang Bridge branding, 4 metric cards, Today's Agendas in WIB, 4 calendar view options (Month, Week, Day, List).
+3. **Module 3: Administrative Access & Executive Dashboard (5 min):** Role-based login, role badge pill, CSS-only donut chart, 4-stage administrative progress cards.
+4. **Module 4: 4-Stage Agenda Administrative Lifecycle (Feature F01) (8 min):** Walk through INITIAL_ENTRY $\rightarrow$ OFFLINE_PROCESS $\rightarrow$ DETAILS_COMPLETED $\rightarrow$ ADMIN_COMPLETE.
 5. **Module 5: Real-Time Conflict Prevention Simulation (Safe Non-Destructive Flow) (5 min):**
    - Stage an intentional conflict against baseline activity 3 (Ruang Rapat Lt. 2).
    - Show the Conflict Modal halting the save operation.
    - Explain half-open intervals ($[10:00, 12:00)$ allows next event at $12:00$).
    - Click `Batal` to dismiss without writing to Firestore.
-6. **Module 6: Municipal Master Data Governance (Read-Only Inspection) (5 min):** Inspect the 5 master tabs and explain referential safeguards protecting active records.
+6. **Module 6: Municipal Master Data Governance (Read-Only Inspection) (4 min):** Inspect the 5 master tabs and explain referential safeguards protecting active records.
 7. **Module 7: Official Schedule Export Package (5 min):**
    - Excel (`.xlsx`) via ExcelJS with formula injection neutralization.
    - High-resolution Schedule Images (`.png`).
    - Compact 3-Page A4 Landscape PDF (Milestone S04 standard: 8 columns, repeated headers, human-readable names, 0 ID leaks, clean single footer).
-8. **Module 8: Closing & Leadership Acceptance Q&A (10 min):** Solicit leadership feedback, request signatory details, and confirm operational launch window.
+8. **Module 8: Closing & Leadership Acceptance Q&A (8 min):** Solicit leadership feedback, request signatory details, and confirm operational launch window.
 
 ### 3.2 Staging Demonstration Reference URLs:
 - **Public Portal:** `https://simakdiskum-staging.web.app`
@@ -189,7 +189,11 @@ firebase deploy --only firestore:indexes --project simakdiskum
 # Wait for indexes to reach READY state in Firebase Console (approx. 2-5 min)
 ```
 
-#### Step 3: Verify Initial Production Database State (Read-Only Preflight)
+#### Step 3: Verify Initial Production Database State (Read-Only Preflight — NOT YET EXECUTED)
+> [!NOTE]
+> **Status:** **NOT YET EXECUTED (Pre-Deployment Invariant)**  
+> This check is executed live immediately prior to Step 4 and Step 5 once formal client acceptance (Gate A) and written Go-Decision (Gate D) are granted. It verifies that `simakdiskum` is in a pristine, empty initial state (0 documents across all 9 collections) before initial admin provisioning and master data seeding.
+
 ```bash
 # Verify initial zero-mutation state on production (strictly read-only, checks all 9 collections)
 node department-agenda-firebase/scripts/verifyProductionPreflight.mjs --target=prod --project=simakdiskum --phase=pre-activation

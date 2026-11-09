@@ -48,6 +48,14 @@ export function validatePreflightEnvironment(options = {}) {
     );
   }
 
+  // Reject invalid phase values
+  const phase = options.phase || 'pre-activation';
+  if (!['pre-activation', 'post-activation'].includes(phase)) {
+    throw new Error(
+      `[Preflight Error] Invalid phase: '${phase}'. Must be 'pre-activation' or 'post-activation'.`
+    );
+  }
+
   // Reject emulator environment variables when inspecting live cloud
   if ((requestedTarget === 'prod' || requestedTarget === 'staging') && isEmulatorEnvActive) {
     throw new Error(
@@ -80,6 +88,7 @@ export function validatePreflightEnvironment(options = {}) {
   return {
     target: requestedTarget,
     projectId: expectedProjectId,
+    phase,
     isEmulator: requestedTarget === 'emulator'
   };
 }
@@ -88,8 +97,6 @@ export function validatePreflightEnvironment(options = {}) {
  * Performs read-only collection inspection on target Firestore database.
  */
 export async function executePreflightCheck(options = {}) {
-  const phase = options.phase || 'pre-activation'; // 'pre-activation' or 'post-activation'
-  
   let envInfo;
   try {
     envInfo = validatePreflightEnvironment(options);
@@ -98,11 +105,13 @@ export async function executePreflightCheck(options = {}) {
       status: 'FAIL',
       target: options.target || 'UNKNOWN',
       projectId: options.project || 'UNKNOWN',
-      phase,
+      phase: options.phase || 'pre-activation',
       counts: {},
       details: err.message
     };
   }
+
+  const phase = envInfo.phase;
 
   console.log('======================================================================');
   console.log('[SIMAK DISKUM] PRODUCTION PREFLIGHT VERIFIER (READ-ONLY)');
@@ -259,7 +268,7 @@ if (process.argv[1] && process.argv[1].endsWith('verifyProductionPreflight.mjs')
   const projectArg = args.find(a => a.startsWith('--project='))?.split('=')[1];
   const phaseArg = args.find(a => a.startsWith('--phase='))?.split('=')[1] || 'pre-activation';
 
-  if (!targetArg || args.includes('--help')) {
+  if (args.includes('--help')) {
     console.log(`
 SIMAK DISKUM Read-Only Production Preflight Verifier
 
@@ -271,8 +280,14 @@ Safety Invariants:
   - Strictly rejects emulator environment variables when --target=prod or --target=staging
   - Read-only execution: 0 documents created, modified, or deleted
   - Reports PASS, FAIL, or NOT VERIFIED
+  - Exits with 0 exclusively on PASS; exits nonzero on FAIL and NOT VERIFIED
 `);
-    process.exit(targetArg ? 0 : 1);
+    process.exit(0);
+  }
+
+  if (!targetArg) {
+    console.error(`[Preflight Error] Missing required parameter: --target=<prod|staging|emulator> must be explicitly specified.`);
+    process.exit(1);
   }
 
   executePreflightCheck({
@@ -282,10 +297,11 @@ Safety Invariants:
   }).then(result => {
     console.log(`\nFINAL PREFLIGHT RESULT: [${result.status}]`);
     console.log(`Details: ${result.details}`);
-    if (result.status === 'FAIL') {
-      process.exit(1);
-    } else {
+    // Exit code is 0 exclusively for PASS. Both FAIL and NOT VERIFIED exit nonzero.
+    if (result.status === 'PASS') {
       process.exit(0);
+    } else {
+      process.exit(1);
     }
   }).catch(err => {
     console.error('Fatal execution error:', err);

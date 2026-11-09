@@ -2165,22 +2165,25 @@ REASON:
 
 # Milestone S06-D: Final Release Preflight Blocker Correction & Gate A Handoff
 **Date:** November 9, 2026  
-**Status:** **COMPLETED & VERIFIED (PREFLIGHT BLOCKER RESOLVED; GATE A HANDOFF PACKET PREPARED)**  
-**Verified Git Release Commit:** `11d7684c666bd1c7c640eda584ae0b0083cfa6bf`  
+**Status:** **COMPLETED & VERIFIED (FINAL SAFETY CORRECTIONS APPLIED; GATE A HANDOFF READY)**  
+**Verified Git Release Commit:** `cc3a491ec3bdfb6229441b3ddff7d22399846e2e`  
 **Target Environments:**
 - Cloud Staging: `simakdiskum-staging` (Live verification reference)
 - Local Emulator Suite: `demo-department-agenda` (Firestore Emulator `8080`, Auth Emulator `9099`)
-- Production: `simakdiskum` (**STRICTLY OFF-LIMITS — AWAITING GATE A ACCEPTANCE & OWNER GO-DECISION**)
+- Production: `simakdiskum` (**STRICTLY OFF-LIMITS — 0 ACCESS, 0 READS, 0 WRITES**)
 
 ---
 
 ## 1. Executive Summary & Review Background
 
-Milestone S06-D resolves the remaining genuine technical and procedural blockers identified during the final release preflight review:
-1. **Production Preflight Verifier (`verifyProductionPreflight.mjs`):** Replaced the legacy script (`verifyEmulatorCounts.mjs`, which hardcoded emulator environment variables and project `demo-department-agenda`) with an explicit, hardened read-only production preflight utility.
-2. **Disaster Recovery Runbook Alignment:** Corrected `docs/BACKUP_RECOVERY_RUNBOOK.md` and `docs/PRODUCTION_READINESS_CHECKLIST.md` to match the real CLI implemented in `scripts/backupRestore.mjs`. Full database restorations strictly require manifest status verification, a mandatory dry-run review (`--dry-run`), followed by `--dry-run-reviewed --force`. Corrected the audit action description to the implemented `MAINTENANCE_RESTORE` behavior.
-3. **Release Material Reconciliation:** Reconciled the verified Git release commit reference to `11d7684c666bd1c7c640eda584ae0b0083cfa6bf`. Preserved the strict distinction between the approved S04 PDF layout (compact 3-page A4 landscape, 8 columns, repeated headers, human-readable names, 0 ID leaks, no letterhead, no signature block) and future post-Gate A signed government report templates.
-4. **Immediate Gate A Handoff Packet:** Authored `docs/GATE_A_CLIENT_ACCEPTANCE_HANDOFF.md` containing staging links, structured 45-min agenda, Berita Acara acceptance template, signatory metadata intake form, personnel roster approval form, production admin nomination form, and Project Owner Go/No-Go checklist.
+Milestone S06-D resolves the remaining genuine technical and procedural blockers identified during the final release preflight review, and applies the targeted safety corrections required before Gate A handoff:
+1. **Production Preflight Verifier (`verifyProductionPreflight.mjs`):** Replaced legacy emulator scripts with an explicit, hardened read-only production preflight utility. Fixed CLI exit code semantics so code 0 is returned exclusively on PASS, while both FAIL and NOT VERIFIED exit nonzero (code 1). Strictly validated the `--phase` argument, allowing only `pre-activation` and `post-activation`.
+2. **100% Mocked Safety Tests (`productionPreflight.test.ts`):** Removed all potentially live production calls by fully mocking `firebase-admin/app` and `firebase-admin/firestore`. Tested collection reads, credential errors, initialization failures, phase/target validation, and asserted zero write mutations (16/16 passed in 20ms, bringing total unit tests to 255/255 passed across 27 files).
+3. **Disaster Recovery Runbook Alignment:** Corrected `docs/BACKUP_RECOVERY_RUNBOOK.md` and `docs/PRODUCTION_READINESS_CHECKLIST.md` to match the real CLI implemented in `scripts/backupRestore.mjs`. Full database restorations strictly require manifest status verification, a mandatory dry-run review (`--dry-run`), followed by `--dry-run-reviewed --force`. Corrected the audit action description to the implemented `MAINTENANCE_RESTORE` behavior.
+4. **45-Minute Client Demonstration Schedule:** Adjusted the demonstration timeline in `docs/GATE_A_CLIENT_ACCEPTANCE_HANDOFF.md` to exactly 45 minutes across all 8 modules (Module 1: 3 min, Module 2: 7 min, Module 3: 5 min, Module 4: 8 min, Module 5: 5 min, Module 6: 4 min, Module 7: 5 min, Module 8: 8 min).
+5. **Preflight Status Calibration:** Marked production database preflight as `NOT YET EXECUTED (Scheduled for Deployment Step 3)` in the Go/No-Go checklist and deployment runbook, rather than claiming passed based on local tests.
+6. **Release Material Reconciliation:** Reconciled Git release commit references to `cc3a491ec3bdfb6229441b3ddff7d22399846e2e`. Preserved the strict distinction between the approved S04 PDF layout (compact 3-page A4 landscape, 8 columns, repeated headers, human-readable names, 0 ID leaks, no letterhead, no signature block) and future post-Gate A signed government report templates.
+7. **Immediate Gate A Handoff Packet:** Authored `docs/GATE_A_CLIENT_ACCEPTANCE_HANDOFF.md` containing staging links, structured 45-min agenda, Berita Acara acceptance template, signatory metadata intake form, personnel roster approval form, production admin nomination form, and Project Owner Go/No-Go checklist.
 
 ---
 
@@ -2192,12 +2195,14 @@ Milestone S06-D resolves the remaining genuine technical and procedural blockers
   - Requires explicit target (`--target=prod`, `--target=staging`, or `--target=emulator`).
   - Strictly rejects emulator environment variables (`FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`) when target is `prod` or `staging`.
   - Enforces project ID validation (rejects mismatched projects).
+  - Strictly validates `--phase` accepting only `pre-activation` and `post-activation`.
   - Uses approved credentials (ADC or `GOOGLE_APPLICATION_CREDENTIALS`) with read-only operations.
   - Inspects document counts across all 9 Firestore collections (`departments`, `employees`, `locations`, `organizers`, `categories`, `activities`, `publicActivities`, `settings`, `auditLogs`).
   - Evaluates initialization assumptions: verifies pristine zero-mutation initial database state during pre-activation (Step 3).
   - Never creates, updates, or deletes any document (100% read-only).
   - Reports deterministic `PASS`, `FAIL`, or `NOT VERIFIED` results without unhandled crashes.
-- **Automated Unit Regression Tests:** Authored [`department-agenda-firebase/tests/unit/productionPreflight.test.ts`](file:///d:/Temp/department-agenda-firebase/tests/unit/productionPreflight.test.ts) (**9/9 passed in 1.3s**, bringing total unit tests to **248 passed**).
+  - CLI exit code is 0 exclusively for `PASS`; both `FAIL` and `NOT VERIFIED` exit nonzero (code 1).
+- **Automated Unit Regression Tests:** Authored [`department-agenda-firebase/tests/unit/productionPreflight.test.ts`](file:///d:/Temp/department-agenda-firebase/tests/unit/productionPreflight.test.ts) (**16/16 passed in 20ms**, bringing total unit tests to **255 passed across 27 files**). Completely mocked; zero live cloud network connections.
 
 ### Area 2: Disaster Recovery Runbook Alignment to Real CLI
 - **Status & Manifest Verification:** Runbook now mandates inspecting backup status and verifying SHA-256 manifests prior to touching the database:
@@ -2218,21 +2223,34 @@ Milestone S06-D resolves the remaining genuine technical and procedural blockers
 - **Approved Milestone S04 PDF Standard:** Compact 3-page A4 landscape layout, 8 official columns, repeated table headers, human-readable names, 0 database ID leaks, clean single footer. Explicitly confirmed to contain **NO letterhead**, **NO official logo**, and **NO signature block / NIP**.
 - **Future Signed Government Report Template:** Adding Batam municipal letterhead (Kop Surat), logo, and authorized signatory blocks (Kepala Dinas / Sekretaris Dinas NIP) is recognized as a post-Gate A template enhancement that will be scheduled once the Department officially appoints the authorized signatory.
 
+### Area 4: 45-Minute Client Demonstration & Go/No-Go Calibration
+- **45-Minute Demonstration Schedule:** Preserved all 8 modules while allocating exact, disciplined presentation durations:
+  - Module 1 (Opening & Overview): 3 min
+  - Module 2 (Public Portal): 7 min
+  - Module 3 (Admin Dashboard): 5 min
+  - Module 4 (4-Stage Lifecycle): 8 min
+  - Module 5 (Conflict Simulation): 5 min
+  - Module 6 (Master Governance): 4 min
+  - Module 7 (Schedule Export): 5 min
+  - Module 8 (Closing & Q&A): 8 min
+  - **Total: Exactly 45 minutes.**
+- **Go/No-Go Checklist Calibration:** Item 7 calibrated to `NOT YET EXECUTED (Scheduled for Deployment Step 3)`.
+
 ---
 
 ## 3. Comprehensive Verification Summary
 
 | Suite / Component | Test Count | Status | Result |
 |---|---|---|:---:|
-| **Unit & Integration Suites** | 27 test files | Verified | **248 / 248 Passed (100%)** |
-| **Production Preflight Safety Tests** | `productionPreflight.test.ts` (9 tests) | Verified | **9 / 9 Passed (100%)** |
+| **Unit & Integration Suites** | 27 test files | Verified | **255 / 255 Passed (100%)** |
+| **Production Preflight Safety Tests** | `productionPreflight.test.ts` (16 tests) | Verified | **16 / 16 Passed (100%)** |
 | **Disaster Recovery Rehearsal Suite** | `backupRestore.test.ts` (10 tests) | Verified | **10 / 10 Passed (100%)** |
 | **Operator Access & Role Management** | `authRoleManagement.test.ts` (11 tests) | Verified | **11 / 11 Passed (100%)** |
 | **Emergency Maintenance Rules** | `maintenanceRules.test.ts` (6 tests) | Verified | **6 / 6 Passed (100%)** |
 | **Security Rules Test Suite** | `firestore.rules.test.ts` (32 tests) | Verified | **32 / 32 Passed (100%)** |
 | **Live Staging Wire Audit** | `verifyS06bSecurityWire.mjs` (20 tests) | Verified | **20 / 20 Passed (100%)** |
 | **Staging Baseline Preservation** | 38 October 2026 activities | Verified | **100% Intact (0 Mutations)** |
-| **Production Isolation** | `simakdiskum` project | Verified | **100% Untouched (0 Access)** |
+| **Production Isolation** | `simakdiskum` project | Verified | **100% Untouched (0 Access, 0 Reads, 0 Writes)** |
 
 ---
 
@@ -2249,7 +2267,7 @@ Only genuine administrative and authorization requirements remain before activat
 
 ## 5. Checkpoint Status
 
-- **Checkpoint:** **FINAL RELEASE PREFLIGHT CORRECTED — AWAITING GATE A ACCEPTANCE AND OWNER GO-DECISION**
+- **Checkpoint:** **FINAL RELEASE PREFLIGHT SAFETY CORRECTED — GATE A HANDOFF READY**
 - **Status:** **COMPLETED & READY FOR CLIENT PRESENTATION**
-- **Production Mutations:** **0 (STRICTLY OFF-LIMITS, PRODUCTION UNTOUCHED)**
+- **Production Mutations:** **0 (STRICTLY OFF-LIMITS, ZERO READS, ZERO WRITES)**
 - **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**

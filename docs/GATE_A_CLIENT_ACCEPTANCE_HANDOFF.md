@@ -3,7 +3,7 @@
 
 **Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
 **System:** SIMAK DISKUM v5.0 (*Sistem Informasi Manajemen Agenda Kedinasan*)  
-**Verified Git Release Commit:** `11d7684c666bd1c7c640eda584ae0b0083cfa6bf`  
+**Verified Git Release Commit:** `cc3a491ec3bdfb6229441b3ddff7d22399846e2e`  
 **Target Architecture:** Firebase Multi-site Hosting (`public` & `admin`) on Firebase Spark (Zero-Cost Plan, $0.00/month)  
 **Demonstration Environment:** Cloud Staging (`simakdiskum-staging`)  
 **Production Target:** `simakdiskum` (**STRICTLY OFF-LIMITS — AWAITING FORMAL WRITTEN GO-DECISION**)  
@@ -33,14 +33,14 @@ Derived directly from the verified [`docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md`]
 
 | Time | Module | Focus Area | Key Demonstration Points & Safety Guards |
 |---|---|---|---|
-| **10:00 – 10:05** (5 min) | **Module 1: Opening & Architectural Overview** | Cost & Infrastructure | Explain zero-cost Firebase Spark architecture ($0.00/mo), data ownership, and responsive mobile-first design. |
-| **10:05 – 10:13** (8 min) | **Module 2: Public Portal Citizen & Agency Experience** | Public Access & Privacy | Barelang Bridge civic branding, 4 summary metric cards, Today's Agendas in WIB, 4 calendar views (Month, Week, Day, List). Show that public view strictly excludes internal notes, private meeting links, and raw employee IDs. |
-| **10:13 – 10:20** (7 min) | **Module 3: Administrative Access & Executive Dashboard** | Operator Experience | Secure email/password login, operator role badge pill, CSS-only donut chart (zero external library overhead), 4-stage administrative progress cards. |
-| **10:20 – 10:30** (10 min) | **Module 4: 4-Stage Agenda Administrative Lifecycle (Feature F01)** | Operational Workflow | Walkthrough of the 4 administrative stages: (1) `INITIAL_ENTRY`, (2) `OFFLINE_PROCESS`, (3) `DETAILS_COMPLETED`, (4) `ADMIN_COMPLETE`. Demonstrate invitation letter metadata attachment and privacy preservation. |
-| **10:30 – 10:35** (5 min) | **Module 5: Real-Time Conflict Prevention Simulation** | Safety & Scheduling Engine | Stage an intentional room/time conflict against baseline activity 3 (Ruang Rapat Lt. 2, 10:00–12:00). **Safety Guard:** Show the Conflict Modal halting the save; explain half-open intervals ($[10:00, 12:00)$); click **Batal** without saving to Firestore. |
-| **10:35 – 10:40** (5 min) | **Module 6: Municipal Master Data Governance** | Data Governance | **Read-only inspection** of the 5 master tabs (Pegawai, Unit Bidang, Ruangan, Penyelenggara, Kategori). Explain referential safeguards preventing accidental deletion of master records tied to active agendas. |
-| **10:40 – 10:45** (5 min) | **Module 7: Official Schedule Export Package** | Reporting & Formats | Showcase 3 verified export formats: (1) Excel (`.xlsx`) via ExcelJS with formula injection neutralization; (2) High-res image (`.png`); (3) Compact 3-page A4 Landscape PDF (S04 standard: 8 columns, repeated table headers, human-readable names, 0 ID leaks, single clean footer). |
-| **10:45 – 10:55** (10 min) | **Module 8: Closing, Q&A & Acceptance Handoff** | Governance & Decisions | Address questions from Dinas leadership, collect signatory and roster requirements, and sign the acceptance record. |
+| **10:00 – 10:03** (3 min) | **Module 1: Opening & Architectural Overview** | Cost & Infrastructure | Explain zero-cost Firebase Spark architecture ($0.00/mo), data ownership, and responsive mobile-first design. |
+| **10:03 – 10:10** (7 min) | **Module 2: Public Portal Citizen & Agency Experience** | Public Access & Privacy | Barelang Bridge civic branding, 4 summary metric cards, Today's Agendas in WIB, 4 calendar views (Month, Week, Day, List). Show that public view strictly excludes internal notes, private meeting links, and raw employee IDs. |
+| **10:10 – 10:15** (5 min) | **Module 3: Administrative Access & Executive Dashboard** | Operator Experience | Secure email/password login, operator role badge pill, CSS-only donut chart (zero external library overhead), 4-stage administrative progress cards. |
+| **10:15 – 10:23** (8 min) | **Module 4: 4-Stage Agenda Administrative Lifecycle (Feature F01)** | Operational Workflow | Walkthrough of the 4 administrative stages: (1) `INITIAL_ENTRY`, (2) `OFFLINE_PROCESS`, (3) `DETAILS_COMPLETED`, (4) `ADMIN_COMPLETE`. Demonstrate invitation letter metadata attachment and privacy preservation. |
+| **10:23 – 10:28** (5 min) | **Module 5: Real-Time Conflict Prevention Simulation** | Safety & Scheduling Engine | Stage an intentional room/time conflict against baseline activity 3 (Ruang Rapat Lt. 2, 10:00–12:00). **Safety Guard:** Show the Conflict Modal halting the save; explain half-open intervals ($[10:00, 12:00)$); click **Batal** without saving to Firestore. |
+| **10:28 – 10:32** (4 min) | **Module 6: Municipal Master Data Governance** | Data Governance | **Read-only inspection** of the 5 master tabs (Pegawai, Unit Bidang, Ruangan, Penyelenggara, Kategori). Explain referential safeguards preventing accidental deletion of master records tied to active agendas. |
+| **10:32 – 10:37** (5 min) | **Module 7: Official Schedule Export Package** | Reporting & Formats | Showcase 3 verified export formats: (1) Excel (`.xlsx`) via ExcelJS with formula injection neutralization; (2) High-res image (`.png`); (3) Compact 3-page A4 Landscape PDF (S04 standard: 8 columns, repeated table headers, human-readable names, 0 ID leaks, single clean footer). |
+| **10:37 – 10:45** (8 min) | **Module 8: Closing, Q&A & Acceptance Handoff** | Governance & Decisions | Address questions from Dinas leadership, collect signatory and roster requirements, and sign the acceptance record. |
 
 ---
 
@@ -143,8 +143,8 @@ Before authorizing the Release Engineer to execute Step 1 through Step 8 of the 
 | **4. Signatory Metadata** | Form A filled with Name, NIP, and official title | `[ ] YES` |
 | **5. Master Personnel Roster** | Form B signed by Subbag Kepegawaian | `[ ] YES` |
 | **6. Production Admin Nominated** | Form C filled with official civil servant email | `[ ] YES` |
-| **7. Production Preflight Verification** | Read-only `verifyProductionPreflight.mjs --target=prod` confirms pristine state | `[X] YES (Passed local test)` |
-| **8. Git Working Tree & Remote** | Repository clean, synchronized with `origin/master` (`11d7684...`), private (404) | `[X] YES` |
+| **7. Production Preflight Verification** | Read-only `verifyProductionPreflight.mjs --target=prod` confirms pristine state | `[ ] NOT YET EXECUTED (Scheduled for Deployment Step 3)` |
+| **8. Git Working Tree & Remote** | Repository clean, synchronized with `origin/master` (`cc3a491...`), private (404) | `[X] YES` |
 
 ### Formal Go-Decision Statement:
 ```
