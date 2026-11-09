@@ -1,0 +1,263 @@
+{
+  "timestamp": "2026-11-09T02:45:02.296Z",
+  "targetProject": "simakdiskum-staging",
+  "tests": [
+    {
+      "id": "TC-SEC-01",
+      "name": "Cryptographic Ruleset SHA-256 Parity",
+      "status": "PASS",
+      "details": "Remote ruleset SHA-256 bit-for-bit matches committed rules",
+      "evidence": {
+        "rulesetName": "projects/simakdiskum-staging/rulesets/79aea11c-bac2-46ec-8acb-1fba7c3e8c28",
+        "updateTime": "2026-11-05T13:05:23.835181Z",
+        "remoteLines": 707,
+        "localLines": 707,
+        "remoteHash": "444b48ba8e9d5979b0845e997babe9a728fefc930e3f03bab35da91e11570678",
+        "localHash": "444b48ba8e9d5979b0845e997babe9a728fefc930e3f03bab35da91e11570678",
+        "remoteIdentity": "SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5",
+        "localIdentity": "SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5"
+      }
+    },
+    {
+      "id": "TC-REST-01",
+      "name": "Anonymous REST Read: /publicActivities",
+      "status": "PASS",
+      "details": "Returned HTTP 200 (Expected 200 OK)",
+      "evidence": {
+        "collection": "publicActivities",
+        "status": 200,
+        "category": "PUBLIC"
+      }
+    },
+    {
+      "id": "TC-REST-02",
+      "name": "Anonymous REST Read: /publicAnnouncements",
+      "status": "PASS",
+      "details": "Returned HTTP 200 (Expected 200 OK)",
+      "evidence": {
+        "collection": "publicAnnouncements",
+        "status": 200,
+        "category": "PUBLIC"
+      }
+    },
+    {
+      "id": "TC-REST-03",
+      "name": "Anonymous REST Read: /publicSettings",
+      "status": "PASS",
+      "details": "Returned HTTP 200 (Expected 200 OK)",
+      "evidence": {
+        "collection": "publicSettings",
+        "status": 200,
+        "category": "PUBLIC"
+      }
+    },
+    {
+      "id": "TC-REST-04",
+      "name": "Anonymous REST Read: /activities",
+      "status": "PASS",
+      "details": "Returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "collection": "activities",
+        "status": 403,
+        "category": "PRIVATE"
+      }
+    },
+    {
+      "id": "TC-REST-05",
+      "name": "Anonymous REST Read: /auditLogs",
+      "status": "PASS",
+      "details": "Returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "collection": "auditLogs",
+        "status": 403,
+        "category": "PRIVATE"
+      }
+    },
+    {
+      "id": "TC-REST-06",
+      "name": "Anonymous REST Read: /employees",
+      "status": "PASS",
+      "details": "Returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "collection": "employees",
+        "status": 403,
+        "category": "PRIVATE"
+      }
+    },
+    {
+      "id": "TC-REST-07",
+      "name": "Anonymous REST Read: /departments",
+      "status": "PASS",
+      "details": "Returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "collection": "departments",
+        "status": 403,
+        "category": "PRIVATE"
+      }
+    },
+    {
+      "id": "TC-REST-08",
+      "name": "Anonymous REST Read: /locations",
+      "status": "PASS",
+      "details": "Returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "collection": "locations",
+        "status": 403,
+        "category": "PRIVATE"
+      }
+    },
+    {
+      "id": "TC-REST-09",
+      "name": "Anonymous REST Read: /organizers",
+      "status": "PASS",
+      "details": "Returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "collection": "organizers",
+        "status": 403,
+        "category": "PRIVATE"
+      }
+    },
+    {
+      "id": "TC-REST-10",
+      "name": "Anonymous REST Read: /categories",
+      "status": "PASS",
+      "details": "Returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "collection": "categories",
+        "status": 403,
+        "category": "PRIVATE"
+      }
+    },
+    {
+      "id": "TC-REST-11",
+      "name": "Anonymous REST Read: /settings",
+      "status": "PASS",
+      "details": "Returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "collection": "settings",
+        "status": 403,
+        "category": "PRIVATE"
+      }
+    },
+    {
+      "id": "TC-REST-12",
+      "name": "Anonymous REST Read: /arbitraryCollectionProbe",
+      "status": "PASS",
+      "details": "Returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "collection": "arbitraryCollectionProbe",
+        "status": 403,
+        "category": "FALLBACK_DENY"
+      }
+    },
+    {
+      "id": "TC-PROBE-01",
+      "name": "Targeted Read of Known Activity IDs from Private Collection",
+      "status": "PASS",
+      "details": "All 5 known public IDs strictly denied (HTTP 403) on /activities/{id}",
+      "evidence": {
+        "probeDetails": [
+          {
+            "id": "act_syn_20261001_23",
+            "status": 403
+          },
+          {
+            "id": "act_syn_20261001_24",
+            "status": 403
+          },
+          {
+            "id": "act_syn_20261002_05",
+            "status": 403
+          },
+          {
+            "id": "act_syn_20261002_25",
+            "status": 403
+          },
+          {
+            "id": "act_syn_20261005_01",
+            "status": 403
+          }
+        ]
+      }
+    },
+    {
+      "id": "TC-PAYLOAD-01",
+      "name": "Public Payload Deep Inspection (No Sensitive Substrings)",
+      "status": "PASS",
+      "details": "Inspected 38 public documents across 19 unique fields; 0 sensitive leaks found",
+      "evidence": {
+        "totalDocs": 38,
+        "allowedFields": [
+          "attendeeLabels",
+          "categoryName",
+          "dateDisplay",
+          "endDate",
+          "endTime",
+          "id",
+          "locationName",
+          "locationType",
+          "openEnded",
+          "organizerName",
+          "publicCancellationNotice",
+          "publicNotes",
+          "startDate",
+          "startTime",
+          "status",
+          "timeDisplay",
+          "title",
+          "updatedAt",
+          "version"
+        ],
+        "leakCount": 0
+      }
+    },
+    {
+      "id": "TC-WIRE-PUB-01",
+      "name": "Public Portal Network Isolation (No Private Collection Requests)",
+      "status": "PASS",
+      "details": "Browser dispatched 15 total network requests; exactly 0 targeted private Firestore collections",
+      "evidence": {
+        "totalRequests": 15,
+        "privateCollectionCalls": []
+      }
+    },
+    {
+      "id": "TC-DOM-PUB-01",
+      "name": "Public Portal DOM Inspection (Zero Raw Employee IDs in DOM)",
+      "status": "PASS",
+      "details": "Public DOM contains 0 raw employee IDs (e.g. emp_xx)",
+      "evidence": {
+        "leakedEmpIdCount": 0
+      }
+    },
+    {
+      "id": "TC-INPAGE-PUB-01",
+      "name": "In-Page Client-Side Fetch to Private Collection Denial",
+      "status": "PASS",
+      "details": "In-page fetch to /activities from public web origin returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "inPageFetchStatus": 403
+      }
+    },
+    {
+      "id": "TC-WIRE-ADM-01",
+      "name": "Admin Portal Pre-Auth Zero-Read Invariant",
+      "status": "PASS",
+      "details": "Admin Portal rendered Login Card with exactly 0 Firestore read requests before authentication",
+      "evidence": {
+        "hasLoginCard": true,
+        "firestoreRequestCount": 0,
+        "dispatchedUrls": []
+      }
+    },
+    {
+      "id": "TC-INPAGE-ADM-01",
+      "name": "In-Page Client-Side Fetch to Private Collection Denial from Admin Origin",
+      "status": "PASS",
+      "details": "In-page fetch to /activities from admin web origin returned HTTP 403 (Expected 403 Forbidden)",
+      "evidence": {
+        "inPageAdminFetchStatus": 403
+      }
+    }
+  ]
+}
