@@ -8,6 +8,7 @@
 - Production: `simakdiskum` (**STRICTLY OFF-LIMITS — 0 ACCESS, 0 MUTATIONS**)
 - Cloud Staging: `simakdiskum-staging` (Active demonstration reference)
 - Local Verification: `demo-department-agenda` (Emulators: Firestore `8080`, Auth `9099`)  
+**Verified Git Release Commit:** `11d7684c666bd1c7c640eda584ae0b0083cfa6bf`  
 **Document Date:** November 9, 2026  
 **Status:** **ACCELERATED RELEASE READINESS EVALUATION COMPLETED**  
 **Lead Evaluator:** Principal Release Engineer & Security Architect  
@@ -73,6 +74,8 @@ The following items are recognized as future template or architectural improveme
 ---
 
 ## 3. Stakeholder Demonstration & Acceptance Handoff (Gate A)
+
+The comprehensive executive handoff package, demonstration agenda, administrative intake forms, and Berita Acara acceptance template are compiled in [`docs/GATE_A_CLIENT_ACCEPTANCE_HANDOFF.md`](file:///d:/Temp/docs/GATE_A_CLIENT_ACCEPTANCE_HANDOFF.md).
 
 The demonstration packet prepared in Milestone S06-A (refined in R1 and R2) provides the exact walkthrough script:
 
@@ -186,10 +189,10 @@ firebase deploy --only firestore:indexes --project simakdiskum
 # Wait for indexes to reach READY state in Firebase Console (approx. 2-5 min)
 ```
 
-#### Step 3: Verify Initial Production Database State
+#### Step 3: Verify Initial Production Database State (Read-Only Preflight)
 ```bash
-# Verify initial zero-mutation state on production
-node department-agenda-firebase/scripts/verifyEmulatorCounts.mjs --target=prod
+# Verify initial zero-mutation state on production (strictly read-only, checks all 9 collections)
+node department-agenda-firebase/scripts/verifyProductionPreflight.mjs --target=prod --project=simakdiskum --phase=pre-activation
 ```
 
 #### Step 4: Provision Initial Municipal Administrator Account
@@ -241,16 +244,23 @@ If an unexpected condition arises during or following deployment, execute the ap
      ```
    - Freezes all writes in seconds; keeps public schedule reading active.
 4. **Procedure D: Full Database Restoration:**
-   - In case of critical data corruption:
+   - In case of critical data corruption, execute the authorized maintenance restore sequence:
      ```bash
      cd department-agenda-firebase
-     node scripts/backupRestore.mjs restore <backup_path> --mode=full --force --target=prod
+     # a. Verify backup manifest integrity and status
+     node scripts/backupRestore.mjs status <backup_path> --target=prod
+
+     # b. Mandatory dry-run diff review (calculates documents to restore and orphans to clean)
+     node scripts/backupRestore.mjs restore <backup_path> --mode=full --dry-run --target=prod
+
+     # c. Execute controlled full restoration with explicit review flag and force confirmation
+     node scripts/backupRestore.mjs restore <backup_path> --mode=full --dry-run-reviewed --force --target=prod
      ```
-   - Restores exact verified state while preserving all immutable `auditLogs`.
+   - Restores exact verified state while preserving all immutable `auditLogs` (automatically appends an immutable audit entry with action `MAINTENANCE_RESTORE` logged by `SYSTEM_MAINTENANCE_CLI`).
 
 ---
 
 ## 8. Milestone Conclusion
 
 Milestone S06-C and Accelerated Release Readiness evaluation is complete. The system is paused at:  
-**`ACCELERATED RELEASE READINESS — FINAL OWNER REVIEW`**
+**`FINAL RELEASE PREFLIGHT CORRECTED — AWAITING GATE A ACCEPTANCE AND OWNER GO-DECISION`**

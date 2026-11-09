@@ -229,9 +229,24 @@ Never edit `firebase.json` directly. Use the dedicated maintenance configuration
    *(Verified by `tests/rules/maintenanceRules.test.ts` with 6/6 tests passing).*
 
 3. **Execute Controlled Full Restoration via Admin SDK:**
+   A full restoration must follow the authorized maintenance sequence:
+
+   a. **Inspect Status & Verify Manifest:**
    ```bash
-   node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --force --dry-run-reviewed --target=prod
+   node scripts/backupRestore.mjs status ./backups/2026-11-05 --target=prod
    ```
+
+   b. **Mandatory Dry-Run Diff Review:**
+   ```bash
+   node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --dry-run --target=prod
+   ```
+   Review the diff output: confirm total documents to restore, orphaned live documents to clean, and zero schema anomalies.
+
+   c. **Execute Controlled Full Restoration:**
+   ```bash
+   node scripts/backupRestore.mjs restore ./backups/2026-11-05 --mode=full --dry-run-reviewed --force --target=prod
+   ```
+   *Audit Invariant:* The restore operation automatically appends an immutable record with action `MAINTENANCE_RESTORE` to the `auditLogs` collection (logged by `SYSTEM_MAINTENANCE_CLI`). Existing audit logs are NEVER deleted or overwritten.
 
 4. **Run Deep Verification:**
    Ensure `verifyRestoration()` completes with 100% matched documents.

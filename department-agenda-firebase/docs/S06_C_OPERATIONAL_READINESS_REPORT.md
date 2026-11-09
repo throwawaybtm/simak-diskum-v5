@@ -8,6 +8,7 @@
 - **Cloud Staging:** `simakdiskum-staging` (Live verification reference)
 - **Local Emulator Suite:** `demo-department-agenda` (Firestore `127.0.0.1:8080`, Auth `127.0.0.1:9099`)
 - **Target Production:** `simakdiskum` (**STRICTLY OFF-LIMITS — 0 ACCESS, 0 MUTATIONS**)  
+**Verified Git Release Commit:** `11d7684c666bd1c7c640eda584ae0b0083cfa6bf`  
 **Audit Date:** November 9, 2026  
 **Status:** **PASSED & OFFICIALLY VERIFIED (GATE C APPROVED)**  
 **Author:** Senior Infrastructure Architect & Disaster Recovery Specialist  
@@ -126,7 +127,7 @@ A critical operational requirement for municipal compliance is the immutability 
    - ID collisions on audit records do not overwrite existing audit logs.
 2. **Maintenance Action Logging:**  
    Every restoration execution creates a new, immutable audit record in `auditLogs` documenting:
-   - Action type: `RESTORE_MERGE` or `RESTORE_FULL`.
+   - Action type: `MAINTENANCE_RESTORE` (logged by `SYSTEM_MAINTENANCE_CLI`).
    - Operator / System identifier.
    - Timestamp and affected collection summary.
    - Backup directory path and manifest checksum.

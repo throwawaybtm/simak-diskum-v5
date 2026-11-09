@@ -2159,3 +2159,97 @@ REASON:
 - **Production Mutations:** **0 (STRICTLY OFF-LIMITS, PRODUCTION UNTOUCHED)**
 - **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
 - **Next Authorized Step:** Project Owner review of consolidated readiness checklist and scheduling of Gate A client demonstration with Dinas leadership.
+
+
+---
+
+# Milestone S06-D: Final Release Preflight Blocker Correction & Gate A Handoff
+**Date:** November 9, 2026  
+**Status:** **COMPLETED & VERIFIED (PREFLIGHT BLOCKER RESOLVED; GATE A HANDOFF PACKET PREPARED)**  
+**Verified Git Release Commit:** `11d7684c666bd1c7c640eda584ae0b0083cfa6bf`  
+**Target Environments:**
+- Cloud Staging: `simakdiskum-staging` (Live verification reference)
+- Local Emulator Suite: `demo-department-agenda` (Firestore Emulator `8080`, Auth Emulator `9099`)
+- Production: `simakdiskum` (**STRICTLY OFF-LIMITS — AWAITING GATE A ACCEPTANCE & OWNER GO-DECISION**)
+
+---
+
+## 1. Executive Summary & Review Background
+
+Milestone S06-D resolves the remaining genuine technical and procedural blockers identified during the final release preflight review:
+1. **Production Preflight Verifier (`verifyProductionPreflight.mjs`):** Replaced the legacy script (`verifyEmulatorCounts.mjs`, which hardcoded emulator environment variables and project `demo-department-agenda`) with an explicit, hardened read-only production preflight utility.
+2. **Disaster Recovery Runbook Alignment:** Corrected `docs/BACKUP_RECOVERY_RUNBOOK.md` and `docs/PRODUCTION_READINESS_CHECKLIST.md` to match the real CLI implemented in `scripts/backupRestore.mjs`. Full database restorations strictly require manifest status verification, a mandatory dry-run review (`--dry-run`), followed by `--dry-run-reviewed --force`. Corrected the audit action description to the implemented `MAINTENANCE_RESTORE` behavior.
+3. **Release Material Reconciliation:** Reconciled the verified Git release commit reference to `11d7684c666bd1c7c640eda584ae0b0083cfa6bf`. Preserved the strict distinction between the approved S04 PDF layout (compact 3-page A4 landscape, 8 columns, repeated headers, human-readable names, 0 ID leaks, no letterhead, no signature block) and future post-Gate A signed government report templates.
+4. **Immediate Gate A Handoff Packet:** Authored `docs/GATE_A_CLIENT_ACCEPTANCE_HANDOFF.md` containing staging links, structured 45-min agenda, Berita Acara acceptance template, signatory metadata intake form, personnel roster approval form, production admin nomination form, and Project Owner Go/No-Go checklist.
+
+---
+
+## 2. Technical Preflight & Runbook Corrections
+
+### Area 1: Read-Only Production Preflight Implementation
+- **Tool Created:** [`department-agenda-firebase/scripts/verifyProductionPreflight.mjs`](file:///d:/Temp/department-agenda-firebase/scripts/verifyProductionPreflight.mjs).
+- **Core Invariants:**
+  - Requires explicit target (`--target=prod`, `--target=staging`, or `--target=emulator`).
+  - Strictly rejects emulator environment variables (`FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`) when target is `prod` or `staging`.
+  - Enforces project ID validation (rejects mismatched projects).
+  - Uses approved credentials (ADC or `GOOGLE_APPLICATION_CREDENTIALS`) with read-only operations.
+  - Inspects document counts across all 9 Firestore collections (`departments`, `employees`, `locations`, `organizers`, `categories`, `activities`, `publicActivities`, `settings`, `auditLogs`).
+  - Evaluates initialization assumptions: verifies pristine zero-mutation initial database state during pre-activation (Step 3).
+  - Never creates, updates, or deletes any document (100% read-only).
+  - Reports deterministic `PASS`, `FAIL`, or `NOT VERIFIED` results without unhandled crashes.
+- **Automated Unit Regression Tests:** Authored [`department-agenda-firebase/tests/unit/productionPreflight.test.ts`](file:///d:/Temp/department-agenda-firebase/tests/unit/productionPreflight.test.ts) (**9/9 passed in 1.3s**, bringing total unit tests to **248 passed**).
+
+### Area 2: Disaster Recovery Runbook Alignment to Real CLI
+- **Status & Manifest Verification:** Runbook now mandates inspecting backup status and verifying SHA-256 manifests prior to touching the database:
+  ```bash
+  node scripts/backupRestore.mjs status <backup_path> --target=prod
+  ```
+- **Mandatory Dry-Run Diff Review:** Runbook now requires running a non-destructive dry-run to review document diffs and orphan counts:
+  ```bash
+  node scripts/backupRestore.mjs restore <backup_path> --mode=full --dry-run --target=prod
+  ```
+- **Controlled Full Restoration:** Controlled restoration requires both review confirmation and explicit force flag:
+  ```bash
+  node scripts/backupRestore.mjs restore <backup_path> --mode=full --dry-run-reviewed --force --target=prod
+  ```
+- **Audit Action Correction:** Confirmed and documented that every database restoration automatically writes an immutable log to `auditLogs` with action `MAINTENANCE_RESTORE` (logged by actor `SYSTEM_MAINTENANCE_CLI`). Existing audit history is strictly protected against deletion or overwriting.
+
+### Area 3: Scope Clarification: Current PDF vs Future Government Template
+- **Approved Milestone S04 PDF Standard:** Compact 3-page A4 landscape layout, 8 official columns, repeated table headers, human-readable names, 0 database ID leaks, clean single footer. Explicitly confirmed to contain **NO letterhead**, **NO official logo**, and **NO signature block / NIP**.
+- **Future Signed Government Report Template:** Adding Batam municipal letterhead (Kop Surat), logo, and authorized signatory blocks (Kepala Dinas / Sekretaris Dinas NIP) is recognized as a post-Gate A template enhancement that will be scheduled once the Department officially appoints the authorized signatory.
+
+---
+
+## 3. Comprehensive Verification Summary
+
+| Suite / Component | Test Count | Status | Result |
+|---|---|---|:---:|
+| **Unit & Integration Suites** | 27 test files | Verified | **248 / 248 Passed (100%)** |
+| **Production Preflight Safety Tests** | `productionPreflight.test.ts` (9 tests) | Verified | **9 / 9 Passed (100%)** |
+| **Disaster Recovery Rehearsal Suite** | `backupRestore.test.ts` (10 tests) | Verified | **10 / 10 Passed (100%)** |
+| **Operator Access & Role Management** | `authRoleManagement.test.ts` (11 tests) | Verified | **11 / 11 Passed (100%)** |
+| **Emergency Maintenance Rules** | `maintenanceRules.test.ts` (6 tests) | Verified | **6 / 6 Passed (100%)** |
+| **Security Rules Test Suite** | `firestore.rules.test.ts` (32 tests) | Verified | **32 / 32 Passed (100%)** |
+| **Live Staging Wire Audit** | `verifyS06bSecurityWire.mjs` (20 tests) | Verified | **20 / 20 Passed (100%)** |
+| **Staging Baseline Preservation** | 38 October 2026 activities | Verified | **100% Intact (0 Mutations)** |
+| **Production Isolation** | `simakdiskum` project | Verified | **100% Untouched (0 Access)** |
+
+---
+
+## 4. Remaining Genuine Blockers for Production Deployment
+
+Only genuine administrative and authorization requirements remain before activating production:
+1. **BLK-01:** Live client demonstration and acceptance by Dinas leadership (Gate A).
+2. **BLK-02:** Formal verbal or written acceptance from Kepala Dinas / Sekretaris Dinas.
+3. **BLK-03:** Provision of authorized signatory Name, NIP, and Formal Title (Jabatan) via Form A.
+4. **BLK-04:** Subbag Kepegawaian verification and sign-off on the 70-personnel master roster via Form B.
+5. **BLK-05:** Project Owner formal written Go-Decision on the Go/No-Go checklist.
+
+---
+
+## 5. Checkpoint Status
+
+- **Checkpoint:** **FINAL RELEASE PREFLIGHT CORRECTED — AWAITING GATE A ACCEPTANCE AND OWNER GO-DECISION**
+- **Status:** **COMPLETED & READY FOR CLIENT PRESENTATION**
+- **Production Mutations:** **0 (STRICTLY OFF-LIMITS, PRODUCTION UNTOUCHED)**
+- **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
