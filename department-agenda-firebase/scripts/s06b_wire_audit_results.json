@@ -1,6 +1,7 @@
 {
-  "timestamp": "2026-11-09T02:45:02.296Z",
+  "timestamp": "2026-11-09T03:21:32.365Z",
   "targetProject": "simakdiskum-staging",
+  "auditMilestone": "S06-B R1",
   "tests": [
     {
       "id": "TC-SEC-01",
@@ -182,12 +183,16 @@
     },
     {
       "id": "TC-PAYLOAD-01",
-      "name": "Public Payload Deep Inspection (No Sensitive Substrings)",
+      "name": "Public Payload Strict Allowlist & Deep Sanitization Audit",
       "status": "PASS",
-      "details": "Inspected 38 public documents across 19 unique fields; 0 sensitive leaks found",
+      "details": "Traversed 1 page(s), validated 38/38 documents; exactly 19 approved fields; 0 unexpected fields, 0 missing required fields, 0 confidential leaks",
       "evidence": {
         "totalDocs": 38,
-        "allowedFields": [
+        "expectedCount": 38,
+        "pageCount": 1,
+        "isReconciled": true,
+        "approvedSchemaCount": 19,
+        "observedFields": [
           "attendeeLabels",
           "categoryName",
           "dateDisplay",
@@ -208,16 +213,28 @@
           "updatedAt",
           "version"
         ],
-        "leakCount": 0
+        "violationsCount": 0,
+        "violationsSummary": []
       }
     },
     {
       "id": "TC-WIRE-PUB-01",
-      "name": "Public Portal Network Isolation (No Private Collection Requests)",
+      "name": "Public Portal Network Protocol & Private Collection Isolation",
       "status": "PASS",
-      "details": "Browser dispatched 15 total network requests; exactly 0 targeted private Firestore collections",
+      "details": "Browser dispatched 15 total requests (8 Firestore SDK streams/calls); exactly 0 private collection targets observed in URLs or request payloads",
       "evidence": {
         "totalRequests": 15,
+        "firestoreCallsCount": 8,
+        "streamProtocolsObserved": [
+          "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel",
+          "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel",
+          "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel",
+          "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel",
+          "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel",
+          "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel",
+          "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel",
+          "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel"
+        ],
         "privateCollectionCalls": []
       }
     },

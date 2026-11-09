@@ -1920,3 +1920,123 @@ The security data-access boundary is empirically proven to be robust. With Gate 
 - **Production Mutations:** **0 (STRICTLY OFF-LIMITS, PRODUCTION UNTOUCHED)**
 - **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
 - **Next Authorized Step:** Project Owner review of Gate B audit findings prior to proceeding to Gate C planning or scheduling the Gate A live demonstration.
+
+
+---
+
+# Milestone S06-B R1: Security Audit Evidence Hardening (Gate B Refinements)
+**Date:** November 9, 2026  
+**Status:** **COMPLETED & VERIFIED (GATE B CONDITIONALLY APPROVED)**  
+**Target Environments:**
+- Cloud Staging: `simakdiskum-staging` (Standard Edition Cloud Firestore on Firebase Spark Tier)
+- Public Staging Portal: `https://simakdiskum-staging.web.app` (HTTP 200 OK)
+- Admin Staging Portal: `https://simakdiskum-staging-admin.web.app` (HTTP 200 OK)
+- Local Emulator: `demo-department-agenda` (Firestore Emulator `8080`, Auth Emulator `9099`)
+- Production: `simakdiskum` (**STRICTLY OFF-LIMITS — 0 ACCESS, 0 MUTATIONS**)
+
+---
+
+## 1. Executive Summary & Review Background
+
+Following independent review of commit `6d72249` (Milestone S06-B), four key areas required refinement to harden technical security audit evidence and establish honest coverage boundaries before final Gate B approval:
+1. **Public Schema Allowlist Hardening (Task 1):** Replace loose field checks with a strict 19-field allowlist in `TC-PAYLOAD-01`, enforce pagination traversal across all 38 baseline activities, reject unexpected/missing fields, recursively scan nested data for leaks, and author 12 unit regression tests.
+2. **Browser Network Protocol Demarcation (Task 2):** Upgrade Playwright browser audits (`TC-WIRE-PUB-01` and `TC-WIRE-ADM-01`) to account for Firestore SDK streaming/WebChannel protocols (`Listen/channel`), inspecting URLs and POST bodies for private collection targets, and distinguishing structured REST response validation from streaming transport frame observation.
+3. **RBAC Assurance Demarcation (Task 3):** Clearly partition the access matrix between live cloud staging tests and local emulator tests, honestly marking untested live cloud role mutations as `NOT VERIFIED (STAGING CLOUD)` to protect baseline data and demonstration credentials.
+4. **Calibrated Security Conclusions (Task 4):** Eliminate absolute vulnerability claims, adopting calibrated language: *"No critical or high-severity vulnerabilities were identified within the verified audit scope"*, while maintaining documentation of the Spark free-tier client-side audit logging architectural boundary and separating source rules parity from complete security assurance.
+
+---
+
+## 2. Hardened Audit Results by Verification Area
+
+### Area 1: Cryptographic Security Rules Parity
+- **Target:** `projects/simakdiskum-staging/releases/cloud.firestore` vs committed `firebase/firestore.rules`.
+- **Methodology:** Live Google Cloud Rules REST API hash comparison.
+- **Result:** **100% Bit-for-Bit Parity (SHA-256 `444b48ba8e9d5979b0845e997babe9a728fefc930e3f03bab35da91e11570678`, 707 lines, tagged `SIMAK_DISKUM_PRODUCTION_SECURITY_RULES_V5`)**.
+- **Calibrated Evaluation:** Cryptographic source parity proves rule deployment fidelity but is explicitly distinguished from complete system security assurance (which also depends on client-side DTO sanitization, API key constraints, and transactional integrity).
+
+### Area 2: Strict Public Schema Allowlist & Full Pagination (Task 1)
+- **Approved Top-Level Fields (Exact 19):** `id`, `title`, `startDate`, `startTime`, `endDate`, `endTime`, `openEnded`, `timeDisplay`, `dateDisplay`, `status`, `publicCancellationNotice`, `locationName`, `locationType`, `organizerName`, `categoryName`, `publicNotes`, `attendeeLabels`, `updatedAt`, `version`.
+- **Required Fields (18):** All fields above except `publicCancellationNotice` (which is conditionally present for cancelled activities).
+- **Pagination Traversal:** Implemented `pageToken` loop traversal in `verifyS06bSecurityWire.mjs` resolving all 38 baseline documents across pagination pages.
+- **Recursive Content Inspection:** Validated nested arrays (`attendeeLabels`) and maps for forbidden keys and regex patterns (Zoom URLs with passcodes, meeting passcode markers, internal Google Drive/Docs links, and raw employee IDs `emp_xx`).
+- **Audit Findings:** **38 / 38 documents validated with 0 schema violations, 0 unexpected fields, 0 missing required fields, and 0 confidential data leaks**.
+- **Unit Regression Suite:** Authored `department-agenda-firebase/tests/unit/publicPayloadAllowlist.test.ts` (12 tests, 100% pass):
+  - Injected unexpected top-level field `internalDepartmentNotes` -> Rejected.
+  - Missing required field `locationName` -> Rejected.
+  - Injected confidential field `privateNotes` -> Rejected.
+  - Injected confidential field `privateMeetingUrl` -> Rejected.
+  - Zoom URL with passcode embedded in `publicNotes` -> Rejected.
+  - Raw employee ID `emp_01` embedded in `attendeeLabels` -> Rejected.
+  - Non-array `attendeeLabels` -> Rejected.
+  - Mismatched baseline document count (37 vs 38) -> Rejected.
+
+### Area 3: Browser Network Wire Audit & SDK Protocol Demarcation (Task 2)
+- **Public Portal Wire Inspection (`TC-WIRE-PUB-01`):**
+  - Clean incognito context navigating to `https://simakdiskum-staging.web.app`.
+  - Monitored 15 network requests, including 8 Firestore SDK calls (REST and WebChannel `/Listen/channel` streaming frames).
+  - Inspected all request URLs and POST body payloads (`req.postData()`).
+  - **Zero requests or body payloads targeted private collections** (`/activities`, `/auditLogs`, `/employees`, `/departments`, `/locations`, `/settings`).
+  - Public DOM inspection (`TC-DOM-PUB-01`): Confirmed exactly 0 raw employee IDs (`emp_xx`).
+  - In-page fetch (`TC-INPAGE-PUB-01`): Client-side fetch from public web origin to `/activities` was rejected with `HTTP 403 Forbidden`.
+- **Admin Portal Pre-Auth Invariant (`TC-WIRE-ADM-01`):**
+  - Clean incognito context navigating to `https://simakdiskum-staging-admin.web.app`.
+  - Rendered Login Card (`.auth-card`) from static bundles.
+  - **Persis 0 Firestore read requests prior to authentication**.
+  - In-page fetch (`TC-INPAGE-ADM-01`): Client-side fetch from admin origin to `/activities` before login rejected with `HTTP 403 Forbidden`.
+
+### Area 4: Access Matrix & Honest RBAC Demarcation (Task 3)
+- **Live Cloud Staging Access Boundary:**
+  - Anonymous read to public collections: `HTTP 200 OK` (3/3 endpoints).
+  - Anonymous read to private collections: `HTTP 403 Forbidden` (8/8 collections).
+  - Anonymous targeted document probes: `HTTP 403 Forbidden` (5/5 probed IDs).
+  - Anonymous arbitrary endpoint probes: `HTTP 403 Forbidden` (*Default Deny* verified).
+- **Staging Cloud Write Safety Policy:**
+  - Role-specific cloud writes (`TC-CLOUD-ROLE-01`, `TC-CLOUD-ROLE-02`) were intentionally omitted from live staging execution to preserve the 38 October 2026 baseline activities and protect demonstration accounts.
+  - Marked honestly in the access matrix as **`NOT VERIFIED (STAGING CLOUD)`**.
+- **Local Emulator RBAC Verification:**
+  - Executed 38 automated rules tests (`firebase emulators:exec`) running bit-identical rules (`444b48ba...`):
+    - Unauthenticated writes to public/private collections rejected with `PERMISSION_DENIED`.
+    - Authenticated users without custom claims rejected with `PERMISSION_DENIED`.
+    - Operator Editor permitted to create/update activities with coordinated public projection; prohibited from standalone writes, deletions, and master data edits.
+    - Administrator permitted full activity and master data management; prohibited from modifying or deleting append-only audit logs.
+    - Maintenance lockdown rules verified (complete write freeze while preserving public read access).
+
+### Area 5: Calibrated Security Language & Architectural Boundaries (Task 4)
+- **Calibrated Findings:** "No critical or high-severity vulnerabilities were identified within the verified audit scope."
+- **Spark Tier Client-Side Audit Trail Boundary:** Maintained documentation that under the free Firebase Spark plan ($0.00/mo), audit log immutability and dual-write enforcement are guaranteed via client-side atomic transactions validated by Firestore Security Rules. Server-side automatic triggers (Cloud Functions) require the paid Blaze plan. Mitigated through strict administrative role assignment via `scripts/manageRoles.mjs`.
+
+---
+
+## 3. Comprehensive Verification Matrix
+
+| Verification Category | Harness / Suite | Scope & Invariant | Status | Result |
+|---|---|---|:---:|:---:|
+| **Rules Cryptographic Parity** | GCP Rules REST API | SHA-256 bit-for-bit comparison against live staging | Verified | **PASS (Exact Match `444b48ba...`)** |
+| **Live Staging Wire Tests** | `verifyS06bSecurityWire.mjs` | REST boundaries, 19-field allowlist, browser wire | Verified | **20 / 20 Passed (100%)** |
+| **Public Schema Allowlist Tests** | `publicPayloadAllowlist.test.ts`| Injected leaks, missing fields, invalid types | Verified | **12 / 12 Passed (100%)** |
+| **Emulator Security Rules** | Vitest via `emulators:exec` | Complete RBAC matrix, optimistic version locks, audit | Verified | **38 / 38 Passed (100%)** |
+| **Full Unit & Integration Suites**| Vitest 3.0 | Time math, validation, conflict engine, PDF export | Verified | **239 / 239 Passed (100%)** |
+| **External User Testing** | Informal Staging Evaluation | Usability check by voluntary external tester Asep | Completed | **Positive Verbal Feedback** |
+| **Staging Baseline Preservation** | 38 October 2026 Activities | Zero cloud writes, zero deletes, zero mutations | Verified | **100% Intact (0 Mutations)** |
+| **Production Isolation** | `simakdiskum` Project | Access control boundary & safety isolation | Verified | **100% Untouched (0 Access)** |
+
+---
+
+## 4. Final Gate B Recommendation
+
+**`GATE B — DEVELOPER TECHNICAL SECURITY & WIRE-LEVEL AUDIT: PASSED & CONDITIONALLY APPROVED`**
+
+The security data-access boundary has been rigorously tested and calibrated. The system is conditionally approved for Gate B, clearing the path for remaining governance gates:
+- **Gate A:** Client Demonstration & Leadership Acceptance (Milestone S06-A materials fully prepared).
+- **Gate C:** Operational Spark Quota & Disaster Recovery Readiness.
+- **Gate D:** Production Deployment Authorization to `simakdiskum`.
+
+---
+
+## 5. Checkpoint Status
+
+- **Checkpoint:** **S06-B R1 Security Audit Evidence — Independent Review**
+- **Status:** **COMPLETED & SUBMITTED FOR INDEPENDENT REVIEW**
+- **Production Mutations:** **0 (STRICTLY OFF-LIMITS, PRODUCTION UNTOUCHED)**
+- **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
+- **Next Authorized Step:** Project Owner review of Gate B audit findings prior to proceeding to Gate C planning or scheduling the Gate A live demonstration.

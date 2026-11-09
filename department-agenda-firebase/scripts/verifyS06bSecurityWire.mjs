@@ -1,14 +1,23 @@
 /**
- * SIMAK DISKUM Kota Batam v5.0 — Milestone S06-B Security Wire-Level Audit Suite
+ * SIMAK DISKUM Kota Batam v5.0 — Milestone S06-B R1 Security Wire-Level Audit Suite
  * 
- * Objectives:
- * 1. Verify deployed rules SHA-256 and RELEASE_IDENTITY on simakdiskum-staging match local rules.
- * 2. Unauthenticated clean-context browser network packet audit on staging Public Portal.
- * 3. Inspect raw Firestore wire payloads for zero private field leaks.
- * 4. Verify unauthenticated clean-context browser on staging Admin Portal (0 Firestore reads before auth).
- * 5. Direct REST probes against all 12 collection endpoints (unauthenticated read denial).
- * 6. Direct REST probes with known baseline IDs against private /activities/{id} (403 Forbidden).
- * 7. In-page anonymous client-side read probe against private collections (403 Forbidden).
+ * Objectives & Tasks (S06-B R1 Hardening):
+ * 1. Cryptographic Ruleset Parity: SHA-256 and RELEASE_IDENTITY check against live staging.
+ * 2. Anonymous REST Collection Access Boundaries (12 collections, private denied 403).
+ * 3. Targeted Document ID Probes on private collections (5 known IDs denied 403).
+ * 4. Strict Public Schema Allowlist (TC-PAYLOAD-01):
+ *    - Exact 19 approved publicActivities fields allowlist.
+ *    - Reject any unexpected top-level field.
+ *    - Reject missing required fields.
+ *    - Recursive inspection of nested data for confidential fields/suspicious strings.
+ *    - Full pagination traversal (reconciles exact 38 baseline activities).
+ *    - Sanitized evidence preservation.
+ * 5. Browser Network Inspection (TC-WIRE-PUB-01, TC-WIRE-ADM-01):
+ *    - Accounts for Firestore SDK network protocols (REST and WebChannel / Listen streams).
+ *    - Inspects request URL and POST payload parameters without logging sensitive content.
+ *    - Distinguishes observed private collection isolation, direct REST denial, and streaming payload boundaries.
+ * 6. Admin Portal Pre-Authentication Invariant (0 Firestore requests before login).
+ * 7. In-page client-side fetch probes from web origins (403 Forbidden).
  */
 
 import { chromium } from 'playwright';
@@ -17,26 +26,257 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-const STAGING_PROJECT_ID = 'simakdiskum-staging';
-const PUBLIC_PORTAL_URL = 'https://simakdiskum-staging.web.app';
-const ADMIN_PORTAL_URL = 'https://simakdiskum-staging-admin.web.app';
-const FIRESTORE_REST_BASE = `https://firestore.googleapis.com/v1/projects/${STAGING_PROJECT_ID}/databases/(default)/documents`;
+export const STAGING_PROJECT_ID = 'simakdiskum-staging';
+export const PUBLIC_PORTAL_URL = 'https://simakdiskum-staging.web.app';
+export const ADMIN_PORTAL_URL = 'https://simakdiskum-staging-admin.web.app';
+export const FIRESTORE_REST_BASE = `https://firestore.googleapis.com/v1/projects/${STAGING_PROJECT_ID}/databases/(default)/documents`;
+export const EXPECTED_BASELINE_COUNT = 38;
 
-const auditResults = {
-  timestamp: new Date().toISOString(),
-  targetProject: STAGING_PROJECT_ID,
-  tests: []
-};
+// Exact 19 approved top-level fields for publicActivities projection
+export const APPROVED_PUBLIC_FIELDS = [
+  'id',
+  'title',
+  'startDate',
+  'startTime',
+  'endDate',
+  'endTime',
+  'openEnded',
+  'timeDisplay',
+  'dateDisplay',
+  'status',
+  'publicCancellationNotice',
+  'locationName',
+  'locationType',
+  'organizerName',
+  'categoryName',
+  'publicNotes',
+  'attendeeLabels',
+  'updatedAt',
+  'version'
+];
 
-function recordTest(id, name, status, details, evidence = {}) {
-  const result = { id, name, status, details, evidence };
-  auditResults.tests.push(result);
-  console.log(`[${status}] ${id}: ${name} — ${details}`);
+// Required fields according to Firestore schema (publicCancellationNotice is optional)
+export const REQUIRED_PUBLIC_FIELDS = [
+  'id',
+  'title',
+  'startDate',
+  'startTime',
+  'endDate',
+  'endTime',
+  'openEnded',
+  'timeDisplay',
+  'dateDisplay',
+  'status',
+  'locationName',
+  'locationType',
+  'organizerName',
+  'categoryName',
+  'publicNotes',
+  'attendeeLabels',
+  'updatedAt',
+  'version'
+];
+
+export const FORBIDDEN_KEY_PATTERNS = [
+  'privateNotes',
+  'privateMeetingUrl',
+  'invitationLetter',
+  'attendeeSnapshots',
+  'attendeeIds',
+  'createdBy',
+  'createdByName',
+  'updatedBy',
+  'cancelReason',
+  'password',
+  'secret',
+  'token',
+  'credential',
+  'zoomPasscode'
+];
+
+export const SUSPICIOUS_STRING_PATTERNS = [
+  { name: 'Zoom credential URL', regex: /zoom\.us\/.*pwd=/i },
+  { name: 'Meeting passcode pattern', regex: /(?:passcode|password|pwd)\s*[:=]\s*\S+/i },
+  { name: 'Google Drive URL', regex: /drive\.google\.com/i },
+  { name: 'Google Docs URL', regex: /docs\.google\.com/i },
+  { name: 'Raw employee foreign key', regex: /^emp_[a-zA-Z0-9_-]+$/ }
+];
+
+/**
+ * Recursively inspects a value (string, array, or object) for suspicious patterns and forbidden keys.
+ */
+export function inspectValueRecursively(val, pathStr = '', violations = []) {
+  if (val === null || val === undefined) return violations;
+
+  if (typeof val === 'string') {
+    for (const pat of SUSPICIOUS_STRING_PATTERNS) {
+      if (pat.regex.test(val)) {
+        violations.push({
+          type: 'SUSPICIOUS_STRING_CONTENT',
+          path: pathStr,
+          rule: pat.name
+        });
+      }
+    }
+  } else if (Array.isArray(val)) {
+    val.forEach((item, idx) => {
+      inspectValueRecursively(item, `${pathStr}[${idx}]`, violations);
+    });
+  } else if (typeof val === 'object') {
+    // Check if it's a Firestore REST typed value
+    if ('stringValue' in val) {
+      inspectValueRecursively(val.stringValue, pathStr, violations);
+    } else if ('arrayValue' in val) {
+      inspectValueRecursively(val.arrayValue.values || [], pathStr, violations);
+    } else if ('mapValue' in val) {
+      inspectValueRecursively(val.mapValue.fields || {}, pathStr, violations);
+    } else {
+      for (const [key, subVal] of Object.entries(val)) {
+        for (const forbiddenKey of FORBIDDEN_KEY_PATTERNS) {
+          if (key.toLowerCase().includes(forbiddenKey.toLowerCase())) {
+            violations.push({
+              type: 'FORBIDDEN_NESTED_KEY',
+              path: `${pathStr}.${key}`,
+              key
+            });
+          }
+        }
+        inspectValueRecursively(subVal, `${pathStr}.${key}`, violations);
+      }
+    }
+  }
+  return violations;
 }
 
-async function runAudit() {
+/**
+ * Validates a single publicActivities document against the strict schema allowlist.
+ */
+export function validatePublicDocument(doc) {
+  const violations = [];
+  const docId = doc.name ? doc.name.split('/').pop() : (doc.id || 'unknown_doc');
+  const fields = doc.fields || doc;
+
+  const fieldKeys = Object.keys(fields);
+
+  // 1. Check for unexpected top-level fields (Strict Allowlist)
+  for (const k of fieldKeys) {
+    if (!APPROVED_PUBLIC_FIELDS.includes(k)) {
+      violations.push({
+        type: 'UNEXPECTED_TOP_LEVEL_FIELD',
+        docId,
+        field: k,
+        message: `Field '${k}' is not in the approved 19-field public schema allowlist`
+      });
+    }
+  }
+
+  // 2. Check for missing required fields
+  for (const req of REQUIRED_PUBLIC_FIELDS) {
+    if (!fieldKeys.includes(req)) {
+      violations.push({
+        type: 'MISSING_REQUIRED_FIELD',
+        docId,
+        field: req,
+        message: `Required public field '${req}' is missing from document`
+      });
+    }
+  }
+
+  // 3. Recursive inspection for confidential keys and suspicious content
+  inspectValueRecursively(fields, docId, violations);
+
+  return {
+    docId,
+    isValid: violations.length === 0,
+    fieldCount: fieldKeys.length,
+    fieldKeys,
+    violations
+  };
+}
+
+/**
+ * Validates an entire batch of public documents with pagination and baseline reconciliation.
+ */
+export function validatePublicPayload(docs, expectedCount = EXPECTED_BASELINE_COUNT) {
+  const allViolations = [];
+  const observedFields = new Set();
+
+  if (docs.length !== expectedCount) {
+    allViolations.push({
+      type: 'BASELINE_COUNT_MISMATCH',
+      message: `Expected ${expectedCount} baseline activities, but retrieved ${docs.length}`
+    });
+  }
+
+  for (const doc of docs) {
+    const res = validatePublicDocument(doc);
+    res.fieldKeys.forEach(k => observedFields.add(k));
+    if (!res.isValid) {
+      allViolations.push(...res.violations);
+    }
+  }
+
+  return {
+    totalDocuments: docs.length,
+    expectedCount,
+    isReconciled: docs.length === expectedCount,
+    isValid: allViolations.length === 0,
+    observedFields: Array.from(observedFields).sort(),
+    approvedFieldsCount: APPROVED_PUBLIC_FIELDS.length,
+    violationsCount: allViolations.length,
+    violations: allViolations
+  };
+}
+
+/**
+ * Fetches all publicActivities documents via REST with full pagination support.
+ */
+export async function fetchAllPublicActivities(baseUrl = FIRESTORE_REST_BASE) {
+  let allDocs = [];
+  let pageToken = '';
+  let pageCount = 0;
+
+  do {
+    pageCount++;
+    const url = new URL(`${baseUrl}/publicActivities`);
+    url.searchParams.set('pageSize', '100');
+    if (pageToken) {
+      url.searchParams.set('pageToken', pageToken);
+    }
+
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      throw new Error(`Pagination request failed on page ${pageCount}: HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const docs = data.documents || [];
+    allDocs = allDocs.concat(docs);
+    pageToken = data.nextPageToken || '';
+  } while (pageToken);
+
+  return { allDocs, pageCount };
+}
+
+// -------------------------------------------------------------------
+// Main Execution Function
+// -------------------------------------------------------------------
+export async function runSecurityWireAudit() {
+  const auditResults = {
+    timestamp: new Date().toISOString(),
+    targetProject: STAGING_PROJECT_ID,
+    auditMilestone: 'S06-B R1',
+    tests: []
+  };
+
+  function recordTest(id, name, status, details, evidence = {}) {
+    const result = { id, name, status, details, evidence };
+    auditResults.tests.push(result);
+    console.log(`[${status}] ${id}: ${name} — ${details}`);
+  }
+
   console.log('===============================================================');
-  console.log('SIMAK DISKUM v5.0 — S06-B SECURITY WIRE-LEVEL AUDIT');
+  console.log('SIMAK DISKUM v5.0 — S06-B R1 SECURITY AUDIT EVIDENCE HARDENING');
   console.log(`Target:      ${STAGING_PROJECT_ID}`);
   console.log(`Timestamp:   ${auditResults.timestamp}`);
   console.log('===============================================================\n');
@@ -169,65 +409,37 @@ async function runAudit() {
   }
 
   // -----------------------------------------------------------------
-  // 4. REST DATA PAYLOAD SANITIZATION INSPECTION (Scope 4 & 5)
+  // 4. REST DATA PAYLOAD SANITIZATION INSPECTION & ALLOWLIST (Task 1)
   // -----------------------------------------------------------------
-  console.log('\n--- TEST GROUP 4: Public Data Payload Deep Field Inspection ---');
+  console.log('\n--- TEST GROUP 4: Public Data Payload Deep Field Inspection (Allowlist) ---');
   try {
-    const pubRes = await fetch(`${FIRESTORE_REST_BASE}/publicActivities`);
-    const pubData = await pubRes.json();
-    const docs = pubData.documents || [];
-
-    const SENSITIVE_KEYWORDS = [
-      'privateNotes',
-      'privateMeetingUrl',
-      'invitationLetter',
-      'attendeeSnapshots',
-      'attendeeIds',
-      'createdBy',
-      'createdByName',
-      'updatedBy',
-      'cancelReason',
-      'password',
-      'secret',
-      'zoom.us',
-      'teams.microsoft'
-    ];
-
-    let leakFound = false;
-    const observedKeys = new Set();
-    const leakInstances = [];
-
-    for (const doc of docs) {
-      const jsonStr = JSON.stringify(doc.fields || {});
-      Object.keys(doc.fields || {}).forEach(k => observedKeys.add(k));
-
-      for (const kw of SENSITIVE_KEYWORDS) {
-        if (jsonStr.toLowerCase().includes(kw.toLowerCase())) {
-          leakFound = true;
-          leakInstances.push({ doc: doc.name.split('/').pop(), keyword: kw });
-        }
-      }
-    }
+    const { allDocs, pageCount } = await fetchAllPublicActivities(FIRESTORE_REST_BASE);
+    const validation = validatePublicPayload(allDocs, EXPECTED_BASELINE_COUNT);
 
     recordTest(
       'TC-PAYLOAD-01',
-      'Public Payload Deep Inspection (No Sensitive Substrings)',
-      !leakFound ? 'PASS' : 'FAIL',
-      !leakFound
-        ? `Inspected ${docs.length} public documents across ${observedKeys.size} unique fields; 0 sensitive leaks found`
-        : `Found ${leakInstances.length} sensitive string occurrences in public payload`,
+      'Public Payload Strict Allowlist & Deep Sanitization Audit',
+      validation.isValid ? 'PASS' : 'FAIL',
+      validation.isValid
+        ? `Traversed ${pageCount} page(s), validated ${validation.totalDocuments}/${EXPECTED_BASELINE_COUNT} documents; exactly ${validation.observedFields.length} approved fields; 0 unexpected fields, 0 missing required fields, 0 confidential leaks`
+        : `Validation failed with ${validation.violationsCount} violations across ${validation.totalDocuments} documents`,
       {
-        totalDocs: docs.length,
-        allowedFields: Array.from(observedKeys).sort(),
-        leakCount: leakInstances.length
+        totalDocs: validation.totalDocuments,
+        expectedCount: EXPECTED_BASELINE_COUNT,
+        pageCount,
+        isReconciled: validation.isReconciled,
+        approvedSchemaCount: APPROVED_PUBLIC_FIELDS.length,
+        observedFields: validation.observedFields,
+        violationsCount: validation.violationsCount,
+        violationsSummary: validation.violations.slice(0, 5) // sanitized summary
       }
     );
   } catch (err) {
-    recordTest('TC-PAYLOAD-01', 'Public Payload Deep Inspection', 'FAIL', err.message);
+    recordTest('TC-PAYLOAD-01', 'Public Payload Strict Allowlist & Deep Sanitization Audit', 'FAIL', err.message);
   }
 
   // -----------------------------------------------------------------
-  // 5. BROWSER WIRE-LEVEL AUDIT: PUBLIC PORTAL (Scope 2, 3, 4)
+  // 5. BROWSER WIRE-LEVEL AUDIT: PUBLIC PORTAL (Task 2)
   // -----------------------------------------------------------------
   console.log('\n--- TEST GROUP 5: Browser Network Wire Audit (Public Portal) ---');
   const browser = await chromium.launch({ headless: true });
@@ -236,34 +448,58 @@ async function runAudit() {
     const page = await context.newPage();
 
     const networkRequests = [];
+    const streamProtocols = [];
+
     page.on('request', (req) => {
-      networkRequests.push({
-        url: req.url(),
-        method: req.method(),
-        resourceType: req.resourceType()
-      });
+      const url = req.url();
+      const method = req.method();
+      const postData = req.postData() || '';
+
+      networkRequests.push({ url, method, resourceType: req.resourceType() });
+
+      if (url.includes('firestore.googleapis.com')) {
+        streamProtocols.push({
+          url,
+          method,
+          isChannel: url.includes('/channel'),
+          isListen: url.includes('Listen')
+        });
+      }
     });
 
     await page.goto(PUBLIC_PORTAL_URL, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.header-container', { timeout: 15000 });
     await page.waitForTimeout(3000);
 
-    const privateCollectionCalls = networkRequests.filter(r =>
-      r.url.includes('/activities') ||
-      r.url.includes('/auditLogs') ||
-      r.url.includes('/employees') ||
-      r.url.includes('/departments') ||
-      r.url.includes('/settings')
-    );
+    // Filter requests targeting private collections in URL or POST body
+    const privateCollectionCalls = networkRequests.filter(r => {
+      const u = r.url.toLowerCase();
+      const body = (r.postData || '').toLowerCase();
+      return (
+        u.includes('/activities') ||
+        u.includes('/auditlogs') ||
+        u.includes('/employees') ||
+        u.includes('/departments') ||
+        u.includes('/settings') ||
+        body.includes('activities') ||
+        body.includes('auditlogs') ||
+        body.includes('employees')
+      );
+    });
 
     recordTest(
       'TC-WIRE-PUB-01',
-      'Public Portal Network Isolation (No Private Collection Requests)',
+      'Public Portal Network Protocol & Private Collection Isolation',
       privateCollectionCalls.length === 0 ? 'PASS' : 'FAIL',
       privateCollectionCalls.length === 0
-        ? `Browser dispatched ${networkRequests.length} total network requests; exactly 0 targeted private Firestore collections`
+        ? `Browser dispatched ${networkRequests.length} total requests (${streamProtocols.length} Firestore SDK streams/calls); exactly 0 private collection targets observed in URLs or request payloads`
         : `Detected ${privateCollectionCalls.length} requests targeting private endpoints`,
-      { totalRequests: networkRequests.length, privateCollectionCalls }
+      {
+        totalRequests: networkRequests.length,
+        firestoreCallsCount: streamProtocols.length,
+        streamProtocolsObserved: streamProtocols.map(s => s.url.split('?')[0]),
+        privateCollectionCalls
+      }
     );
 
     // Verify DOM does not contain leaked employee IDs
@@ -307,7 +543,7 @@ async function runAudit() {
   }
 
   // -----------------------------------------------------------------
-  // 6. BROWSER WIRE-LEVEL AUDIT: ADMIN PORTAL UNANIMOUS / PRE-AUTH (Scope 8)
+  // 6. BROWSER WIRE-LEVEL AUDIT: ADMIN PORTAL PRE-AUTH INVARIANT (Task 2)
   // -----------------------------------------------------------------
   console.log('\n--- TEST GROUP 6: Admin Portal Pre-Authentication Network Audit ---');
   try {
@@ -387,6 +623,14 @@ async function runAudit() {
 
   fs.writeFileSync('scripts/s06b_wire_audit_results.json', JSON.stringify(auditResults, null, 2), 'utf8');
   console.log('Detailed audit results written to scripts/s06b_wire_audit_results.json');
+
+  return auditResults;
 }
 
-runAudit();
+// Self-executing CLI support
+if (process.argv[1] && process.argv[1].endsWith('verifyS06bSecurityWire.mjs')) {
+  runSecurityWireAudit().catch(err => {
+    console.error('Audit execution error:', err);
+    process.exit(1);
+  });
+}

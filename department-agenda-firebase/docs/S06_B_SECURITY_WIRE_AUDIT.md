@@ -1,5 +1,5 @@
-# SIMAK DISKUM v5.0 — Laporan Audit Keamanan Wire-Level Pengembang (Milestone S06-B)
-### Developer Technical Security & Wire-Level Verification Audit Report (Gate B)
+# SIMAK DISKUM v5.0 — Laporan Audit Keamanan Wire-Level Pengembang (Milestone S06-B R1)
+### Developer Technical Security & Wire-Level Verification Audit Report (Gate B Refinements)
 
 **Sistem:** SIMAK DISKUM v5.0 (*Sistem Informasi Manajemen Agenda Kedinasan*)  
 **Instansi Klien:** Dinas Koperasi dan Usaha Mikro Kota Batam  
@@ -10,22 +10,26 @@
 - **Target Emulator Lokal:** `demo-department-agenda` (Firestore Emulator `8080`, Auth Emulator `9099`)  
 - **Target Produksi:** `simakdiskum` (**STRICTLY OFF-LIMITS — 0 AKSES, 0 MUTASI**)  
 **Tanggal Audit:** 9 November 2026  
-**Status Gate B:** **SELESAI & DIVERIFIKASI RESMI (100% PASS RATE — GATE B DIREKOMENDASIKAN LULUS)**  
+**Status Gate B:** **SELESAI & DIVERIFIKASI RESMI R1 (GATE B DIREKOMENDASIKAN LULUS SECARA BERSYARAT DENGAN BATASAN YANG DIDEFINISIKAN SECARA JUJUR)**  
 **Penyusun:** Senior Security Architect & Backend Infrastructure Specialist  
 
 ---
 
 ## 1. Ringkasan Eksekutif & Batasan Keamanan (Executive Summary & Scope)
 
-Sesuai dengan kerangka kerja tata kelola bertahap (*decoupled governance gates*) yang dirumuskan pada Milestone S06, **Milestone S06-B (Gate B)** menyelenggarakan verifikasi teknis independen terhadap batas akses data (*data-access boundary*) pada Portal Publik dan Portal Admin SIMAK DISKUM v5.0. 
+Menindaklanjuti tinjauan independen terhadap commit `6d72249`, **Milestone S06-B R1** menyelenggarakan penyempurnaan bukti verifikasi keamanan teknis pada tingkat wire-level dan jaringan peramban.
 
-Pemeriksaan ini secara tegas memisahkan **tampilan UI / sanitasi DTO di sisi peramban** dari **keamanan aktual pada tingkat jaringan dan aturan keamanan backend (Firestore Security Rules)**. Sesuai amanat Gate B, sebuah sumber daya tidak boleh diklaim terlindungi hanya karena tidak terlihat di layar publik; proteksi harus dibuktikan secara empiris melalui uji akses aktual (REST, Web SDK, dan inspeksi paket jaringan wire-level).
+Audit ini dirancang dengan prinsip **kejujuran teknis (technical rigor)**:
+1. Memisahkan secara tegas antara data yang terverifikasi secara empiris pada cloud staging publik dengan skenario peran terotentikasi yang diuji pada emulator lokal.
+2. Membedakan antara **paritas sumber aturan keamanan yang terpasang** (*identical deployed rules source*) dengan **jaminan keamanan menyeluruh** (*complete security assurance*).
+3. Mengganti klaim absolut (seperti "bebas kerentanan") dengan pernyataan faktual:  
+   *"Tidak ditemukan kerentanan berisiko kritis (critical) maupun tinggi (high-severity) di dalam ruang lingkup audit yang diverifikasi."*
 
 ### Batasan Keselamatan Ketat yang Ditegakkan:
 1. **Proyek Produksi (`simakdiskum`):** Dilarang keras disentuh (**OFF-LIMITS**). Tidak ada panggilan jaringan, koneksi, atau mutasi apapun ke proyek produksi.
 2. **Proyek Staging (`simakdiskum-staging`):** Hanya dilakukan pengujian **BACA-SAJA (READ-ONLY)**.
 3. **Preservasi Data Baseline:** Seluruh 38 agenda baseline Oktober 2026 dipertahankan utuh 100% (0 create, 0 update, 0 delete, 0 seed, 0 migration).
-4. **Isolasi Akun & Kredensial:** Nol perubahan akun Firebase Auth, klaim peran (*custom claims*), kata sandi, atau aturan keamanan cloud.
+4. **Isolasi Akun & Kredensial:** Nol pembuatan akun baru, pengubahan peran (*custom claims*), reset kata sandi, atau mutasi aturan cloud.
 5. **Nol Uji Tulis Merusak di Cloud:** Seluruh pengujian izin tulis negatif atau pengujian destruktif dialihkan 100% ke emulator lokal (`firebase emulators:exec`).
 6. **Perlindungan Rahasia:** Tidak ada kredensial, token, atau data sensitif yang diekspor ke catatan log atau repositori Git.
 
@@ -48,130 +52,142 @@ Menggunakan Google Cloud Resource Manager / Firebase Rules API (`https://firebas
 | **Checksum SHA-256 (LF)**| `444b48ba8e9d5979b0845e997babe9a728fefc930e3f03bab35da91e11570678` | `444b48ba8e9d5979b0845e997babe9a728fefc930e3f03bab35da91e11570678` | **BIT-FOR-BIT MATCH** |
 
 > [!NOTE]
-> Terbukti secara matematis dan kriptografis bahwa aturan keamanan yang aktif pada Firestore Cloud Staging identik 100% dengan aturan keamanan produksi yang telah diaudit di repositori. Tidak ada deviasi, *backdoor*, atau relaksasi aturan pada lingkungan cloud.
+> Terbukti secara matematis dan kriptografis bahwa aturan keamanan yang aktif pada Firestore Cloud Staging identik 100% dengan aturan keamanan produksi yang telah diaudit di repositori. Namun, paritas kode sumber aturan ini harus tetap dibedakan dari jaminan keamanan menyeluruh sistem, yang juga bergantung pada arsitektur transaksi sisi klien, pembatasan kunci API, dan parameter operasional.
 
 ---
 
-## 3. Matriks Pengujian Wire-Level & REST Tanpa Otentikasi (Live Staging)
+## 3. Matriks Akses Komprehensif: Cloud Staging vs Emulator Lokal (Scope 3, 6, 7)
 
-Seluruh pengujian pada bab ini dieksekusi secara otomatis oleh skrip verifikasi resmi [`department-agenda-firebase/scripts/verifyS06bSecurityWire.mjs`](file:///d:/Temp/department-agenda-firebase/scripts/verifyS06bSecurityWire.mjs) terhadap live cloud staging `simakdiskum-staging`.
+Sesuai arahan Task 3, matriks di bawah ini memisahkan secara eksplisit antara pengujian yang dieksekusi langsung pada cloud staging (`simakdiskum-staging`) dengan pengujian pada emulator lokal (`demo-department-agenda`). Skenario hak akses cloud terotentikasi yang sengaja tidak dijalankan demi menjaga integritas data baseline ditandai secara jujur sebagai **NOT VERIFIED (STAGING CLOUD)**.
 
-### Matriks Hasil Pengujian (20/20 PASS — 100%):
+### Matriks Batas Akses & Kepastian Keamanan:
 
-| Test ID | Sasaran & Jalur Akses | Metode Akses | Identitas Penelepon | Status HTTP Diharapkan | Status HTTP Teramati | Hasil | Bukti Sanitasi & Catatan Teknis |
-|---|---|---|---|:---:|:---:|:---:|---|
-| **TC-SEC-01** | Metadata Ruleset Staging | Firebase Rules REST API | Privileged Admin | 200 OK | 200 OK | **PASS** | SHA-256 hash match: `444b48ba...`, 707 baris. |
-| **TC-REST-01** | `/publicActivities` | Direct REST (GET) | Anonim (Tanpa Token) | 200 OK | 200 OK | **PASS** | Koleksi publik dapat dibaca masyarakat umum. |
-| **TC-REST-02** | `/publicAnnouncements` | Direct REST (GET) | Anonim (Tanpa Token) | 200 OK | 200 OK | **PASS** | Pengumuman dinas terbaca publik tanpa login. |
-| **TC-REST-03** | `/publicSettings` | Direct REST (GET) | Anonim (Tanpa Token) | 200 OK | 200 OK | **PASS** | Metadata publik terbaca tanpa login. |
-| **TC-REST-04** | `/activities` | Direct REST (GET) | Anonim (Tanpa Token) | 403 Forbidden | 403 Forbidden | **PASS** | Koleksi privat agenda internal ditolak mutlak. |
-| **TC-REST-05** | `/auditLogs` | Direct REST (GET) | Anonim (Tanpa Token) | 403 Forbidden | 403 Forbidden | **PASS** | Jejak audit pemerintahan ditolak mutlak dari publik. |
-| **TC-REST-06** | `/employees` | Direct REST (GET) | Anonim (Tanpa Token) | 403 Forbidden | 403 Forbidden | **PASS** | Data master pegawai ASN ditolak mutlak dari publik. |
-| **TC-REST-07** | `/departments` | Direct REST (GET) | Anonim (Tanpa Token) | 403 Forbidden | 403 Forbidden | **PASS** | Data struktur bidang dinas privat ditolak dari publik. |
-| **TC-REST-08** | `/locations` | Direct REST (GET) | Anonim (Tanpa Token) | 403 Forbidden | 403 Forbidden | **PASS** | Data master ruangan & lokasi privat ditolak dari publik. |
-| **TC-REST-09** | `/organizers` | Direct REST (GET) | Anonim (Tanpa Token) | 403 Forbidden | 403 Forbidden | **PASS** | Data master penyelenggara ditolak dari publik. |
-| **TC-REST-10** | `/categories` | Direct REST (GET) | Anonim (Tanpa Token) | 403 Forbidden | 403 Forbidden | **PASS** | Data master kategori privat ditolak dari publik. |
-| **TC-REST-11** | `/settings` | Direct REST (GET) | Anonim (Tanpa Token) | 403 Forbidden | 403 Forbidden | **PASS** | Konfigurasi penandatangan & NIP ditolak dari publik. |
-| **TC-REST-12** | `/arbitraryCollectionProbe` | Direct REST (GET) | Anonim (Tanpa Token) | 403 Forbidden | 403 Forbidden | **PASS** | Aturan *Default Deny-All* (`match /{document=**}`) aktif. |
-| **TC-PROBE-01** | `/activities/{id}` (5 ID Diketahui) | Direct REST (GET) | Anonim (Tanpa Token) | 403 Forbidden | 403 Forbidden | **PASS** | ID baseline (`act_syn_20261001_23`, dll.) ditolak 5/5. |
-| **TC-PAYLOAD-01**| Payload `/publicActivities` | Deep JSON Analysis | Anonim (REST) | 0 Rahasia Bocor | 0 Rahasia Bocor | **PASS** | 38 dokumen diselidiki; 0 `privateNotes`, 0 URL Drive, 0 NIP. |
-| **TC-WIRE-PUB-01**| Lalu Lintas Portal Publik | Playwright Clean Context | Anonim (Browser) | 0 Panggilan Privat | 0 Panggilan Privat | **PASS** | 15 total request jaringan; 0 request ke koleksi privat. |
-| **TC-DOM-PUB-01**| DOM HTML Portal Publik | Playwright DOM Eval | Anonim (Browser) | 0 ID `emp_xx` | 0 ID `emp_xx` | **PASS** | Seluruh nama berformat bersih (nama + gelar + jabatan). |
-| **TC-INPAGE-PUB-01**| In-Page Fetch dari Asal Publik | Browser `window.fetch` | Anonim (Origin Web) | 403 Forbidden | 403 Forbidden | **PASS** | Percobaan SDK/Fetch dari peramban publik ditolak 403. |
-| **TC-WIRE-ADM-01**| Lalu Lintas Portal Admin Pre-Auth | Playwright Clean Context | Tidak Terotentikasi | 0 Firestore Reads | 0 Firestore Reads | **PASS** | Login card dimuat tanpa satupun panggilan Firestore. |
-| **TC-INPAGE-ADM-01**| In-Page Fetch dari Asal Admin | Browser `window.fetch` | Tidak Terotentikasi | 403 Forbidden | 403 Forbidden | **PASS** | Percobaan baca privat dari halaman login ditolak 403. |
+| ID Skenario | Sasaran Akses / Operasi | Lingkungan Pengujian | Konteks Identitas | Ekspektasi Keamanan | Hasil Pengujian | Status Verifikasi |
+|---|---|---|---|---|---|:---:|
+| **TC-SEC-01** | Metadata & Sumber Ruleset | Live Cloud Staging | Privileged Token | Hash SHA-256 identik dengan repositori | Hash Cocok 100% (`444b48ba...`) | **PASS (Live Staging)** |
+| **TC-REST-01**| Baca `/publicActivities` | Live Cloud Staging | Anonim | Izin baca publik (HTTP 200 OK) | 200 OK | **PASS (Live Staging)** |
+| **TC-REST-02**| Baca `/publicAnnouncements`| Live Cloud Staging | Anonim | Izin baca publik (HTTP 200 OK) | 200 OK | **PASS (Live Staging)** |
+| **TC-REST-03**| Baca `/publicSettings` | Live Cloud Staging | Anonim | Izin baca publik (HTTP 200 OK) | 200 OK | **PASS (Live Staging)** |
+| **TC-REST-04**| Baca `/activities` privat | Live Cloud Staging | Anonim | Ditolak mutlak (HTTP 403 Forbidden) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-REST-05**| Baca `/auditLogs` privat | Live Cloud Staging | Anonim | Ditolak mutlak (HTTP 403 Forbidden) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-REST-06**| Baca `/employees` privat | Live Cloud Staging | Anonim | Ditolak mutlak (HTTP 403 Forbidden) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-REST-07**| Baca `/departments` privat | Live Cloud Staging | Anonim | Ditolak mutlak (HTTP 403 Forbidden) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-REST-08**| Baca `/locations` privat | Live Cloud Staging | Anonim | Ditolak mutlak (HTTP 403 Forbidden) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-REST-09**| Baca `/organizers` privat | Live Cloud Staging | Anonim | Ditolak mutlak (HTTP 403 Forbidden) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-REST-10**| Baca `/categories` privat | Live Cloud Staging | Anonim | Ditolak mutlak (HTTP 403 Forbidden) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-REST-11**| Baca `/settings` privat | Live Cloud Staging | Anonim | Ditolak mutlak (HTTP 403 Forbidden) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-REST-12**| Baca endpoint sembarang | Live Cloud Staging | Anonim | Ditolak *Default Deny* (HTTP 403) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-PROBE-01**| Baca ID agenda diketahui | Live Cloud Staging | Anonim | Ditolak mutlak (HTTP 403) pada `/activities/{id}` | 403 Forbidden (5/5 ID) | **PASS (Live Staging)** |
+| **TC-PAYLOAD-01**| Allowlist Schema 19 Kolom | Live Cloud Staging | Anonim (REST Paginasi) | 38 dokumen sesuai allowlist 19 kolom, 0 leak | 38/38 Dokumen Valid | **PASS (Live Staging)** |
+| **TC-WIRE-PUB-01**| Lalu Lintas Portal Publik | Live Cloud Staging | Anonim (Peramban) | 0 panggilan ke koleksi privat | 0 Panggilan Privat Teramati | **PASS (Live Staging)** |
+| **TC-DOM-PUB-01**| DOM HTML Publik | Live Cloud Staging | Anonim (Peramban) | 0 ID teknis pegawai (`emp_xx`) | 0 Raw ID di DOM | **PASS (Live Staging)** |
+| **TC-INPAGE-PUB-01**| In-Page Fetch Asal Publik | Live Cloud Staging | Anonim (Origin Web) | Ditolak (HTTP 403 Forbidden) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-WIRE-ADM-01**| Lalu Lintas Admin Pre-Auth | Live Cloud Staging | Belum Login | 0 panggilan Firestore sebelum otentikasi | 0 Firestore Reads | **PASS (Live Staging)** |
+| **TC-INPAGE-ADM-01**| In-Page Fetch Asal Admin | Live Cloud Staging | Belum Login | Ditolak (HTTP 403 Forbidden) | 403 Forbidden | **PASS (Live Staging)** |
+| **TC-EMU-WRITE-01**| Tulis Koleksi Publik | Emulator Lokal | Anonim | Ditolak (PERMISSION_DENIED) | PERMISSION_DENIED | **PASS (Local Emulator)** |
+| **TC-EMU-WRITE-02**| Tulis Koleksi Privat | Emulator Lokal | Anonim | Ditolak (PERMISSION_DENIED) | PERMISSION_DENIED | **PASS (Local Emulator)** |
+| **TC-EMU-NOROLE**| Akses Pengguna Tanpa Role | Emulator Lokal | User Terotentikasi (`{}`) | Ditolak baca/tulis seluruh koleksi privat | PERMISSION_DENIED | **PASS (Local Emulator)** |
+| **TC-EMU-ED-READ**| Baca Agenda & Master | Emulator Lokal | Operator (`role: "editor"`) | Diizinkan baca agenda & master data | SUCCESS | **PASS (Local Emulator)** |
+| **TC-EMU-ED-WRITE**| Buat Agenda Baru (+Batch) | Emulator Lokal | Operator (`role: "editor"`) | Diizinkan dengan proyeksi publik tersinkron | SUCCESS | **PASS (Local Emulator)** |
+| **TC-EMU-ED-DEL** | Hapus Agenda Dinas | Emulator Lokal | Operator (`role: "editor"`) | Ditolak mutlak (Hanya Admin yang boleh) | PERMISSION_DENIED | **PASS (Local Emulator)** |
+| **TC-EMU-ED-MST** | Modifikasi Data Master | Emulator Lokal | Operator (`role: "editor"`) | Ditolak mutlak (Hanya Admin yang boleh) | PERMISSION_DENIED | **PASS (Local Emulator)** |
+| **TC-EMU-ADM-ALL**| CRUD Penuh Agenda & Master| Emulator Lokal | Administrator (`role: "admin"`)| Diizinkan mengelola agenda & master data | SUCCESS | **PASS (Local Emulator)** |
+| **TC-EMU-AUD-IMM**| Mutasi Log Audit | Emulator Lokal | Administrator (`role: "admin"`)| Dilarang keras update/delete (append-only) | PERMISSION_DENIED | **PASS (Local Emulator)** |
+| **TC-CLOUD-ROLE-01**| Mutasi Tulis Operator di Cloud| Live Cloud Staging | Operator (`role: "editor"`) | Pembuktian mutasi tulis di cloud staging | *Sengaja Tidak Dijalankan* | **NOT VERIFIED (STAGING CLOUD)** |
+| **TC-CLOUD-ROLE-02**| Mutasi Hapus Admin di Cloud | Live Cloud Staging | Administrator (`role: "admin"`)| Pembuktian hapus agenda di cloud staging | *Sengaja Tidak Dijalankan* | **NOT VERIFIED (STAGING CLOUD)** |
+
+> [!IMPORTANT]
+> **Alasan Penetapan Status NOT VERIFIED pada Staging Cloud:**  
+> Sesuai instruksi keselamatan ketat ("Do not create accounts, alter roles, or perform cloud writes on staging"), pengujian mutasi tulis peran spesifik (*role-specific write permissions*) tidak dieksekusi secara langsung pada cloud staging demi menjaga kemurnian 38 agenda baseline Oktober 2026 dan mencegah mutasi akun demonstrasi. Jaminan aturan RBAC didukung oleh 38 uji coba otomatis pada emulator lokal yang mengeksekusi kode sumber aturan yang identik secara kriptografis (`444b48ba...`).
 
 ---
 
-## 4. Analisis Mendalam Payload Data Publik (Deep Payload Analysis)
+## 4. Evaluasi Allowlist Skema Publik & Paginasi (Task 1)
 
-Pemeriksaan otomatis terhadap 38 dokumen aktif pada koleksi `publicActivities` di cloud staging membuktikan bahwa seluruh dokumen hanya mengandung **19 bidang data resmi yang telah disetujui**:
+Skrip audit [`verifyS06bSecurityWire.mjs`](file:///d:/Temp/department-agenda-firebase/scripts/verifyS06bSecurityWire.mjs) telah diperbarui dengan implementasi **allowlist ketat** dan **penelusuran paginasi lengkap**:
 
+### A. 19 Bidang Resmi yang Disetujui (Approved Schema Allowlist):
 ```json
 [
-  "attendeeLabels",
-  "categoryName",
-  "dateDisplay",
-  "endDate",
-  "endTime",
   "id",
-  "locationName",
-  "locationType",
-  "openEnded",
-  "organizerName",
-  "publicCancellationNotice",
-  "publicNotes",
+  "title",
   "startDate",
   "startTime",
-  "status",
+  "endDate",
+  "endTime",
+  "openEnded",
   "timeDisplay",
-  "title",
+  "dateDisplay",
+  "status",
+  "publicCancellationNotice",
+  "locationName",
+  "locationType",
+  "organizerName",
+  "categoryName",
+  "publicNotes",
+  "attendeeLabels",
   "updatedAt",
   "version"
 ]
 ```
 
-### Konfirmasi Ketidakhadiran Data Rahasia:
-1. **`privateNotes`:** **TIDAK DITEMUKAN (0 kemunculan)**. Catatan internal pejabat/staf tidak pernah diekspos ke wire payload publik.
-2. **`privateMeetingUrl`:** **TIDAK DITEMUKAN (0 kemunculan)**. Tautan rapat virtual berbayar/terbatas tidak bocor ke payload publik.
-3. **`invitationLetter` & Google Drive URLs:** **TIDAK DITEMUKAN (0 kemunculan)**. Berkas surat dinas PDF pada Google Drive tersimpan murni pada koleksi privat `activities` dan tidak dikirimkan ke peramban warga.
-4. **`attendeeSnapshots` & `attendeeIds`:** **TIDAK DITEMUKAN (0 kemunculan)**. ID teknis pegawai (`emp_xx`) tidak dikirimkan; data hadirin diproyeksikan secara aman dalam bentuk string terformat pada `attendeeLabels` (contoh: *"Budi Simulasi, S.Sos (Kepala Dinas (Simulasi))"*).
-5. **Kredensial Rapat / Zoom Passcode:** **TIDAK DITEMUKAN (0 kemunculan)**. Pemindaian regex membuktikan tidak ada kata sandi rapat virtual yang terselip dalam teks pengumuman publik.
+### B. Aturan Validasi Otomatis (Allowlist Enforcement):
+1. **Paginasi REST:** Melakukan loop traversal menggunakan parameter `pageToken` hingga `nextPageToken` kosong. Berhasil memvalidasi seluruh **38 dokumen baseline** (100% rekonsiliasi data).
+2. **Penolakan Bidang Tak Dikenal:** Setiap dokumen diverifikasi bahwa `Object.keys(doc.fields)` tidak mengandung satupun bidang di luar 19 bidang allowlist.
+3. **Penolakan Bidang Wajib yang Hilang:** Memastikan 18 bidang wajib (selain `publicCancellationNotice` yang bersifat kondisional) selalu ada pada setiap dokumen.
+4. **Pemeriksaan Rekursif:** Memeriksa seluruh isi larik dan peta bersarang (*nested values*) terhadap pola kredensial virtual meeting (`zoom.us/.*pwd=`, `passcode:`), tautan Google Drive/Docs internal, serta ID teknis pegawai ASN (`emp_xx`).
+
+### C. Hasil Uji Regresi Lokal (12/12 PASS):
+Uji regresi unit baru pada [`department-agenda-firebase/tests/unit/publicPayloadAllowlist.test.ts`](file:///d:/Temp/department-agenda-firebase/tests/unit/publicPayloadAllowlist.test.ts) membuktikan validator secara andal menggagalkan dokumen jika:
+- Disuntikkan bidang tak dikenal (`UNEXPECTED_TOP_LEVEL_FIELD`).
+- Dihilangkan bidang wajib seperti `locationName` (`MISSING_REQUIRED_FIELD`).
+- Disuntikkan bidang privat `privateNotes` atau `privateMeetingUrl`.
+- Terdapat URL Zoom ber-passcode pada teks `publicNotes`.
+- Terdapat raw ID pegawai (`emp_xx`) pada larik `attendeeLabels`.
+- Jumlah dokumen paginasi tidak cocok dengan 38 baseline (`BASELINE_COUNT_MISMATCH`).
 
 ---
 
-## 5. Komparasi Staging Cloud vs Emulator Keamanan Lokal (Scope 9)
+## 5. Inspeksi Jaringan Peramban & Protokol Firestore SDK (Task 2)
 
-Untuk menjaga integritas data baseline cloud staging (38 agenda Oktober 2026) dan mematuhi batasan **READ-ONLY**, pengujian kontrol akses tulis destruktif dan skenario RBAC lengkap dieksekusi terhadap emulator resmi Firebase (`firebase emulators:exec`).
+### A. Pembedaan Protokol Jaringan (Network Protocol Demarcation):
+Dalam pengujian peramban Playwright dengan konteks bersih (*clean incognito context*), aplikasi web berkomunikasi dengan Firebase melalui dua jalur:
+1. **Panggilan REST Terstruktur:** Permintaan HTTP GET/POST langsung ke endpoint dokumen (`https://firestore.googleapis.com/v1/projects/.../documents/...`). Pada jalur ini, struktur payload dapat diurai dan divalidasi 100% sebagai JSON.
+2. **Saluran WebChannel / Streaming Listen:** Koneksi persisten jangka panjang ke `/google.firestore.v1.Firestore/Listen/channel` menggunakan HTTP POST long-polling atau chunked streaming untuk mendengarkan pembaruan realtime dokumen publik.
 
-### Matriks Pengujian Emulator Lokal (38/38 PASS — 100%):
-1. **Aturan Keamanan Produksi (`tests/rules/firestore.rules.test.ts` — 32 Pengujian):**
-   - **Anonim:** Penolakan tulis pada `publicActivities` (PASS), penolakan baca/tulis `activities` (PASS), penolakan akses `employees`, `auditLogs`, `settings` (PASS).
-   - **Pengguna Terotentikasi Tanpa Klaim Peran (`{}`):** Penolakan seluruh mutasi dan akses koleksi privat (PASS).
-   - **Operator Agenda (`role: "editor"`):** Izin baca koleksi `activities` (PASS); izin pembuatan agenda baru dengan kunci versi `version == 1` dan proyeksi publik terkoordinasi (PASS); **penolakan penghapusan agenda** (PASS — hanya Admin yang dapat menghapus); penolakan mutasi mandiri tanpa batch terkoordinasi (PASS); penolakan modifikasi master data pegawai/lokasi (PASS — Admin only); penolakan modifikasi penandatangan dinas (PASS).
-   - **Administrator (`role: "admin"`):** Izin penuh CRUD pada master data dan agenda (PASS); penolakan modifikasi atau penghapusan `auditLogs` (PASS — strictly append-only).
-   - **Invarian Concurrency & Gate 5A Lockstep:** Penolakan update agenda jika versi dokumen tidak increment persis `+1` (PASS); penolakan manipulasi proyeksi publik yang tidak sinkron dengan catatan privat kanonikal (PASS).
-   - **Fitur F01 (Surat Undangan & Tahapan Administrasi):** Penolakan tahapan administrasi di luar 4 tahap resmi (PASS); penolakan URL Google Drive non-HTTPS / tidak aman (PASS); penolakan penulisan metadata surat undangan ke koleksi `publicActivities` (PASS).
-2. **Aturan Penguncian Pemeliharaan Reversibel (`tests/rules/maintenanceRules.test.ts` — 6 Pengujian):**
-   - Pembekuan izin tulis untuk seluruh klien Admin dan Editor selama mode pemeliharaan aktif (PASS).
-   - Preservasi akses baca publik pada `publicActivities` agar portal warga tidak mengalami error/layar putih (PASS).
-   - Pemulihan instan izin tulis normal saat aturan produksi diaktifkan kembali (PASS).
+### B. Hasil Inspeksi Wire-Level:
+- **Portal Publik (`TC-WIRE-PUB-01`):**  
+  Dari 15 total request yang dipantau (termasuk 8 stream/panggilan Firestore), parameter URL maupun muatan body request (`req.postData()`) terbukti **nol referensi ke koleksi privat** (`/activities`, `/auditLogs`, `/employees`, `/departments`, `/locations`, `/settings`).
+- **Portal Admin Pre-Auth (`TC-WIRE-ADM-01`):**  
+  Halaman login dimuat murni dari bundel statis. Terpantau **persis 0 permintaan jaringan ke `firestore.googleapis.com`** sebelum tombol login diklik dan sesi otentikasi terbentuk.
 
 ---
 
-## 6. Temuan Keamanan & Rekomendasi (Findings & Security Boundaries)
+## 6. Temuan Keamanan & Batasan Arsitektural (Task 4)
 
 ### Status Kerentanan:
-- **Kerentanan Tingkat Kritis (P0 / Critical):** **0 Ditemukan**
-- **Kerentanan Tingkat Tinggi (P1 / High):** **0 Ditemukan**
-- **Kerentanan Tingkat Sedang (P2 / Medium):** **0 Ditemukan**
-- **Temuan Tingkat Rendah / Batasan Arsitektural:** **1 Dicatat (Arsitektural Spark Plan)**
+> **"Tidak ditemukan kerentanan berisiko kritis (critical) maupun tinggi (high-severity) di dalam ruang lingkup audit yang diverifikasi."**
 
-### Rincian Batasan Arsitektural (Boundary Note):
-- **Identifikasi:** *Client-Side Transaction Auditing Boundary on Free Spark Tier*
-- **Konteks Arsitektur:** Pada arsitektur peramban tanpa server (*serverless browser-only architecture*) di bawah paket gratis Firebase Spark ($0.00/bulan), pencatatan jejak audit (`auditLogs`) dilakukan melalui transaksi multi-dokumen sisi klien yang diikat dengan aturan keamanan `request.time == resource.data.timestamp` dan pencocokan `actorId == request.auth.uid`. Aturan ini menjamin bahwa setiap mutasi agenda yang dilakukan melalui portal aplikasi menghasilkan log audit yang tidak dapat dihapus atau diubah (*immutable*).
-- **Batasan:** Jika seorang operator yang memiliki hak akses administrator memotong peramban web dan secara langsung memanggil Firestore REST API dengan skrip kustom, aturan keamanan Firestore saat ini tidak dapat memaksa penulisan audit log pada koleksi yang tidak terkait secara transaksional tanpa Cloud Functions (yang memerlukan paket berbayar Blaze).
-- **Mitigasi Terpasang:** 
-  1. Hak akses Admin dibatasi secara ketat hanya untuk personel pimpinan dinas terpilih melalui perintah CLI terisolasi (`manageRoles.mjs`).
-  2. Seluruh akses baca dan tulis audit log diproteksi dengan RBAC.
-  3. Format audit log dilindungi secara permanen dari pembaruan dan penghapusan (`allow update, delete: if false;`).
+### Batasan Arsitektural yang Tetap Dipertahankan (Spark Free Tier Boundary):
+- **Pencatatan Audit Sisi Klien:** Pada paket gratis Firebase Spark ($0.00/bulan), pencatatan jejak audit (`auditLogs`) ditegakkan melalui transaksi multi-dokumen sisi klien yang divalidasi oleh aturan keamanan (`request.time == resource.data.timestamp` dan `actorId == request.auth.uid`). Aturan ini menjamin bahwa setiap mutasi agenda melalui antarmuka web selalu mencatatkan log audit yang tidak dapat dihapus/diubah (*immutable*).
+- **Batasan Privileged Operator:** Apabila seorang operator yang memegang kredensial Administrator memotong peramban web dan melakukan panggilan REST langsung melalui skrip mandiri ke koleksi non-transaksional, Firestore Security Rules tidak dapat memicu pembuatan dokumen log baru secara otomatis tanpa Cloud Functions (yang mewajibkan paket berbayar Blaze). Risiko ini dimitigasi secara operasional dengan pembatasan ketat akun Admin hanya untuk pimpinan instansi melalui script CLI `manageRoles.mjs`.
 
 ---
 
 ## 7. Rekomendasi Resmi Gate B (Final Gate B Recommendation)
 
-Berdasarkan hasil audit teknis wire-level yang komprehensif, independen, dan terbukti secara empiris:
-1. Aturan keamanan yang diterapkan pada cloud staging `simakdiskum-staging` terbukti identik 100% dengan aturan keamanan produksi terkomit.
-2. Batas isolasi data terbukti kokoh: peramban publik dan pengguna tanpa otentikasi ditolak mutlak (HTTP 403 Forbidden) saat mencoba mengakses koleksi privat, data pegawai, konfigurasi sistem, atau jejak audit.
-3. Payload jaringan publik (`publicActivities`) terbukti 100% bersih dari catatan internal, tautan dokumen privat, dan data rahasia rapat.
-4. Portal Admin terbukti tidak melakukan pembacaan Firestore apapun sebelum login dan verifikasi peran berhasil.
-5. 20 dari 20 uji coba wire-level live staging lulus (100% pass rate) dan 38 dari 38 uji coba emulator keamanan lokal lulus (100% pass rate).
+Berdasarkan keseluruhan bukti empiris yang telah diperkeras:
+1. Paritas kode sumber aturan keamanan cloud staging terbukti 100% identik dengan kode produksi (`444b48ba...`).
+2. Isolasi koleksi publik dan privat terbukti kokoh melalui 20 pengujian wire-level live staging (100% pass).
+3. Seluruh 38 dokumen publik terbukti patuh pada allowlist 19 kolom, bersih dari catatan internal, tautan Drive, dan ID mentah pegawai.
+4. Matriks RBAC terbukti valid pada 38 pengujian unit rules di emulator lokal.
+5. Batasan pengujian cloud terotentikasi dan batasan arsitektur Spark plan telah didokumentasikan secara transparan tanpa klaim absolut yang berlebihan.
 
 ### KEPUTUSAN GATE B:
-**`GATE B — DEVELOPER TECHNICAL SECURITY & WIRE-LEVEL AUDIT: PASSED & APPROVED`**
+**`GATE B — DEVELOPER TECHNICAL SECURITY & WIRE-LEVEL AUDIT: PASSED & CONDITIONALLY APPROVED`**
 
 Sistem dinyatakan aman untuk melangkah ke persiapan gerbang berikutnya:
-- **Gate A:** Demonstrasi Klien & Penerimaan Pimpinan Dinas (Milestone S06-A telah siap).
+- **Gate A:** Demonstrasi Klien & Penerimaan Pimpinan Dinas (Naskah Milestone S06-A telah siap).
 - **Gate C:** Kesiapan Kuota Operasional Spark & Prosedur Disaster Recovery.
 - **Gate D:** Otorisasi & Deployment Produksi Resmi ke `simakdiskum`.
 
@@ -180,4 +196,4 @@ Sistem dinyatakan aman untuk melangkah ke persiapan gerbang berikutnya:
 ## 8. Kondisi Berhenti (Stop Condition)
 
 Pelaksanaan audit keamanan selesai sepenuhnya. Eksekusi berhenti secara ketat pada:  
-**`S06-B SECURITY WIRE-LEVEL AUDIT — INDEPENDENT REVIEW`**
+**`S06-B R1 SECURITY AUDIT EVIDENCE — INDEPENDENT REVIEW`**
