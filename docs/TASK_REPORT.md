@@ -1632,3 +1632,96 @@ The newly authored `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md` provides an exhau
 - **Production Mutations:** **0 (STRICTLY OFF-LIMITS, PRODUCTION UNTOUCHED)**
 - **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
 - **Next Authorized Step:** Project Owner review of `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md` prior to scheduling the live presentation meeting with Dinas Koperasi dan Usaha Mikro Kota Batam leadership.
+
+---
+
+# Detailed Task Report: Milestone S06-A R1 Presentation Accuracy & Safety Corrections
+
+**Task Number:** Milestone S06-A R1  
+**Title:** S06-A Client Demonstration Packet Accuracy & Safety Corrections  
+**Date:** 2026-11-09  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (Presentation Packet Refined, PDF Format Reconciled to S04 Verified Standard, Destructive Baseline Actions Eliminated, Privacy Boundaries Restrained, Settings Reconciled to Read-Only Specification, Web Architecture Accurately Classified, Conflict Demo Reconciled to Unsaved Simulation, Zero Mutations)  
+**Deliverable Documents:**
+- `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md` (Refined Demonstration Packet & Presentation Guide)
+- `docs/TASK_PROGRESS.md` (Updated Project Ledger)
+- `docs/TASK_REPORT.md` (Updated Detailed Task Reports)
+
+---
+
+## 1. Executive Summary & Objective
+
+Following an independent review of commit `87b4323`, Milestone S06-A R1 performs targeted factual, technical, and safety corrections on the client demonstration packet (`docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md`) to guarantee 100% fidelity with verified system implementations and to prevent unintended data mutations during live client presentations before Dinas Koperasi dan Usaha Mikro Kota Batam leadership.
+
+Strict governance boundaries remain enforced:
+- Zero mutations to production (`simakdiskum` remains 100% off-limits).
+- Zero mutations to staging baseline data (all 38 synthetic October 2026 activities preserved).
+- Zero code modifications, deployments, or credential resets.
+- Pure documentation, presentation rigor, and factual alignment scope.
+
+---
+
+## 2. Key Corrections Executed
+
+### Task 1: Reconciled PDF Presentation Claims (P1)
+- Reconciled Module 7 (step 6) and Q&A (Q5) with the exact verified Milestone S04 PDF format:
+  - Format: A4 Landscape.
+  - Page count: Exactly 3 pages for all 38 October 2026 activities under verified print settings.
+  - Layout: Eight official civil service columns (`No | Hari / Tanggal | Pukul | Kegiatan | Tempat | Penyelenggara | Dihadiri Oleh | Keterangan`).
+  - Table headers: Repeated on all printed pages (`thead { display: table-header-group; }`).
+  - Technical ID resolution: 100% human-readable names (zero raw database IDs such as `loc_syn_01`).
+  - Footer & Watermark: Single clean running footer ("Halaman X dari 3") with staging data simulation watermark.
+  - **No Letterhead, No Logo, No Signature Block:** Removed all claims that the current PDF includes a municipal letterhead (*kop surat*), official municipal logo, or signature block with NIP/rank. Clarified that the verified S04 layout is an operational schedule format, and that formal letterhead and signature blocks are future template additions to be integrated following the formal appointment of the authorized signatory through the Gate A evaluation process.
+
+### Task 2: Eliminated Destructive Baseline Testing (P1)
+- Removed all instructions in Module 6 and Section 6 suggesting attempting deactivation or deletion of existing baseline employees (e.g. `Budi Simulasi, S.Sos`) during live stakeholder presentations.
+- Replaced Module 6 with a strictly non-destructive, read-only walkthrough:
+  - Inspecting the 5 master tabs (Pegawai, Bidang Bagian, Ruangan/Lokasi, Penyelenggara, Kategori Agenda).
+  - Demonstrating how master entities populate agenda form dropdowns and calendar tag filters.
+  - Conceptually explaining the referential integrity safeguard (*Referential Safeguard*), which prevents deactivation/deletion of entities referenced by active agenda records.
+  - Referencing the isolated synthetic testing procedure (`TC-MST-04` in `docs/S05_EXTERNAL_QA_ACCEPTANCE_CHECKLIST.md`) using isolated `[QA-TEST]` fixtures for separate technical verification, ensuring zero destructive controls are clicked during live client presentations.
+
+### Task 3: Restrained Privacy & Security Claims (P1)
+- In Module 2 and Stakeholder Q&A (Q1), clearly separated:
+  1. *Observed Public UI Sanitization:* Verified that client-side DTO projection sanitizes internal fields (`privateNotes`, confidential Google Drive URLs) so they are not rendered in the public DOM or detail modals.
+  2. *Automated Rules Unit Tests:* Verified that 38 unit tests confirm document-level authorization rules in local test suites.
+  3. *Pending Wire-Level Verification (S06 Gate B):* Transparently noted that unauthenticated raw network payload inspection (via DevTools Network tab on live Cloud Firestore connections) is scheduled under Milestone S06 Gate B (Developer Technical Security Verification).
+- Replaced sweeping claims of absolute wire-level invulnerability with restrained, accurate descriptions appropriate for government stakeholders.
+
+### Task 4: Reconciled Admin Settings Description (P2)
+- Reconciled Stakeholder Q&A (Q5) with the actual implementation of `apps/admin/src/pages/settingsPage.ts`.
+- Clarified that the current Settings page is a read-only informational specification documenting S01-QA-R2 report standards, operating parameters (WIB, `dd/mm/yyyy`), and historical municipal profile archive, with zero Firestore write forms.
+- Framed dynamic signatory updating and automatic signed report generation as an upcoming feature to be designed and implemented following official institutional decree and appointment by Department leadership.
+
+### Task 5: Verified Web App Architecture & Hosting Constraints (P2)
+- Inspected codebase and confirmed that SIMAK DISKUM v5.0 does not implement Progressive Web App (PWA) requirements (no service workers, no web app manifests).
+- Accurately classified the application as a modern, responsive browser-based web application accessible via any modern desktop or mobile browser.
+- Clarified that the live application requires an internet connection to communicate with Firebase, and that "offline" schedule review refers specifically to downloaded Excel (`.xlsx`) or PDF files.
+- Accurately described Firebase Spark as the intended free tier ($0.00/month), clarifying that it operates under specific daily quotas (50,000 reads/day, 20,000 writes/day) and Google Cloud service terms.
+
+### Task 6: Reconciled Demo Procedures
+- Reconciled Module 5 (Conflict Engine) to an unsaved interactive form simulation: entering conflicting times/rooms, demonstrating the real-time conflict warning dialog and half-open intervals, then clicking "Batal" (Cancel) to avoid writing temporary records.
+- Noted that if live writes are ever requested by stakeholders, they must be separately approved, must use the `[DEMO-LIVE]` prefix, and cleanup must recognize that audit log records or Firestore tombstones may persist.
+- Emphasized credential security during live projection: keeping password masking active and avoiding password resets.
+
+---
+
+## 3. Test Totals & Verification Matrix
+
+| Category | Harness / Suite | Scope | Status | Result |
+|---|---|---|:---:|:---:|
+| **Unit & Integration** | Vitest 3.0 | Business logic, WIB math, conflict, rules, PDF print math | Verified | **227 / 227 Passed (100%)** |
+| **Firestore Security Rules** | Firestore Rules Unit Tests | RBAC, Gate 5A lockstep, maintenance lockdown | Verified | **38 / 38 Passed (100%)** |
+| **Real Browser E2E** | Playwright Chromium | Admin auth, multi-viewport layout, PDF layout verification | Verified | **167+ Executions Passed (100%)** |
+| **External User Testing** | Informal Staging Evaluation | Real-world usability check by voluntary tester Asep | Completed | **Positive Verbal Feedback** |
+| **S06-A R1 Demonstration Packet** | Presentation Guide & Script | Reconciled claims, read-only demo, accurate Q&A | Refined | **Ready for Presentation** |
+
+---
+
+## 4. Checkpoint Status
+
+- **Checkpoint:** **S06-A R1 Presentation Packet — Owner Review**
+- **Status:** **COMPLETED & READY FOR PROJECT OWNER REVIEW**
+- **Production Mutations:** **0 (STRICTLY OFF-LIMITS, PRODUCTION UNTOUCHED)**
+- **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
+- **Next Authorized Step:** Project Owner review of `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md` (R1) prior to scheduling the live client presentation with Dinas Koperasi dan Usaha Mikro Kota Batam leadership.

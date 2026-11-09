@@ -1,14 +1,14 @@
-# SIMAK DISKUM v5.0 — Paket Persiapan Demonstrasi Klien (Milestone S06-A)
-### Client Demonstration Packet & Stakeholder Presentation Guide
+# SIMAK DISKUM v5.0 — Paket Persiapan Demonstrasi Klien (Milestone S06-A R1)
+### Client Demonstration Packet & Stakeholder Presentation Guide (Accuracy & Safety Refinements)
 
 **Sistem:** SIMAK DISKUM v5.0 (*Sistem Informasi Manajemen Agenda Kedinasan*)  
 **Instansi Klien:** Dinas Koperasi dan Usaha Mikro Kota Batam  
-**Target Rilis Produksi:** Firebase Spark Free Tier ($0.00/bulan) — Proyek: `simakdiskum`  
+**Target Rilis Produksi:** Firebase Spark Free Tier ($0.00/bulan) — Proyek: `simakdiskum` (Tunduk pada ketentuan kuota Google Cloud)  
 **Lingkungan Evaluasi / Demonstrasi:** Cloud Staging: `simakdiskum-staging`  
 - **Portal Publik Staging:** [https://simakdiskum-staging.web.app](https://simakdiskum-staging.web.app)  
 - **Portal Admin Staging:** [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app)  
 **Tanggal Dokumen:** 9 November 2026  
-**Status Dokumen:** **PAKET PERSIAPAN RESMI — SIAP UNTUK TINJAUAN PEMILIK PROYEK (OWNER REVIEW)**  
+**Status Dokumen:** **PAKET PERSIAPAN RESMI R1 — REVISI AKURASI & KESELAMATAN (SIAP TINJAUAN PEMILIK PROYEK)**  
 **Penyusun:** Tim Pengembang & Tim Penjaminan Mutu SIMAK DISKUM v5.0  
 
 ---
@@ -23,9 +23,9 @@
    - [Modul 2: Kalender Publik Interaktif & Pencarian Canggih](#modul-2-kalender-publik-interaktif--pencarian-canggih)
    - [Modul 3: Otentikasi Admin & Dashboard Eksekutif](#modul-3-otentikasi-admin--dashboard-eksekutif)
    - [Modul 4: Alur Kerja 4 Tahap Administrasi (Feature F01) & Panel Surat Undangan](#modul-4-alur-kerja-4-tahap-administrasi-feature-f01--panel-surat-undangan)
-   - [Modul 5: Mesin Deteksi Konflik Penjadwalan Otomatis](#modul-5-mesin-deteksi-konflik-penjadwalan-otomatis)
-   - [Modul 6: Manajemen Data Master & Perlindungan Referensial](#modul-6-manajemen-data-master--perlindungan-referensial)
-   - [Modul 7: Paket Ekspor Resmi 8 Kolom (Excel, PNG, PDF A4 Landscape)](#modul-7-paket-ekspor-resmi-8-kolom-excel-png-pdf-a4-landscape)
+   - [Modul 5: Mesin Deteksi Konflik Penjadwalan Otomatis (Simulasi Tanpa Simpan)](#modul-5-mesin-deteksi-konflik-penjadwalan-otomatis-simulasi-tanpa-simpan)
+   - [Modul 6: Manajemen Data Master & Pemaparan Perlindungan Referensial](#modul-6-manajemen-data-master--pemaparan-perlindungan-referensial)
+   - [Modul 7: Paket Ekspor Resmi 8 Kolom (Excel, PNG, PDF A4 Landscape Kompak)](#modul-7-paket-ekspor-resmi-8-kolom-excel-png-pdf-a4-landscape-kompak)
    - [Modul 8: Adaptasi Responsif Multi-Perangkat (Desktop vs Ponsel)](#modul-8-adaptasi-responsif-multi-perangkat-desktop-vs-ponsel)
 5. [Peta Data Demonstrasi (38 Agenda Sintetik Oktober 2026)](#5-peta-data-demonstrasi-38-agenda-sintetik-oktober-2026)
 6. [Protokol Keamanan Tindakan Langsung (Safe Live-Action Protocol)](#6-protokol-keamanan-tindakan-langsung-safe-live-action-protocol)
@@ -46,18 +46,18 @@ flowchart LR
     end
 
     subgraph S06A["Milestone S06-A (Saat Ini)"]
-        Packet["Penyusunan Paket Demonstrasi<br/>(S06_A_CLIENT_DEMONSTRATION_PACKET.md)"]
+        Packet["Penyusunan Paket Demonstrasi R1<br/>(S06_A_CLIENT_DEMONSTRATION_PACKET.md)"]
         Prep["Verifikasi Akun & Lingkungan Staging"]
         Audit["Audit Skrip & Peta Data 38 Agenda"]
     end
 
     subgraph GateA["Gerbang A: Demonstrasi Klien"]
         LiveDemo["Peragaan Langsung di Hadapan Pimpinan Dinas<br/>(Kepala Dinas, Sekretaris, Operator Agenda)"]
-        Feedback["Pengumpulan Umpan Balik & Tinjauan SK"]
+        Feedback["Pengumpulan Umpan Balik & Rekomendasi SK"]
     end
 
     subgraph FutureGates["Gerbang Lanjutan (Terpisah)"]
-        GateB["Gerbang B: Audit Keamanan Pengembang"]
+        GateB["Gerbang B: Audit Keamanan Wire-Level Pengembang"]
         GateC["Gerbang C: Kesiapan Spark & Cadangan"]
         GateD["Gerbang D: Go-Live simakdiskum"]
     end
@@ -76,8 +76,8 @@ flowchart LR
 ### 1.1 Tujuan Utama Demonstrasi
 1. **Memvalidasi Kesesuaian Kebutuhan Kedinasan:** Membuktikan bahwa SIMAK DISKUM v5.0 telah memenuhi seluruh fungsi tata kelola agenda yang tertuang dalam spesifikasi kebutuhan Dinas Koperasi dan Usaha Mikro Kota Batam.
 2. **Memperagakan Transformasi Digital:** Menunjukkan keunggulan operasional sistem dibandingkan alur kerja manual berbasis lembar kerja (*spreadsheet*), terutama dalam deteksi bentrok jadwal, pelaporan otomatis, dan koordinasi antar-bidang.
-3. **Mendapatkan Keputusan Penerimaan Resmi (*Official Acceptance*):** Memperoleh persetujuan pimpinan dinas untuk melanjutkan ke tahapan verifikasi keamanan (Gerbang B) dan kesiapan operasional (Gerbang C) menuju peluncuran produksi mandiri.
-4. **Menetapkan Parameter Pejabat Penandatangan:** Memperoleh konfirmasi definitif mengenai nama pejabat, NIP resmi, pangkat/golongan, dan jabatan untuk dicantumkan pada template laporan dinas 8 kolom.
+3. **Mendapatkan Keputusan Penerimaan Resmi (*Official Acceptance*):** Memperoleh persetujuan pimpinan dinas untuk melanjutkan ke tahapan verifikasi keamanan jaringan pengembang (Gerbang B) dan kesiapan operasional (Gerbang C) menuju peluncuran produksi mandiri.
+4. **Menetapkan Rekomendasi Pejabat Penandatangan:** Mengumpulkan masukan resmi mengenai usulan nama pejabat, NIP resmi, pangkat/golongan, dan jabatan untuk penyiapan template laporan dinas formal di masa mendatang.
 
 ### 1.2 Batasan Lingkungan & Integritas Data
 - **Proyek Produksi (`simakdiskum`):** Tetap berstatus **OFF-LIMITS** (0 mutasi data, 0 build, 0 deployment).
@@ -92,11 +92,11 @@ Sebelum memulai sesi peragaan di hadapan pimpinan dinas, pemapar wajib memastika
 
 | No | Kategori Pemeriksaan | Deskripsi Tindakan Verifikasi | Status |
 |:--:|:---|:---|:---:|
-| 1 | **Konektivitas Cloud Staging** | Pastikan kedua portal aktif dan memberikan respons `HTTP 200 OK`: <br/>- Portal Publik: `curl -I https://simakdiskum-staging.web.app` <br/>- Portal Admin: `curl -I https://simakdiskum-staging-admin.web.app` | [x] READY |
+| 1 | **Konektivitas Cloud Staging** | Pastikan kedua portal aktif dan memberikan respons `HTTP 200 OK`: <br/>- Portal Publik: `curl.exe -I https://simakdiskum-staging.web.app` <br/>- Portal Admin: `curl.exe -I https://simakdiskum-staging-admin.web.app` | [x] READY |
 | 2 | **Integritas Data Baseline** | Buka portal admin dan verifikasi bahwa 38 kegiatan sintetik bulan Oktober 2026 tertera lengkap tanpa ada record yang hilang atau terkorupsi. | [x] READY |
-| 3 | **Koneksi Jaringan Presentasi** | Uji stabilitas koneksi Wi-Fi / LAN ruang rapat. Siapkan *tethering* seluler cadangan untuk mengantisipasi gangguan jaringan lokal. | [ ] VERIFY ON-SITE |
+| 3 | **Koneksi Jaringan Presentasi** | Uji stabilitas koneksi internet ruang rapat. Siapkan *tethering* seluler cadangan untuk mengantisipasi gangguan jaringan lokal. | [ ] VERIFY ON-SITE |
 | 4 | **Perangkat Tampilan & Proyektor** | Hubungkan laptop pemapar ke proyektor / TV ruang rapat. Pastikan resolusi display minimal **1920 × 1080 px** (skala 100%) agar antarmuka desktop 1440px tampil proporsional tanpa zoom paksa. | [ ] VERIFY ON-SITE |
-| 5 | **Perangkat Uji Ponsel (Mobile)** | Siapkan setidaknya 1 unit ponsel pintar (*smartphone*) Android / iOS dengan peramban Chrome / Safari aktif untuk memperagakan tampilan mobile di depan peserta. | [ ] VERIFY ON-SITE |
+| 5 | **Perangkat Uji Ponsel (Mobile)** | Siapkan setidaknya 1 unit ponsel pintar (*smartphone*) Android / iOS dengan peramban Chrome / Safari aktif untuk memperagakan tampilan responsif di depan peserta. | [ ] VERIFY ON-SITE |
 | 6 | **Sesi Peramban Bersih** | Buka peramban laptop dalam jendela reguler untuk portal admin, dan buka jendela anonim (*Incognito / InPrivate*) untuk portal publik guna membuktikan pemisahan hak akses secara nyata. | [ ] READY |
 | 7 | **Cadangan Tangkapan Layar Fisik** | Siapkan folder galeri tangkapan layar beresolusi tinggi (`README.md` screenshots & S04 print artifacts) sebagai mitigasi darurat apabila internet padam total. | [x] READY |
 
@@ -130,9 +130,9 @@ Berikut adalah naskah pemaparan langkah-demi-langkah berdurasi **30–45 menit**
 [05:00 - 10:00] Portal Publik: Kalender Interaktif & Pencarian Canggih (Modul 2)
 [10:00 - 15:00] Portal Administrasi: Otentikasi & Dashboard Eksekutif (Modul 3)
 [15:00 - 23:00] Alur Kerja 4 Tahap Administrasi & Surat Undangan (Modul 4)
-[23:00 - 28:00] Deteksi Konflik Otomatis Ruangan & Personil (Modul 5)
-[28:00 - 33:00] Manajemen Data Master & Perlindungan Referensial (Modul 6)
-[33:00 - 38:00] Paket Ekspor Resmi 8 Kolom: Excel, PNG & Cetak PDF A4 (Modul 7)
+[23:00 - 28:00] Deteksi Konflik Otomatis Ruangan & Personil (Simulasi Tanpa Simpan) (Modul 5)
+[28:00 - 33:00] Manajemen Data Master & Pemaparan Perlindungan Referensial (Modul 6)
+[33:00 - 38:00] Paket Ekspor Resmi 8 Kolom: Excel, PNG & Cetak PDF A4 Kompak (Modul 7)
 [38:00 - 42:00] Pengujian Responsivitas Mobile pada Layar Ponsel (Modul 8)
 [42:00 - 45:00] Penutup, Sesi Tanya Jawab & Pengisian Formulir Evaluasi
 ```
@@ -160,7 +160,7 @@ Berikut adalah naskah pemaparan langkah-demi-langkah berdurasi **30–45 menit**
 
 ### Modul 2: Kalender Publik Interaktif & Pencarian Canggih
 - **Target URL:** [https://simakdiskum-staging.web.app](https://simakdiskum-staging.web.app) (Tab Kalender & Pencarian)
-- **Tujuan Pemaparan:** Memperagakan fleksibilitas navigasi jadwal dan penjaminan batas privasi publik.
+- **Tujuan Pemaparan:** Memperagakan fleksibilitas navigasi jadwal dan penjaminan sanitasi informasi publik.
 - **Langkah Peragaan:**
   1. Klik tab **Kalender Agenda**.
   2. Navigasikan ke bulan **Oktober 2026** di mana 38 agenda baseline tersaji.
@@ -174,12 +174,13 @@ Berikut adalah naskah pemaparan langkah-demi-langkah berdurasi **30–45 menit**
      - Tunjukkan bagaimana kalender secara pintar merentangkan kegiatan selama 3 hari berturut-turut.
   5. Buka kotak dialog **Detail Agenda**:
      - Tunjukkan informasi umum: Hari/Tanggal, Pukul, Tempat, Kategori, Penyelenggara, dan Catatan Publik.
-     - **Tekankan Penjaminan Privasi:** Tunjukkan bahwa modal publik **SAMA SEKALI TIDAK MENAMPILKAN** catatan internal pimpinan, tautan rapat berpassword, atau disposisi surat rahasia.
+     - **Tekankan Sanitasi Antarmuka Publik (*Public UI Sanitization*):** Tunjukkan bahwa antarmuka publik menyajikan ringkasan informasi umum, sementara field internal kedinasan (catatan privat pimpinan, tautan rapat virtual internal berpassword, dan dokumen naskah) secara terstruktur disaring oleh modul proyeksi DTO sehingga tidak dirender pada antarmuka publik.
+     - *Catatan Tata Kelola Teknis:* Sampaikan secara proporsional bahwa pengujian unit logika aturan dan sanitasi UI telah diverifikasi, sedangkan audit transmisi paket data mentah jaringan (*wire-level payload verification*) tanpa otentikasi dijadwalkan secara terpisah pada Gerbang B oleh tim pengembang.
   6. Peragakan fitur **Pencarian Agenda**:
      - Ketik kata kunci *"Halal"* pada kotak pencarian: sistem secara instan menyaring kegiatan fasilitasi sertifikasi halal.
      - Gunakan filter rentang tanggal dengan format standar Indonesia `dd/mm/yyyy`.
 - **Poin Narasi Pemapar:**
-  > *"Masyarakat dapat melihat kalender dalam tampilan bulanan, mingguan, maupun harian. Ketika sebuah kegiatan diklik, sistem hanya menyajikan ringkasan publik yang santun dan relevan. Hal-hal yang bersifat rahasia dinas, seperti disposisi pimpinan atau link rapat berpassword, terisolasi secara otomatis pada layer arsitektur dan tidak akan pernah bocor ke publik."*
+  > *"Masyarakat dapat melihat kalender dalam tampilan bulanan, mingguan, maupun harian. Ketika sebuah kegiatan diklik, sistem menyajikan ringkasan informasi publik yang rapi. Hal-hal yang bersifat internal kedinasan, seperti catatan pendukung internal pimpinan atau tautan rapat privat, disaring oleh sistem sehingga tidak ditampilkan pada halaman publik."*
 
 ---
 
@@ -203,12 +204,12 @@ Berikut adalah naskah pemaparan langkah-demi-langkah berdurasi **30–45 menit**
 
 ### Modul 4: Alur Kerja 4 Tahap Administrasi (Feature F01) & Panel Surat Undangan
 - **Target URL:** [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app) (Menu Agenda)
-- **Tujuan Pemaparan:** Memperagakan siklus hidup administrasi agenda kedinasan sesuai regulasi tata naskah dinas.
-- **Langkah Peragaan:**
+- **Tujuan Pemaparan:** Memperagakan siklus hidup administrasi agenda kedinasan sesuai regulasi tata naskah dinas secara non-destruktif.
+- **Langkah Peragaan (Inspeksi Mode Baca):**
   1. Masuk ke menu **Daftar Agenda**.
   2. Pilih salah satu agenda baseline Oktober 2026 yang berstatus `DETAILS_COMPLETED`, misalnya:
      - `Klinik Konsultasi Akses Pembiayaan KUR bagi Pelaku Usaha Mikro` (13 Oktober 2026).
-  3. Klik tombol **Edit** untuk membuka formulir kegiatan.
+  3. Klik tombol **Edit** untuk membuka formulir kegiatan dalam mode inspeksi.
   4. Tunjukkan bilah kemajuan (*stage progress indicator bar*) yang memperlihatkan 4 tahapan:
      - **Tahap 1: Input Awal (*INITIAL_ENTRY*):** Jadwal baru masuk dari surat atau permohonan luar. Peringatan bersifat persuasif (*non-blocking*).
      - **Tahap 2: Proses Offline (*OFFLINE_PROCESS*):** Agenda sedang dinaikkan nota dinas, menunggu disposisi Kepala Dinas, atau koordinasi internal.
@@ -216,62 +217,64 @@ Berikut adalah naskah pemaparan langkah-demi-langkah berdurasi **30–45 menit**
      - **Tahap 4: Administrasi Lengkap (*ADMIN_COMPLETE*):** Seluruh berkas pendukung, nomor surat undangan/tugas, dan laporan hasil kegiatan telah tuntas.
   5. Sorot **Panel 5: Data Naskah Dinas & Surat Undangan**:
      - Nomor Surat Undangan, Asal Surat/Instansi Pengirim, Tanggal Surat, Perihal Naskah.
-     - Tautan Dokumen Digital Aman (Google Drive internal kantor yang terlindungi).
+     - Tautan Dokumen Digital (Google Drive internal kantor yang terlindungi).
      - Jelaskan bahwa sebelum mencapai Tahap 4, sistem mewajibkan pengisian kelengkapan naskah dinas ini (*strict completion gate*).
-  6. **PENTING:** Klik tombol **Batal / Tutup** formulir tanpa menekan Simpan, untuk menjaga keutuhan data baseline.
+  6. **PENTING (KEUTUHAN DATA BASELINE):** Klik tombol **Batal / Tutup** formulir tanpa menekan Simpan, guna memastikan 38 record baseline tetap utuh.
 - **Poin Narasi Pemapar:**
   > *"Bapak/Ibu, fitur ini adalah keunggulan utama SIMAK DISKUM v5.0. Agenda dinas tidak sekadar dicatat jamnya, tetapi dikawal secara administratif dari saat surat masuk hingga surat tugas terbit. Operator tidak dapat menandai agenda sebagai 'Administrasi Lengkap' jika nomor surat dan bukti penugasan belum diinput ke dalam sistem. Ini mewujudkan tertib administrasi naskah dinas."*
 
 ---
 
-### Modul 5: Mesin Deteksi Konflik Penjadwalan Otomatis
+### Modul 5: Mesin Deteksi Konflik Penjadwalan Otomatis (Simulasi Tanpa Simpan)
 - **Target URL:** [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app) (Menu Agenda -> Tambah Agenda Uji)
-- **Tujuan Pemaparan:** Membuktikan keandalan sistem dalam mencegah insiden tabrakan ruangan rapat dan penugasan personil ganda.
-- **Langkah Peragaan (Gunakan Data Sintetik `[DEMO-LIVE]`):**
+- **Tujuan Pemaparan:** Membuktikan keandalan sistem dalam mencegah insiden tabrakan ruangan rapat dan penugasan personil ganda menggunakan simulasi formulir tanpa memutasi basis data.
+- **Langkah Peragaan (Simulasi Interaktif Unsaved Form):**
   1. Klik tombol **+ Tambah Agenda**.
-  2. Masukkan judul demonstrasi dengan awalan khusus: `[DEMO-LIVE] Uji Coba Simulasi Bentrok Ruangan`.
+  2. Masukkan judul demonstrasi: `[DEMO-LIVE] Simulasi Pengujian Bentrok Ruangan`.
   3. Pilih tanggal yang telah memiliki agenda padat: **2 Oktober 2026**.
   4. Masukkan jam yang bertabrakan dengan agenda `Rapat Evaluasi Realisasi Fisik dan Keuangan` (yang berlangsung pukul 09:00–11:30):
      - Jam Mulai: `10:00`
      - Jam Selesai: `12:00`
   5. Pilih Ruangan: **Ruang Rapat Kadis (Lantai 2)** (`loc_syn_01`).
   6. Pilih Personil yang ditugaskan: **Budi Simulasi, S.Sos** (`emp_syn_01`).
-  7. Klik tombol validasi/simpan:
+  7. Klik tombol simpan/validasi:
      - **Sistem Menampilkan Kotak Peringatan Bentrok (*Conflict Warning Dialog*):**
        - Peringatan 1: *Ruangan "Ruang Rapat Kadis (Lantai 2)" sedang digunakan oleh kegiatan lain pada pukul 09:00–11:30.*
        - Peringatan 2: *Pejabat "Budi Simulasi, S.Sos" telah memiliki penugasan lain pada rentang jam tersebut.*
   8. Tunjukkan prinsip **Interval Berurutan (*Half-Open Interval*)**:
      - Ubah jam mulai menjadi `11:30` (tepat saat rapat pertama selesai).
      - Sistem secara cerdas mengizinkan jadwal tersebut karena acara sebelumnya telah berakhir pada menit tersebut tanpa tumpang tindih.
-  9. **PEMBERSIHAN SEGERA:** Batalkan formulir atau jika sempat tersimpan, hapus record `[DEMO-LIVE]` tersebut seketika di depan hadirin untuk memperagakan fungsi hapus yang aman.
+  9. **TUTUP TANPA SIMPAN:** Klik tombol **Batal** pada formulir untuk membatalkan pendaftaran. Basis data staging tetap 100% bersih tanpa ada penambahan data uji baru.
+  10. *Catatan Prosedural:* Apabila pimpinan dinas secara khusus meminta pembuktian penyimpanan data hidup (*live write*), tindakan tersebut harus disetujui terpisah, wajib menggunakan awalan `[DEMO-LIVE]`, dan record tersebut dihapus setelahnya dengan catatan bahwa jejak log audit atau status riwayat tetap tercatat di sistem backend.
 - **Poin Narasi Pemapar:**
-  > *"Di masa lalu dengan spreadsheet biasa, sering terjadi insiden di mana dua bidang memesan Ruang Rapat Kadis pada jam yang sama, atau Kepala Dinas ditugaskan menghadiri dua acara sekaligus di lokasi berbeda. Di SIMAK DISKUM v5.0, sistem memiliki mesin deteksi bentrok otomatis yang langsung memberikan peringatan dini seketika saat operator menginput jadwal."*
+  > *"Di masa lalu dengan spreadsheet biasa, sering terjadi insiden di mana dua bidang memesan Ruang Rapat Kadis pada jam yang sama, atau Kepala Dinas ditugaskan menghadiri dua acara sekaligus di lokasi berbeda. Di SIMAK DISKUM v5.0, sistem memiliki mesin deteksi bentrok otomatis yang langsung memberikan peringatan dini seketika saat operator mengisi jadwal, bahkan sebelum jadwal tersebut disimpan ke dalam sistem."*
 
 ---
 
-### Modul 6: Manajemen Data Master & Perlindungan Referensial
+### Modul 6: Manajemen Data Master & Pemaparan Perlindungan Referensial
 - **Target URL:** [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app) (Menu Data Master)
-- **Tujuan Pemaparan:** Memperagakan pengelolaan struktur kepegawaian dinas dan perlindungan integritas basis data.
-- **Langkah Peragaan:**
+- **Tujuan Pemaparan:** Memperagakan pengelolaan struktur kepegawaian dinas dan memaparkan arsitektur perlindungan integritas basis data secara murni *read-only*.
+- **Langkah Peragaan (Mode Baca Murni):**
   1. Masuk ke menu **Data Master**.
   2. Tunjukkan struktur **5 Tab Entitas Master**:
-     - *Pegawai:* Nama lengkap, gelar, jabatan, bidang dinas, dan status aktif.
+     - *Pegawai:* Nama lengkap, gelar, jabatan, bidang dinas, dan status keaktifan.
      - *Bidang Bagian:* Sekretariat, Bidang Koperasi, Usaha Mikro, Pengawasan, PLUT.
      - *Ruangan / Lokasi:* Ruang rapat internal (dapat dipesan), aula PLUT, lokasi eksternal kantor, dan link virtual.
      - *Penyelenggara:* Mitra dinas, kementerian, pemko, asosiasi.
      - *Kategori Agenda:* Kode warna visual untuk mempermudah identifikasi di kalender.
-  3. Peragakan **Perlindungan Integritas Referensial (*Referential Safeguard*)**:
-     - Pilih salah satu pegawai yang memiliki banyak penugasan agenda, misalnya `Budi Simulasi, S.Sos`.
-     - Coba lakukan tindakan nonaktifkan atau hapus:
-     - Sistem menolak penghapusan dengan pesan informatif dalam bahasa Indonesia bahwa pegawai tersebut masih terikat pada kegiatan aktif di kalender dinas.
+  3. Tunjukkan bagaimana data master ini terhubung langsung ke formulir penugasan agenda dan filter pencarian.
+  4. **Pemaparan Perlindungan Integritas Referensial (*Referential Safeguard*):**
+     - Jelaskan secara konseptual kepada pimpinan bahwa sistem memiliki pengaman relasi: pegawai, ruangan, atau bidang yang telah memiliki riwayat kegiatan aktif di kalender dinas dilindungi dari tindakan penonaktifan atau penghapusan sembarangan.
+     - **ATURAN KESELAMATAN DEMO:** **JANGAN PERNAH** mengklik tombol hapus atau nonaktifkan pada data master baseline saat presentasi di hadapan klien.
+     - Jelaskan bahwa pembuktian teknis perlindungan referensial ini telah terdokumentasi secara khusus dalam skenario pengujian teknis (`TC-MST-04` pada `docs/S05_EXTERNAL_QA_ACCEPTANCE_CHECKLIST.md`) menggunakan data uji sintetis terisolasi (`[QA-TEST]`) di luar sesi presentasi umum.
 - **Poin Narasi Pemapar:**
-  > *"Seluruh data kepegawaian, daftar ruangan, dan bidang dikelola secara rapi di menu Data Master. Sistem ini juga dilengkapi pelindung referensial: data pegawai atau ruangan yang masih memiliki jadwal tidak dapat dihapus sembarangan. Ini menjamin riwayat agenda dinas masa lalu tidak akan rusak atau hilang datanya."*
+  > *"Seluruh data kepegawaian, daftar ruangan, dan bidang dikelola secara terpusat di menu Data Master. Arsitektur sistem ini juga dirancang dengan pelindung integritas referensial: data master yang masih terikat pada kegiatan agenda tidak dapat dihapus sembarangan, sehingga arsip dan riwayat kedinasan masa lalu tetap terlindungi dan tidak akan rusak."*
 
 ---
 
-### Modul 7: Paket Ekspor Resmi 8 Kolom (Excel, PNG, PDF A4 Landscape)
+### Modul 7: Paket Ekspor Resmi 8 Kolom (Excel, PNG, PDF A4 Landscape Kompak)
 - **Target URL:** [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app) (Menu Laporan)
-- **Tujuan Pemaparan:** Memperagakan penerbitan dokumen laporan jadwal kedinasan resmi sesuai format baku pemerintah.
+- **Tujuan Pemaparan:** Memperagakan penerbitan dokumen laporan jadwal kedinasan resmi sesuai format baku lembar kerja pemerintah.
 - **Langkah Peragaan:**
   1. Masuk ke menu **Laporan Kedinasan**.
   2. Filter periode laporan: Bulan **Oktober 2026** (menampilkan 38 kegiatan).
@@ -286,22 +289,23 @@ Berikut adalah naskah pemaparan langkah-demi-langkah berdurasi **30–45 menit**
   5. **Peragaan 2: Ekspor Gambar Tajam (`.png` / `.jpg`):**
      - Klik tombol **Unduh Gambar (PNG)**.
      - Tunjukkan berkas gambar raster beresolusi tajam siap pakai untuk dibagikan ke grup komunikasi pimpinan (WhatsApp Dinas).
-  6. **Peragaan 3: Cetak Dokumen PDF Resmi A4 Landscape (Standar S04):**
+  6. **Peragaan 3: Cetak Dokumen PDF Resmi A4 Landscape (Format Disetujui S04):**
      - Klik tombol **Cetak Laporan / Simpan PDF**.
      - Buka dialog pratinjau cetak (*Print Preview*) peramban:
-       - **Kompak 3 Halaman:** Tunjukkan bahwa 38 kegiatan bulan Oktober tersusun rapi dalam tepat **3 halaman A4 Landscape** (bukan 9 halaman boros kertas seperti versi awal).
-       - **Pengulangan Header Tabel:** Tunjukkan bahwa baris judul 8 kolom otomatis muncul kembali di bagian atas halaman ke-2 dan ke-3 (`thead { display: table-header-group; }`).
-       - **Nol Kebocoran ID Basis Data:** Seluruh nama ruangan dan penyelenggara tampil resmi (*Ruang Rapat Kadis (Lantai 2)*, bukan kode `loc_syn_01`).
-       - **Penomoran Halaman Dinamis:** Di pojok bawah tertulis rapi: *"Halaman 1 dari 3"*, *"Halaman 2 dari 3"*, *"Halaman 3 dari 3"*.
-       - **Blok Tanda Tangan Resmi:** Di halaman terakhir tertera kolom tanda tangan Kepala Dinas Koperasi dan Usaha Mikro Kota Batam lengkap dengan NIP dan pangkat.
+       - **Kompak Tepat 3 Halaman:** Tunjukkan bahwa 38 kegiatan bulan Oktober tersusun rapi dalam tepat **3 halaman A4 Landscape** (efisiensi tinggi, turun 66.7% dari 9 halaman boros kertas pada versi awal).
+       - **Pengulangan Header Tabel 8 Kolom:** Tunjukkan bahwa baris judul kolom otomatis muncul kembali di bagian atas halaman ke-2 dan ke-3 (`thead { display: table-header-group; }`).
+       - **Nol Kebocoran ID Basis Data:** Seluruh nama ruangan dan penyelenggara tampil resmi secara manusiawi (*Ruang Rapat Kadis (Lantai 2)*, bukan kode teknis `loc_syn_01`).
+       - **Penomoran Halaman Dinamis & Tanda Air Staging:** Di footer bawah tertulis rapi: *"Halaman 1 dari 3"*, *"Halaman 2 dari 3"*, *"Halaman 3 dari 3"* disertai tanda air data simulasi staging.
+       - **Format Lembar Kerja Operasional Baku (Tanpa Kop Surat, Tanpa Logo, Tanpa Kolom Tanda Tangan):** Jelaskan bahwa sesuai format persetujuan Milestone S04, cetakan PDF ini menggunakan judul 3 baris terpusat (`PEMERINTAH KOTA BATAM` / `DINAS KOPERASI DAN USAHA MIKRO` / `AGENDA KEGIATAN KEDINASAN`) tanpa kop surat manual, tanpa logo instansi, dan tanpa blok tanda tangan pejabat, guna menjamin fleksibilitas kompilasi operasional harian.
+       - **Penyempurnaan Template Lanjutan:** Jelaskan secara terbuka bahwa penambahan kop surat resmi dan blok tanda tangan pejabat merupakan penyempurnaan template laporan resmi yang akan diintegrasikan setelah penunjukan pejabat penandatangan definitif melalui evaluasi Gerbang A ini.
 - **Poin Narasi Pemapar:**
-  > *"Bapak/Ibu, format laporan ini telah disesuaikan 100% dengan standar tata kelola dinas. Kami menyediakan tiga pilihan ekspor: Excel murni untuk pengolahan staf, gambar visual untuk sebaran WhatsApp pimpinan, dan cetak PDF A4 Landscape standar arsip. Hasil cetak PDF dirancang sangat hemat dan presisi: 38 kegiatan terangkum rapi dalam 3 lembar kertas saja, lengkap dengan kop dinas dan kolom tanda tangan resmi."*
+  > *"Bapak/Ibu, format laporan cetak saat ini dirancang sebagai lembar kerja operasional yang sangat efisien: 38 agenda satu bulan terangkum rapi dalam 3 lembar A4 Landscape saja, dengan judul terpusat, pengulangan header tabel di setiap lembar, dan bebas kebocoran kode ID database. Format operasional ini disiapkan tanpa kop surat dan tanpa kolom tanda tangan agar fleksibel untuk kebutuhan kompilasi jadwal harian dinas. Setelah pimpinan menetapkan nama pejabat penandatangan resmi, sistem siap menyematkan kop surat dinas dan kolom tanda tangan formal pada pembaruan template mendatang."*
 
 ---
 
 ### Modul 8: Adaptasi Responsif Multi-Perangkat (Desktop vs Ponsel)
 - **Target URL:** [https://simakdiskum-staging.web.app](https://simakdiskum-staging.web.app) & [https://simakdiskum-staging-admin.web.app](https://simakdiskum-staging-admin.web.app)
-- **Tujuan Pemaparan:** Menunjukkan kemudahan akses pimpinan dan staf langsung melalui layar ponsel pintar (*smartphone*).
+- **Tujuan Pemaparan:** Menunjukkan kemudahan akses pimpinan dan staf langsung melalui layar ponsel pintar (*smartphone*) menggunakan peramban web standar.
 - **Langkah Peragaan:**
   1. Tampilkan layar ponsel peraga pada layar proyektor (melalui screen mirroring atau menggunakan mode *Device Emulation* Chrome DevTools pada lebar 390 × 844 px).
   2. Buka Portal Publik pada ponsel:
@@ -312,7 +316,7 @@ Berikut adalah naskah pemaparan langkah-demi-langkah berdurasi **30–45 menit**
      - Buka menu laci samping (*Off-Canvas Mobile Drawer*) menggunakan tombol burger menu di pojok kiri atas.
      - Peragakan tampilan kartu agenda admin dengan tombol aksi *Edit*, *Duplikat*, dan *Hapus* yang nyaman dioperasikan satu tangan.
 - **Poin Narasi Pemapar:**
-  > *"Pimpinan dinas yang sering bertugas di luar kantor dapat membuka SIMAK DISKUM langsung dari ponsel pintar masing-masing tanpa perlu menginstal aplikasi berat dari Play Store. Desainnya otomatis menyesuaikan dengan layar ponsel Bapak/Ibu, tulisannya besar dan jelas, serta tidak perlu menggeser-geser layar ke kanan atau ke kiri."*
+  > *"Pimpinan dinas yang sering bertugas di lapangan dapat membuka SIMAK DISKUM langsung melalui peramban ponsel pintar masing-masing tanpa perlu menginstal aplikasi tambahan. Antarmukanya otomatis beradaptasi dengan ukuran layar ponsel Bapak/Ibu, teks terbaca jelas, dan tata letaknya tidak memerlukan geser layar ke samping."*
 
 ---
 
@@ -324,7 +328,7 @@ Untuk mempermudah pemapar mencari contoh kasus kegiatan saat sesi peragaan berla
 |:--:|:---|:---:|:---|:---|:---:|:---:|:---|
 | 1 | 01/10/2026 | 09:00–11:00 | Koordinasi Awal Penyusunan Laporan Triwulanan | Ruang Rapat Kadis (Lantai 2) | `ADMIN_COMPLETE` | COMPLETED | Pembagian lembar kerja evaluasi triwulan |
 | 2 | 01/10/2026 | 13:30–15:30 | Verifikasi Dokumen Kelayakan Bantuan Modal Usaha Mikro | Ruang Konsultasi Koperasi (Lt 1) | `ADMIN_COMPLETE` | COMPLETED | Pemeriksaan berkas administrasi hibah |
-| 3 | 02/10/2026 | 09:00–11:30 | Rapat Evaluasi Realisasi Fisik dan Keuangan Triwulan III | Ruang Rapat Kadis (Lantai 2) | `ADMIN_COMPLETE` | COMPLETED | **Basis Uji Bentrok Ruangan Modul 5** |
+| 3 | 02/10/2026 | 09:00–11:30 | Rapat Evaluasi Realisasi Fisik dan Keuangan Triwulan III | Ruang Rapat Kadis (Lantai 2) | `ADMIN_COMPLETE` | COMPLETED | **Dasar Kasus Deteksi Bentrok Modul 5** |
 | 4 | 02/10/2026 | 14:00–16:00 | Konsultasi Pengembangan Inkubator Bisnis PLUT | Aula Gedung PLUT-KUMKM Batam | `ADMIN_COMPLETE` | COMPLETED | Program inkubasi wirausaha baru |
 | 5 | 05/10/2026 | 07:30–08:15 | Apel Pagi Kedinasan & Pengarahan Mingguan | Ruang Rapat Kadis (Lantai 2) | `ADMIN_COMPLETE` | COMPLETED | **Kegiatan Berulang (Recurring Series #1)** |
 | 6 | 05/10/2026 | 10:00–12:00 | Rapat Koordinasi Tindak Lanjut Hasil Pengawasan Koperasi | Ruang Konsultasi Koperasi (Lt 1) | `ADMIN_COMPLETE` | COMPLETED | Tindak lanjut rekomendasi audit |
@@ -372,26 +376,27 @@ Guna menjaga integritas dan stabilitas lingkungan peragaan cloud staging, pemapa
                                    |
          +-------------------------+-------------------------+
          |                                                   |
-   [Mode Baca / Inspeksi]                             [Mode Modifikasi Langsung]
+   [Mode Baca / Inspeksi]                             [Simulasi Tanpa Simpan]
          |                                                   |
-  - Buka Detail Agenda                               - Wajib gunakan awalan:
-  - Buka Modal Edit Form                               "[DEMO-LIVE]" atau "[QA-TEST]"
-  - Tinjau Alur 4 Tahap                              - Jangan ubah 38 record baseline!
-  - KLIK "BATAL" / "TUTUP"                           - Langsung HAPUS record demo
-  (Tanpa Simpan -> 100% Aman)                          setelah fungsi berhasil dibuktikan!
+  - Buka Detail Agenda                               - Isi formulir simulasi bentrok
+  - Buka Modal Edit Form                             - Peragakan dialog bentrok instan
+  - Tinjau Alur 4 Tahap                              - Tunjukkan interval half-open
+  - KLIK "BATAL" / "TUTUP"                           - KLIK "BATAL" PADA FORMULIR
+  (Tanpa Simpan -> 100% Aman)                        (Zero Write -> Baseline Utuh)
 ```
 
 1. **Prioritaskan Mode Baca (*Read-Only Inspection*):**
    - Saat memperagakan formulir edit agenda, alur kerja 4 tahap, dan panel surat undangan, pemapar cukup membuka data kegiatan baseline yang ada, menjelaskannya kepada hadirin, lalu menekan tombol **Batal / Tutup**.
    - Hindari menekan tombol *Simpan* pada 38 record baseline agar format aslinya tidak berubah.
-2. **Kaidah Penamaan Data Live (*Naming Rule*):**
-   - Jika pimpinan dinas meminta pembuktian simpan data baru secara langsung di tempat, judul kegiatan **WAJIB** menggunakan awalan:
-     `[DEMO-LIVE] <Judul Kegiatan>` (Contoh: `[DEMO-LIVE] Rapat Koordinasi Khusus Kadis`).
-3. **Pembersihan Seketika (*Immediate Cleanup*):**
-   - Segera setelah simulasi simpan atau bentrok berhasil diperagakan, pemapar langsung mengklik tombol **Hapus** pada record `[DEMO-LIVE]` tersebut.
-   - Tindakan ini sekaligus menjadi demonstrasi positif bahwa sistem memiliki fitur konfirmasi penghapusan data yang aman.
+2. **Simulasi Bentrok Tanpa Simpan (*Unsaved Simulation*):**
+   - Peragaan deteksi bentrok ruangan dan personil pada Modul 5 dilakukan dengan mengisi tanggal dan jam bentrok pada formulir Tambah Agenda, menunjukkan dialog peringatan bentrok yang muncul seketika, dan kemudian menekan tombol **Batal**. Tindakan ini 100% aman dan membuktikan fungsionalitas tanpa memutasi basis data.
+3. **Ketentuan Khusus Jika Live Write Diminta:**
+   - Apabila pemangku kepentingan secara khusus menghendaki pembuktian penyimpanan data hidup (*live write*), tindakan tersebut harus disetujui terpisah dan **WAJIB** menggunakan awalan: `[DEMO-LIVE] <Judul Kegiatan>`.
+   - Record `[DEMO-LIVE]` tersebut segera dihapus setelah pembuktian selesai.
+   - Harap dicatat bahwa penghapusan record di antarmuka tidak serta-merta menghapus jejak dari riwayat log audit (*auditLogs*), sehingga mutasi langsung tetap harus diminimalkan.
 4. **Perlindungan Terhadap Data Master:**
-   - **DILARANG KERAS** menghapus data master (Pegawai, Ruangan, Bidang, Kategori) baseline. Uji proteksi referensial cukup dilakukan dengan mengklik hapus lalu memperlihatkan sistem menolak aksi tersebut.
+   - **DILARANG KERAS** mengklik tombol hapus atau nonaktifkan pada data master (Pegawai, Ruangan, Bidang, Kategori) baseline saat demonstrasi.
+   - Penjelasan proteksi referensial dilakukan secara konseptual. Pengujian referensial dengan record uji `[QA-TEST]` telah dipisahkan ke dalam sesi verifikasi pengembang tersendiri.
 
 ---
 
@@ -422,31 +427,31 @@ node scripts/backupRestore.mjs export ./backups/staging_backup_2026-11-09 --targ
 
 ## 8. Antisipasi Tanya Jawab Pemangku Kepentingan (Stakeholder Q&A)
 
-Berikut adalah panduan jawaban resmi bagi pemapar dalam merespons pertanyaan kritis yang lazim diajukan oleh jajaran pimpinan dan staf dinas:
+Berikut adalah panduan jawaban resmi bagi pemapar dalam merespons pertanyaan kritis yang lazim diajukan oleh jajaran pimpinan dan staf dinas dengan bahasa yang akurat dan proporsional:
 
 #### Q1: "Apakah data catatan rapat rahasia atau link Zoom berpassword bisa dilihat oleh masyarakat di portal publik?"
 > **Jawaban Pemapar:**
-> *"Sama sekali tidak bisa, Bapak/Ibu. SIMAK DISKUM v5.0 menerapkan sistem pengamanan dua lapis. Pertama, pada basis data Cloud Firestore, dokumen publik dipisahkan secara fisik dari dokumen internal. Kedua, pada layer aplikasi terdapat modul sanitasi proyeksi data (Public DTO Projection) yang secara otomatis menghapus catatan privat, link meeting berpassword, dan nomor kontak pribadi sebelum informasi ditampilkan ke portal publik. Bahkan jika seseorang memeriksa lalu lintas data jaringan peramban (wire-level inspection), data rahasia tersebut tidak pernah dikirimkan melalui kabel jaringan."*
+> *"Pada portal publik yang diakses oleh masyarakat umum, sistem menerapkan penyaringan proyeksi data (Public DTO Projection). Catatan privat internal pimpinan dan tautan rapat berpassword disaring oleh modul aplikasi sehingga tidak ditampilkan pada antarmuka publik maupun modal detail kegiatan. Secara teknis, aturan akses keamanan basis data juga telah lulus uji unit otomatis. Untuk membuktikan secara mutlak pada tingkat transmisi paket data jaringan mentah (wire-level payload inspection), tim pengembang telah menjadwalkannya secara khusus pada tahapan audit teknis independen (Milestone S06 Gerbang B) sebelum peluncuran produksi."*
 
 #### Q2: "Apakah staf atau pimpinan harus mengunduh aplikasi di Google Play Store atau App Store?"
 > **Jawaban Pemapar:**
-> *"Tidak perlu, Bapak/Ibu. SIMAK DISKUM v5.0 dirancang sebagai Progressive Web Application modern yang dapat langsung diakses melalui peramban (Chrome, Safari, Edge) di ponsel pintar maupun komputer tanpa perlu proses instalasi yang rumit atau pembaruan aplikasi berkala. Tampilannya otomatis menyesuaikan dengan ukuran layar ponsel dan dapat ditambahkan pintasan layarnya ke Home Screen ponsel."*
+> *"Tidak perlu, Bapak/Ibu. SIMAK DISKUM v5.0 dirancang sebagai aplikasi web berbasis peramban (browser-based responsive web application) yang dapat langsung diakses melalui peramban standar (Chrome, Safari, Edge) di komputer kerja maupun ponsel pintar tanpa perlu mengunduh atau menginstal file aplikasi dari Google Play Store atau App Store. Tampilannya secara otomatis beradaptasi dengan ukuran layar perangkat pengguna."*
 
 #### Q3: "Apakah sistem ini membutuhkan biaya langganan server bulanan dari APBD dinas?"
 > **Jawaban Pemapar:**
-> *"Kabar baiknya adalah Rp0,- (Nol Rupiah). SIMAK DISKUM v5.0 dirancang secara optimal di atas Google Cloud Firebase Spark Plan yang merupakan paket bebas biaya selamanya. Arsitektur aplikasi kami sangat efisien: kuota baca gratis yang disediakan Google adalah 50.000 pembacaan per hari, sedangkan estimasi pemakaian normal dinas hanya berkisar antara 4.000 hingga 8.000 pembacaan per hari (di bawah 16% kuota gratis). Jadi dinas tidak perlu mengeluarkan anggaran sewa VPS atau hosting tahunan."*
+> *"Sistem SIMAK DISKUM v5.0 dirancang untuk beroperasi di atas Google Cloud Firebase Spark Free Tier, yaitu paket penggunaan tanpa biaya bulanan ($0.00/bulan). Paket ini menyediakan kuota harian sebesar 50.000 pembacaan dokumen dan 20.000 penulisan per hari, yang menurut kalkulasi sangat memadai untuk estimasi beban operasional dinas (sekitar 4.000 hingga 8.000 pembacaan per hari). Namun demikian, layanan ini tetap tunduk pada batasan kuota teknis gratis dari Google Cloud serta ketentuan dan penyesuaian kebijakan penyedia layanan cloud di masa mendatang."*
 
 #### Q4: "Bagaimana jika koneksi internet di ruang rapat atau kantor tiba-tiba lambat atau terputus?"
 > **Jawaban Pemapar:**
-> *"Sistem kami dilengkapi mekanisme penanganan galat yang ramah pengguna. Jika koneksi terputus, aplikasi tidak akan crash atau menampilkan layar putih error, melainkan menampilkan pemberitahuan bahwa jaringan sedang menyegarkan. Selain itu, pimpinan atau staf dapat mengunduh jadwal bulanan ke dalam format dokumen Excel (.xlsx) atau PDF sekali unduh di awal pekan, sehingga jadwal tetap dapat dibaca secara offline tanpa koneksi internet."*
+> *"Aplikasi web SIMAK DISKUM memerlukan koneksi internet aktif untuk berkomunikasi dengan basis data Cloud Firestore. Apabila koneksi internet terputus, sistem akan menampilkan pemberitahuan informatif bahwa jaringan sedang menyegarkan. Namun untuk kebutuhan pemantauan jadwal secara offline, pimpinan atau staf dapat mengunduh rekapitulasi jadwal ke dalam format dokumen Excel (.xlsx) atau dokumen cetak PDF A4 Landscape di awal pekan. Dokumen yang telah diunduh tersebut dapat disimpan dan dibaca kapan saja di laptop atau ponsel tanpa memerlukan koneksi internet."*
 
 #### Q5: "Bisakah format laporan cetak 8 kolom disesuaikan jika terjadi pergantian Kepala Dinas atau pejabat penandatangan?"
 > **Jawaban Pemapar:**
-> *"Sangat mudah. Pada portal admin terdapat menu Pengaturan Pejabat Penandatangan. Administrator dinas cukup mengetikkan Nama Pejabat baru, NIP, Pangkat/Golongan, dan Jabatan resmi. Begitu disimpan, seluruh cetakan laporan PDF A4 Landscape dan ekspor Excel otomatis menggunakan nama pimpinan yang baru tanpa perlu membongkar kodingan program."*
+> *"Pada versi aplikasi saat ini, halaman Pengaturan di portal admin berfungsi sebagai spesifikasi informasi standar laporan 8 kolom dan parameter operasional (WIB dan format tanggal). Fitur penyesuaian pejabat penandatangan secara interaktif dan penyematan tanda tangan otomatis pada laporan merupakan kebutuhan lanjutan yang disiapkan untuk diimplementasikan setelah pimpinan dinas secara resmi menetapkan Surat Keputusan (SK) pejabat penandatangan definitif melalui formulir umpan balik pada demonstrasi Gerbang A ini."*
 
 #### Q6: "Bagaimana dengan data agenda dinas bulan-bulan sebelumnya yang masih ada di Excel lama?"
 > **Jawaban Pemapar:**
-> *"Sistem telah memiliki modul migrasi data terstandarisasi. Data dari spreadsheet lama dapat divalidasi, dibersihkan dari duplikasi, dan diimpor secara otomatis ke dalam SIMAK DISKUM dengan tetap menjaga integritas riwayat arsip dinas."*
+> *"Sistem telah memiliki modul migrasi data terstandarisasi. Data dari spreadsheet lama dapat divalidasi, dibersihkan dari duplikasi, dan diimpor ke dalam SIMAK DISKUM dengan tetap menjaga integritas riwayat arsip dinas."*
 
 ---
 
@@ -469,22 +474,22 @@ Formulir evaluasi ini diserahkan kepada pimpinan dan operator dinas pada akhir s
 | No | Kriteria Evaluasi Sistem | Sangat Baik (4) | Baik (3) | Cukup (2) | Kurang (1) | Catatan / Masukan Perbaikan |
 |:--:|:---|:---:|:---:|:---:|:---:|:---|
 | 1 | **Kemudahan Akses & Tampilan Portal Publik** (Identitas Batam, Kalender, Pencarian) | [ ] | [ ] | [ ] | [ ] | |
-| 2 | **Kejelasan Informasi & Penjaminan Privasi** (Catatan rahasia tidak bocor ke publik) | [ ] | [ ] | [ ] | [ ] | |
+| 2 | **Kejelasan Informasi & Sanitasi Data Publik** (Ringkasan publik rapi, data internal disaring) | [ ] | [ ] | [ ] | [ ] | |
 | 3 | **Alur Kerja 4 Tahap Administrasi Agenda** (Input Awal -> Proses Offline -> Detail -> Selesai) | [ ] | [ ] | [ ] | [ ] | |
 | 4 | **Keandalan Deteksi Konflik Jadwal** (Peringatan tabrakan ruangan & personil ganda) | [ ] | [ ] | [ ] | [ ] | |
-| 5 | **Kesesuaian Format Laporan 8 Kolom** (Kesesuaian cetak PDF A4 Landscape 3 halaman & Excel) | [ ] | [ ] | [ ] | [ ] | |
+| 5 | **Kesesuaian Format Laporan 8 Kolom** (Cetak PDF A4 Landscape 3 halaman kompak & Excel) | [ ] | [ ] | [ ] | [ ] | |
 | 6 | **Kenyamanan Akses melalui Layar Ponsel** (Responsif, mudah disentuh, tanpa geser samping) | [ ] | [ ] | [ ] | [ ] | |
 
-#### B. Konfirmasi Pejabat Penandatangan Laporan Kedinasan
-Mohon mengisi identitas pejabat resmi yang berwenang menandatangani laporan rekapitulasi jadwal dinas:
+#### B. Rekomendasi Pejabat Penandatangan Laporan Kedinasan (Usulan SK)
+Mohon mengisi usulan identitas pejabat resmi yang direkomendasikan untuk menandatangani laporan rekapitulasi jadwal dinas pada template resmi mendatang:
 - **Nama Pejabat:** ............................................................................................
 - **NIP Resmi:** ............................................................................................
 - **Pangkat / Golongan:** ............................................................................................
 - **Jabatan Kedinasan:** ............................................................................................
 
 #### C. Rekomendasi Akhir Pimpinan Dinas (Pilih salah satu)
-- [ ] **DISETUJUI PENUH:** Sistem dapat dilanjutkan ke tahapan aktivasi produksi mandiri.
-- [ ] **DISETUJUI DENGAN CATATAN MINOR:** Sistem dapat dilanjutkan setelah perbaikan minor pada catatan di atas diselesaikan.
+- [ ] **DISETUJUI PENUH:** Sistem dapat dilanjutkan ke tahapan audit keamanan dan kesiapan operasional mandiri.
+- [ ] **DISETUJUI DENGAN CATATAN MINOR:** Sistem dapat dilanjutkan setelah catatan evaluasi di atas ditindaklanjuti.
 - [ ] **PERLU DEMONSTRASI ULANG:** Memerlukan penyempurnaan alur kerja sebelum persetujuan rilis.
 
 **Tanda Tangan Pimpinan / Pejabat Evaluator:**
@@ -497,5 +502,5 @@ NIP. .....................................................................
 ---
 
 <div align="center">
-  <sub>SIMAK DISKUM v5.0 — Dokumen Paket Persiapan Demonstrasi Klien (Milestone S06-A).</sub>
+  <sub>SIMAK DISKUM v5.0 — Dokumen Paket Persiapan Demonstrasi Klien (Milestone S06-A R1).</sub>
 </div>
