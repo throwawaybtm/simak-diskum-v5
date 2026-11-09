@@ -1544,3 +1544,91 @@ Milestone S06 plans the official presentation of SIMAK DISKUM v5.0 to municipal 
 - **Production Mutations:** **0 (STRICTLY FORBIDDEN, PRODUCTION UNTOUCHED)**
 - **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
 - **Next Authorized Step:** Project Owner review of `docs/S06_CLIENT_DEMONSTRATION_AND_OPERATIONAL_READINESS_PLAN.md` prior to scheduling Gate A demonstration with Dinas Koperasi dan Usaha Mikro Kota Batam leadership.
+
+---
+
+# Detailed Task Report: Milestone S06-A Client Demonstration Preparation & Presentation Packet
+
+**Task Number:** Milestone S06-A  
+**Title:** Client Demonstration Preparation & Stakeholder Presentation Packet Formulation  
+**Date:** 2026-11-09  
+**Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
+**Status:** Completed & Formally Verified (Presentation Packet Authored, Staging Reachability Confirmed, Authorized Accounts Inspected Safely, 38 Baseline Activities Mapped, Backup Script CLI Discrepancy Audited, Zero Database Mutations)  
+**Deliverable Documents:**
+- `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md` (Client Demonstration Packet & Presentation Guide)
+- `docs/TASK_PROGRESS.md` (Updated Project Ledger)
+- `docs/TASK_REPORT.md` (Updated Detailed Task Reports)
+
+---
+
+## 1. Executive Summary & Objective
+
+Following the project owner's approval to initiate Milestone S06-A, this milestone prepares SIMAK DISKUM v5.0 for a professional client demonstration before the leadership and operational staff of Dinas Koperasi dan Usaha Mikro Kota Batam on the existing Firebase cloud staging environment (`simakdiskum-staging`).
+
+The milestone strictly adheres to the governance boundaries established in S06:
+- Zero mutations to the production project (`simakdiskum` remains 100% untouched).
+- Zero alterations or deletions of the 38 baseline synthetic October 2026 activities on staging.
+- Zero credential disclosures, password resets, or unauthorized account creations.
+- Pure documentation, verification, and presentation engineering scope.
+
+---
+
+## 2. Staging Infrastructure & Authorized Account Verification
+
+1. **Endpoint Reachability Check:**
+   - **Portal Publik Staging:** `https://simakdiskum-staging.web.app` — Verified reachable (`HTTP 200 OK`).
+   - **Portal Admin Staging:** `https://simakdiskum-staging-admin.web.app` — Verified reachable (`HTTP 200 OK`).
+2. **Demonstration Account Verification:**
+   - Inspected active accounts using `scripts/manageRoles.mjs inspect`:
+     - **Primary Demonstration Account:** `riyanbwirawanto@gmail.com` (UID: `31Bin8ErtBaAy3YODaf1SKKymYb2`, Display Name: `Administrator Staging`, Role: `admin`, `emailVerified: true`, `disabled: false`). Designated as the official demonstration account for the project owner and presenter.
+     - **Secondary / QA Account:** `aseppbukga@gmail.com` (UID: `RlFoWs62BVa66jdHjmGrONr1NKP2`, Display Name: `Asep — QA Tester`, Role: `admin`, `emailVerified: true`, `disabled: false`). Available for multi-operator demonstrations if required.
+   - **Credential Security:** Both accounts were verified strictly through non-destructive inspection. No passwords were reset, changed, logged, or exposed in documentation.
+3. **Remote Repository Hygiene:**
+   - Git working tree verified clean and synchronized with `origin/master` at commit `c3b4616`.
+   - Private GitHub repository accessibility verified via unauthenticated HTTP request: returns `HTTP 404 Not Found` (100% private).
+
+---
+
+## 3. Structure of the S06-A Client Demonstration Packet
+
+The newly authored `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md` provides an exhaustive, 9-section operational guide:
+
+1. **Executive Overview & Objectives:** Strategic purpose, participants (Kepala Dinas, Sekretaris Dinas, Kasubbag Umum, Operator Agenda), and decoupled milestone governance context.
+2. **Pre-Demo Technical Checklist:** 7-point preflight verification covering network latency, dual-browser window setup (incognito for public vs authenticated for admin), display/projector scaling (1080p, 100% scale), and smartphone screen mirroring readiness.
+3. **Demonstration Account & Credential Protocol:** Role attribution and strict no-disclosure rules during live projection.
+4. **8-Module Live Presentation Script (30–45 Minute Walkthrough):**
+   - *Module 1: Public Dashboard & Batam Civic Identity* (Barelang banner, metrics, WIB, responsive layout).
+   - *Module 2: Interactive Public Calendar & Search* (Month/Week/Day views, `dd/mm/yyyy` filtering, sanitized public details).
+   - *Module 3: Admin Portal Auth & Executive Dashboard* (Civic login, 6-state RBAC, CSS conic donut chart, stage summary cards).
+   - *Module 4: 4-Stage Administrative Workflow (F01) & Invitation Letters* (`INITIAL_ENTRY` -> `OFFLINE_PROCESS` -> `DETAILS_COMPLETED` -> `ADMIN_COMPLETE` + Panel 5 letter metadata).
+   - *Module 5: Automated Scheduling Conflict Detection* (Room overlap modal, personnel double-booking warning, half-open interval).
+   - *Module 6: Master Data Management & Referential Safeguards* (5 entity tabs, restricted deactivation of referenced entities).
+   - *Module 7: Official 8-Column Schedule Export Suite* (ExcelJS `.xlsx`, PNG/JPG, compact 3-page A4 Landscape PDF with repeating headers and dynamic footer).
+   - *Module 8: Multi-Viewport Responsive Polish* (Desktop 1440px vs Mobile 390px, 44px touch targets, 0px horizontal overflow).
+5. **Demonstration Data Map:** Comprehensive matrix mapping all 38 synthetic October 2026 activities to specific demonstration cases (multi-day bazar, recurring morning apel, open-ended meetings, cancelled events with public notices, and workflow stages).
+6. **Safe Live-Action Protocol:** Rules governing interactive live edits during the demo. Mandates read-only inspection as default, requires explicit `[DEMO-LIVE]` or `[QA-TEST]` prefixes for live creation, and mandates immediate deletion in front of stakeholders to showcase deletion safety without mutating baseline records.
+7. **Backup Script Discrepancy Audit:** In-depth technical analysis of `backupRestore.mjs` regarding CLI help omission and banner display when using `--target=staging`, providing an authoritative workaround and scheduling formal script refinement for Gate C.
+8. **Stakeholder Q&A:** Authoritative answers to 6 critical municipal questions (privacy of internal Zoom/notes, progressive web app vs app stores, $0 Spark cost sustainability, offline resilience, signatory customization, and historical spreadsheet migration).
+9. **Formal Feedback Collection Template:** Structured questionnaire and acceptance form for municipal leadership and operators.
+
+---
+
+## 4. Test Totals & Verification Matrix
+
+| Category | Harness / Suite | Scope | Status | Result |
+|---|---|---|:---:|:---:|
+| **Unit & Integration** | Vitest 3.0 | Business logic, WIB math, conflict, rules, PDF print math | Verified | **227 / 227 Passed (100%)** |
+| **Firestore Security Rules** | Firestore Rules Unit Tests | RBAC, Gate 5A lockstep, maintenance lockdown | Verified | **38 / 38 Passed (100%)** |
+| **Real Browser E2E** | Playwright Chromium | Admin auth, multi-viewport layout, PDF layout verification | Verified | **167+ Executions Passed (100%)** |
+| **External User Testing** | Informal Staging Evaluation | Real-world usability check by voluntary tester Asep | Completed | **Positive Verbal Feedback** |
+| **S06-A Demonstration Packet** | Presentation Guide & Script | 8 modules, 38-activity map, safety protocol, Q&A | Authored | **Ready for Presentation** |
+
+---
+
+## 5. Checkpoint Status
+
+- **Checkpoint:** **S06-A Client Demonstration Packet — Owner Review**
+- **Status:** **COMPLETED & READY FOR PROJECT OWNER REVIEW**
+- **Production Mutations:** **0 (STRICTLY OFF-LIMITS, PRODUCTION UNTOUCHED)**
+- **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
+- **Next Authorized Step:** Project Owner review of `docs/S06_A_CLIENT_DEMONSTRATION_PACKET.md` prior to scheduling the live presentation meeting with Dinas Koperasi dan Usaha Mikro Kota Batam leadership.
