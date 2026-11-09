@@ -3,7 +3,7 @@
 
 **Client:** Dinas Koperasi dan Usaha Mikro Kota Batam  
 **System:** SIMAK DISKUM v5.0 (*Sistem Informasi Manajemen Agenda Kedinasan*)  
-**Verified Git Release Commit:** `cc3a491ec3bdfb6229441b3ddff7d22399846e2e`  
+**Verified Git Release Commit:** `a9bf587a83588ab8c68f40c923316af3683e5ff1`  
 **Target Architecture:** Firebase Multi-site Hosting (`public` & `admin`) on Firebase Spark (Zero-Cost Plan, $0.00/month)  
 **Demonstration Environment:** Cloud Staging (`simakdiskum-staging`)  
 **Production Target:** `simakdiskum` (**STRICTLY OFF-LIMITS — AWAITING FORMAL WRITTEN GO-DECISION**)  
@@ -144,7 +144,7 @@ Before authorizing the Release Engineer to execute Step 1 through Step 8 of the 
 | **5. Master Personnel Roster** | Form B signed by Subbag Kepegawaian | `[ ] YES` |
 | **6. Production Admin Nominated** | Form C filled with official civil servant email | `[ ] YES` |
 | **7. Production Preflight Verification** | Read-only `verifyProductionPreflight.mjs --target=prod` confirms pristine state | `[ ] NOT YET EXECUTED (Scheduled for Deployment Step 3)` |
-| **8. Git Working Tree & Remote** | Repository clean, synchronized with `origin/master` (`cc3a491...`), private (404) | `[X] YES` |
+| **8. Git Working Tree & Remote** | Repository clean, synchronized with `origin/master` (`a9bf587...`), private (404) | `[X] YES` |
 
 ### Formal Go-Decision Statement:
 ```

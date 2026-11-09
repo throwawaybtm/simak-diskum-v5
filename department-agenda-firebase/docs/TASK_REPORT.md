@@ -2166,7 +2166,7 @@ REASON:
 # Milestone S06-D: Final Release Preflight Blocker Correction & Gate A Handoff
 **Date:** November 9, 2026  
 **Status:** **COMPLETED & VERIFIED (FINAL SAFETY CORRECTIONS APPLIED; GATE A HANDOFF READY)**  
-**Verified Git Release Commit:** `cc3a491ec3bdfb6229441b3ddff7d22399846e2e`  
+**Verified Git Release Commit:** `a9bf587a83588ab8c68f40c923316af3683e5ff1`  
 **Target Environments:**
 - Cloud Staging: `simakdiskum-staging` (Live verification reference)
 - Local Emulator Suite: `demo-department-agenda` (Firestore Emulator `8080`, Auth Emulator `9099`)
@@ -2182,7 +2182,7 @@ Milestone S06-D resolves the remaining genuine technical and procedural blockers
 3. **Disaster Recovery Runbook Alignment:** Corrected `docs/BACKUP_RECOVERY_RUNBOOK.md` and `docs/PRODUCTION_READINESS_CHECKLIST.md` to match the real CLI implemented in `scripts/backupRestore.mjs`. Full database restorations strictly require manifest status verification, a mandatory dry-run review (`--dry-run`), followed by `--dry-run-reviewed --force`. Corrected the audit action description to the implemented `MAINTENANCE_RESTORE` behavior.
 4. **45-Minute Client Demonstration Schedule:** Adjusted the demonstration timeline in `docs/GATE_A_CLIENT_ACCEPTANCE_HANDOFF.md` to exactly 45 minutes across all 8 modules (Module 1: 3 min, Module 2: 7 min, Module 3: 5 min, Module 4: 8 min, Module 5: 5 min, Module 6: 4 min, Module 7: 5 min, Module 8: 8 min).
 5. **Preflight Status Calibration:** Marked production database preflight as `NOT YET EXECUTED (Scheduled for Deployment Step 3)` in the Go/No-Go checklist and deployment runbook, rather than claiming passed based on local tests.
-6. **Release Material Reconciliation:** Reconciled Git release commit references to `cc3a491ec3bdfb6229441b3ddff7d22399846e2e`. Preserved the strict distinction between the approved S04 PDF layout (compact 3-page A4 landscape, 8 columns, repeated headers, human-readable names, 0 ID leaks, no letterhead, no signature block) and future post-Gate A signed government report templates.
+6. **Release Material Reconciliation:** Reconciled Git release commit references to `a9bf587a83588ab8c68f40c923316af3683e5ff1`. Preserved the strict distinction between the approved S04 PDF layout (compact 3-page A4 landscape, 8 columns, repeated headers, human-readable names, 0 ID leaks, no letterhead, no signature block) and future post-Gate A signed government report templates.
 7. **Immediate Gate A Handoff Packet:** Authored `docs/GATE_A_CLIENT_ACCEPTANCE_HANDOFF.md` containing staging links, structured 45-min agenda, Berita Acara acceptance template, signatory metadata intake form, personnel roster approval form, production admin nomination form, and Project Owner Go/No-Go checklist.
 
 ---
@@ -2267,7 +2267,7 @@ Only genuine administrative and authorization requirements remain before activat
 
 ## 5. Checkpoint Status
 
-- **Checkpoint:** **FINAL RELEASE PREFLIGHT SAFETY CORRECTED — GATE A HANDOFF READY**
+- **Checkpoint:** **GATE A HANDOFF READY — AWAITING ACTUAL STAKEHOLDER DEMONSTRATION AND ACCEPTANCE**
 - **Status:** **COMPLETED & READY FOR CLIENT PRESENTATION**
 - **Production Mutations:** **0 (STRICTLY OFF-LIMITS, ZERO READS, ZERO WRITES)**
 - **Staging Baseline Mutations:** **0 (38 OCTOBER 2026 ACTIVITIES 100% PRESERVED)**
